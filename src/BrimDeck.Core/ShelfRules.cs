@@ -39,7 +39,7 @@ public static class ShelfRules
     public static readonly RuleField[] FileFields = [RuleField.FileType, RuleField.Extension, RuleField.FileName, RuleField.Folder];
     public static RuleField[] Fields(ShelfSide side) => side == ShelfSide.Clipboard ? ClipFields : FileFields;
 
-    // A condition new in the editor: "内容类型" or "文件类型", nothing picked yet.
+    // A condition new in the editor: "Content type" or "File type", nothing picked yet.
     public static RuleCondition NewCondition(ShelfSide side) => new() { Field = side == ShelfSide.Clipboard ? RuleField.Kind : RuleField.FileType };
 
     public static bool Filled(RuleCondition condition) => condition.Field is RuleField.Kind or RuleField.FileType
@@ -241,7 +241,7 @@ public static class ShelfRules
         FileKind.Audio => Loc.T("音频", "Audio"), _ => Loc.T("代码", "Code")
     };
 
-    // One line for the category's row: each condition said on its own ("图片或链接", "来自 chrome"), joined by "或" or "且".
+    // One line for the category's row: each condition said on its own ("Image or link", "From chrome"), joined by "or" or "and".
     public static string Summary(ShelfRule rule, ShelfSide side)
     {
         var parts = Used(rule, side).Select(Describe).ToList();

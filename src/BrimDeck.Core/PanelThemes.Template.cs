@@ -40,7 +40,7 @@ public static partial class PanelThemes
     // them. The test "A theme made from another starts out identical" guards this.
     public static string FillTemplate(string id, PanelPalette? start = null, string? baseId = null, PanelThemeFile? source = null)
     {
-        // "my-theme-2" is named "我的主题 2", so several new themes can be told apart on their cards; the descriptions start empty.
+        // "my-theme-2" is named " 2", so several new themes can be told apart on their cards; the descriptions start empty.
         string number = Regex.Match(id, @"-(\d+)$") is { Success: true } suffix ? " " + suffix.Groups[1].Value : "";
         var text = Template.Replace($"\"id\": \"{TemplateId}\"", $"\"id\": \"{id}\"", StringComparison.Ordinal)
             .Replace($"\"name\": \"{TemplateName}\"", $"\"name\": \"{TemplateName}{number}\"", StringComparison.Ordinal)

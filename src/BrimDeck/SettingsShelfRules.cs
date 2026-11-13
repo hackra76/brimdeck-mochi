@@ -45,8 +45,8 @@ public partial class SettingsWindow
         block.Foreground = UI.Brush(wrong ? _palette.Negative : TextTertiary);
     }
 
-    // In the row, a small label that says what happens to what is in the category and changes it when clicked: "一直保留" (on)
-    // or "退出时清除" (off, it goes with the history when BrimDeck exits). Both words are laid out, the other hidden, so the label
+    // In the row, a small label that says what happens to what is in the category and changes it when clicked: "" (on)
+    // or "" (off, it goes with the history when BrimDeck exits). Both words are laid out, the other hidden, so the label
     // keeps its width.
     private ToggleButton KeepSwitch(ShelfCategory category)
     {
@@ -66,7 +66,7 @@ public partial class SettingsWindow
     // Every label in that column is this wide and centred in it, so they line up whichever words they show.
     private static double KeepChipWidth => Loc.IsEnglish ? 108 : 86;
 
-    // "常用"'s place in that column: the same label, on, with a lock before the words and paler, and not to be clicked: "常用" is
+    // "Pinned"'s place in that column: the same label, on, with a lock before the words and paler, and not to be clicked: "Pinned" is
     // always kept.
     private FrameworkElement AlwaysKept()
     {

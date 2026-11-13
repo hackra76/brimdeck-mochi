@@ -638,7 +638,7 @@ public sealed partial class SettingsWindow : Window, IKeepsAppFonts
         Target.Children.Add(new Border { Height = 1, Background = UI.Brush(_palette.RowDivider), Margin = new Thickness(0, 20, 0, 0) });
         Target.Children.Add(QuickRow(Loc.T("快捷尺寸", "Quick sizes"), sizes));
     }
-    // A row of quick choices, as "快捷尺寸": labels inside an open row are set lighter than the row's own title.
+    // A row of quick choices, as "": labels inside an open row are set lighter than the row's own title.
     private Grid QuickRow(string title, UniformGrid choices)
     {
         var row = Row(title, SegmentBorder(choices));
@@ -867,7 +867,7 @@ public sealed partial class SettingsWindow : Window, IKeepsAppFonts
         }
     }
 
-    // The color columns fit their headings and help marks: "Warning" and "Critical" need more room than "预警" and "告警".
+    // The color columns fit their headings and help marks: "Warning" and "Critical" need more room than "" and "".
     private static GridLength SwatchColumn => new(Loc.IsEnglish ? 60 : 50);
 
     private static Grid AppColumns()
@@ -1083,7 +1083,7 @@ public sealed partial class SettingsWindow : Window, IKeepsAppFonts
     }
 
     // A saturation/value square with a hue strip, preset swatches and a hexadecimal field. Dragging or typing changes one pending
-    // color shown by every part without closing the popup; "确定" or Enter applies it. A swatch applies its color at once, "默认"
+    // color shown by every part without closing the popup; "" or Enter applies it. A swatch applies its color at once, ""
     // restores the preset value, and a click outside closes the popup without changes.
     // choose receives the new color, or "" for the default; the caller closes the popup.
     private Border ColorPicker(string current, bool isDefault, Action<string> choose, string? resetLabel = null)

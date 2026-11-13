@@ -43,7 +43,7 @@ public static class BatteryModel
 {
     // A rate under this is rounding noise in a battery that is idle; a time computed from a smaller one would run to days.
     public const double RateFloorMilliwatts = 500;
-    // Times past this are not worth saying ("12 天"): the page leaves them out.
+    // Times past this are not worth saying ("12 days"): the page leaves them out.
     public static readonly TimeSpan LongestTime = TimeSpan.FromHours(48);
     // A battery at or above this share on mains is full (laptops stop charging a little short of 100).
     public const double FullPercent = 97;

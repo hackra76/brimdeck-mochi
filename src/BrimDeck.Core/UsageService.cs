@@ -546,7 +546,7 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
     }
 
     // An account that reads several organizations shows them in one row: each organization's quotas carry its name as a group
-    // ("Pro · 5 小时额度", "Team · Fable 每周"), and the panel gives each group pages of its own. A personal subscription comes
+    // ("Pro · 5-hour limit", "Team · Fable weekly"), and the panel gives each group pages of its own. A personal subscription comes
     // before a Team or Enterprise seat. The status is the first organization's that has quotas, and names any that has none.
     private static void MergeClaude(ProviderSnapshot snapshot, List<ClaudeUnit> units)
     {
@@ -1037,7 +1037,7 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         snapshot.StatusLabel = Loc.T("服务暂不可用", "Service unavailable"); snapshot.Status = Loc.T("检测到 Antigravity，但本地用量服务暂不可用", "Antigravity was found, but its local usage service is unavailable.");
     }
 
-    // A ZCode column combines the signed-in account's Coding Plan (the same template as the 智谱 GLM / Z.ai GLM
+    // A ZCode column combines the signed-in account's Coding Plan (the same template as the Z.ai GLM
     // sources), its Start Plan event allowances and ZCode's daily MCP allowance. Each part is shown when available.
     private async Task ReadZCodeAsync(ProviderSnapshot snapshot, DateTimeOffset now, CancellationToken ct)
     {

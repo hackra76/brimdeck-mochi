@@ -28,7 +28,7 @@ public partial class MainWindow
     private Guid? _shelfEdit;
     private readonly HashSet<Guid> _picked = [];
     private Guid? _pickAnchor;
-    // The row that was just pasted: its time reads "已粘贴" on a blue background for a moment.
+    // The row that was just pasted: its time reads "Pasted" on a blue background for a moment.
     private (Guid Id, string Text, long Until)? _flash;
     private DispatcherTimer? _flashTimer;
     // Files dragged over the panel (ShelfDragEnter): the page shown before, to go back to if they are not dropped.
@@ -354,9 +354,9 @@ public partial class MainWindow
         return panel;
     }
 
-    // ---- The column's header: its name, then "全部" and the categories to show, and its buttons ----
-    // The name is a plain title. The filters are text: the one shown is bright and underlined. The clipboard always has "全部" and
-    // "常用"; the file transfer shows its filters only once the user has made a category. Categories are made and changed in the
+    // ---- The column's header: its name, then "All" and the categories to show, and its buttons ----
+    // The name is a plain title. The filters are text: the one shown is bright and underlined. The clipboard always has "All" and
+    // "Pinned"; the file transfer shows its filters only once the user has made a category. Categories are made and changed in the
     // settings, not here.
     private FrameworkElement ColumnHeader(ShelfSide side, double width, ShelfLayout layout)
     {
@@ -364,7 +364,7 @@ public partial class MainWindow
         row.ColumnDefinitions.Add(new ColumnDefinition());
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         string name = side == ShelfSide.Clipboard ? Loc.T("剪贴板", "Clipboard") : Loc.T("文件中转", "File transfer");
-        // The name and the filters, left to right; "分类 ⌄" last takes what room is left, its word trimmed to it.
+        // The name and the filters, left to right; "Category ⌄" last takes what room is left, its word trimmed to it.
         var tabs = new DockPanel { LastChildFill = false, VerticalAlignment = VerticalAlignment.Center };
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, -4, 0) };
         Grid.SetColumn(buttons, 1);
@@ -380,8 +380,8 @@ public partial class MainWindow
         double buttonsWidth = 0;
         if (side == ShelfSide.Clipboard)
         {
-            // "清除" takes away at once what the filter shown holds (Shelf.Clear): in "全部" all that is not kept; in a category of the
-            // user's, its entries, those also in another category only leaving this one. "常用" has none. The button stays while the
+            // "Clear" takes away at once what the filter shown holds (Shelf.Clear): in "All" all that is not kept; in a category of the
+            // user's, its entries, those also in another category only leaving this one. "Pinned" has none. The button stays while the
             // list shows anything, even when all of it is kept and a press takes nothing away.
             if (VisibleClips().Count > 0)
             {
@@ -401,20 +401,20 @@ public partial class MainWindow
         var own = ShelfData.OwnCategories(side).ToList();
         var selected = side == ShelfSide.Clipboard ? _clipTab : _fileTab;
         double titleWidth = TextWidth(name, layout.Title, FontWeights.SemiBold);
-        // "全部" and "常用" always show. The user's categories follow them when they all fit; else they go into one filter with "⌄"
+        // "All" and "Pinned" always show. The user's categories follow them when they all fit; else they go into one filter with "⌄"
         // in the third place.
         bool favorites = categories.Any(category => category.Id == ShelfData.Favorites);
         double fixedWidth = categories.Count == 0 ? 0 : BarWidth + TabWidth(Loc.T("全部", "All"), layout, false) + (favorites ? TabWidth(Loc.T("常用", "Favorites"), layout, false) : 0);
         double ownWidth = own.Sum(category => TabWidth(category.Name, layout, true));
         if (side == ShelfSide.Files)
         {
-            // "清除" as on the clipboard: every file in "全部", a category's files in it (those also in another category only leave
+            // "Clear" as on the clipboard: every file in "All", a category's files in it (those also in another category only leave
             // it); the files themselves stay where they are.
             bool clearable = Shelf.ClearableFiles(ShelfData, _fileTab).Count > 0;
             double clear = clearable ? ClearWidth : 0;
             buttonsWidth = clear;
-            // "拖出全部" (its icon) shows only while there is a file to drag out, and gives way to the filters in a column too narrow for
-            // both "全部 ⌄" and it (each file can still be dragged out on its own).
+            // "Drag all" (its icon) shows only while there is a file to drag out, and gives way to the filters in a column too narrow for
+            // both "All ⌄" and it (each file can still be dragged out on its own).
             if (VisibleFiles().Any(file => ShelfFiles.Exists(file.Path)))
             {
                 double free = width - clear - ButtonsMargin - titleWidth - 8;
@@ -458,10 +458,10 @@ public partial class MainWindow
         return row;
     }
     // The divider between the column's name and its filters, with its margins; the buttons' own margin (4 at the left, -4 at the
-    // right); and "⌄" with the picker's padding, what is left of "分类 ⌄" when its word has no room.
+    // right); and "⌄" with the picker's padding, what is left of "Category ⌄" when its word has no room.
     private const double BarWidth = 13, ButtonsMargin = 0, PickerChrome = 25;
     private double TabWidth(string text, ShelfLayout layout, bool dot) => Math.Min(140, TextWidth(text, layout.Body, FontWeights.Normal)) + 12 + (dot ? 11 : 0);
-    // The user's categories when they do not all fit: "分类 ⌄", or the one shown, underlined, with "⌄". A click lists them.
+    // The user's categories when they do not all fit: "Category ⌄", or the one shown, underlined, with "⌄". A click lists them.
     private Border FilterPicker(ShelfSide side, ShelfCategory? shown, ShelfLayout layout, double labelRoom)
     {
         // The dot at the left, "⌄" at the right, the word between them, trimmed when the header is short of room.
@@ -479,7 +479,7 @@ public partial class MainWindow
         // In the narrowest file column only "⌄" (and the dot of the category shown) is left.
         var label = Label(text, layout.Body, shown is null ? UI.Tertiary : UI.Primary, HorizontalAlignment.Left); label.MaxWidth = 110;
         if (labelRoom >= 16) content.Children.Add(label);
-        // "分类" shows whole or not at all (never "分…"); a category's own long name is trimmed.
+        // "" shows whole or not at all (never "…"); a category's own long name is trimmed.
         if (shown is null)
         {
             double whole = TextWidth(text, layout.Body, FontWeights.Normal);
@@ -507,7 +507,7 @@ public partial class MainWindow
         owner.Unloaded += (_, _) => tip.IsOpen = false;
         return tip;
     }
-    // "清除": a bin, 22 DIP square with 2 at its right; what it clears is said when the pointer rests on it.
+    // "Clear": a bin, 22 DIP square with 2 at its right; what it clears is said when the pointer rests on it.
     private const double ClearWidth = 24;
     private const string BinIcon = "M 2.5,4.5 H 13.5 M 6,4.5 V 3 H 10 V 4.5 M 4,4.5 L 4.7,13.5 H 11.3 L 12,4.5 M 6.8,7 V 11 M 9.2,7 V 11";
     private Border ClearButton(string tip, Action click)
@@ -523,7 +523,7 @@ public partial class MainWindow
         button.MouseRightButtonUp += (_, e) => e.Handled = true;
         return button;
     }
-    // "拖出全部": held and dragged, it takes every file shown here, as copies, to a folder or another application. Its icon is the
+    // "Drag all": held and dragged, it takes every file shown here, as copies, to a folder or another application. Its icon is the
     // four arrows of moving, as the pointer shows over it; what it does is said when the pointer rests on it.
     private const string DragOutIcon = "M 8,1.5 V 14.5 M 1.5,8 H 14.5 M 6,3.5 L 8,1.5 L 10,3.5 M 6,12.5 L 8,14.5 L 10,12.5 M 3.5,6 L 1.5,8 L 3.5,10 M 12.5,6 L 14.5,8 L 12.5,10";
     private const double DragAllWidth = 24;
@@ -573,7 +573,7 @@ public partial class MainWindow
         };
         tab.MouseRightButtonUp += (_, e) => e.Handled = true;
         // Entries dragged from the list onto a category, and files dragged in from the computer onto a file category, go into that
-        // category, staying in the others they are in. "全部" takes only files from the computer.
+        // category, staying in the others they are in. "All" takes only files from the computer.
         tab.DragOver += (_, e) => { e.Effects = TabAccepts(side, id, e.Data) ? DragDropEffects.Copy : DragDropEffects.None; HighlightTab(tab, e.Effects != DragDropEffects.None); e.Handled = true; };
         tab.DragLeave += (_, _) => HighlightTab(tab, false);
         tab.Drop += (_, e) => { e.Handled = true; HighlightTab(tab, false); DropOnTab(side, id, e.Data); };
@@ -637,7 +637,7 @@ public partial class MainWindow
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var content = ClipContent(clip, layout, two);
         grid.Children.Add(content);
-        // In "全部", the categories an entry is in, in their order: a dot in each one's color, a star for "常用", at most three (the
+        // In "All", the categories an entry is in, in their order: a dot in each one's color, a star for "Pinned", at most three (the
         // tip names them all). Under the pointer they give way, as the time does (ShowMore).
         FrameworkElement? mark = null;
         var marked = _clipTab is null ? ShelfData.ClipCategories.Where(c => clip.Categories.Contains(c.Id)).ToList() : [];
@@ -797,7 +797,7 @@ public partial class MainWindow
     }
 
     // The time or size at the end of a row; under the pointer it gives way to "›", which shows the whole entry, and to one more
-    // button at its left (extra): "粘贴为纯文本" on a text, "从文件中转中移除" on a file.
+    // button at its left (extra): "" on a text, "" on a file.
     private Grid AuxSlot(string text, ShelfLayout layout, Action open, bool warn = false, (string Icon, string Note, Action Act)? extra = null)
     {
         var slot = new Grid { VerticalAlignment = VerticalAlignment.Center, MinWidth = 22, Margin = new Thickness(8, 0, 0, 0) };
@@ -807,7 +807,7 @@ public partial class MainWindow
         var chevron = SettingsWindow.Chevron(); chevron.FontSize = 11; chevron.Margin = new Thickness(0); chevron.Foreground = UI.Brush(UI.Secondary);
         chevron.RenderTransform = new RotateTransform(-90);
         // A 22 DIP face; the press is taken over the row's whole height and 36 DIP across, reaching into the row's right padding.
-        // Beside "粘贴为纯文本" both press areas narrow, so the two faces stand 4 DIP apart.
+        // Beside "" both press areas narrow, so the two faces stand 4 DIP apart.
         var detail = RowAction(chevron, extra is null ? 36 : 28, new Thickness(0, 0, 4, 0), layout, open);
         AutomationProperties.SetName(detail, Loc.T("查看详情", "Details"));
         var actions = new StackPanel { Orientation = Orientation.Horizontal };
@@ -1144,7 +1144,7 @@ public partial class MainWindow
             size, Brushes.White, VisualTreeHelper.GetDpi(this).PixelsPerDip);
         return formatted.WidthIncludingTrailingWhitespace;
     }
-    // "常用"'s star: outlined in the menus, filled where it marks an entry.
+    // "Pinned"'s star: outlined in the menus, filled where it marks an entry.
     private const string StarData = "M 8,1.8 L 9.9,5.7 L 14.2,6.3 L 11.1,9.3 L 11.8,13.6 L 8,11.6 L 4.2,13.6 L 4.9,9.3 L 1.8,6.3 L 6.1,5.7 Z";
     private static Path StarGlyph(double size, string color, bool filled) => new()
     {

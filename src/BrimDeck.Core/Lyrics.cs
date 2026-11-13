@@ -87,8 +87,8 @@ public sealed record Lyrics(IReadOnlyList<LyricLine> Lines, bool Synced, string 
         // Plain lyrics have no timing information; retain their order for manual scrolling.
         return new(lines.Select(line => new LyricLine(0, line)).ToArray(), false, source, instrumental);
     }
-    // QQ Music, NetEase and KuGou give a song without words a lyric of only credits ("作曲 : Yiruma") and a notice such as
-    // "纯音乐，请欣赏" or "此歌曲为没有填词的纯音乐，请您欣赏"; such a lyric is the song's mark as instrumental. A notice worded
+    // QQ Music, NetEase and KuGou give a song without words a lyric of only credits (" : Yiruma") and a notice such as
+    // "，" or "，"; such a lyric is the song's mark as instrumental. A notice worded
     // otherwise is not recognised, and its lines are shown as a lyric.
     private static bool InstrumentalNotice(IEnumerable<string> lines)
     {
@@ -221,7 +221,7 @@ public sealed partial class LyricsService : IDisposable
     private static string Str(JsonElement element, string name) => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : "";
     private static double Num(JsonElement element, string name) => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var number) ? number : 0;
     private static string Normalize(string value) => Regex.Replace(value, @"[\s\p{P}\p{S}]", "").ToUpperInvariant();
-    // Apple Music shows names in the storefront's script (李耀陽); the other providers may use another (李耀阳).
+    // Apple Music shows names in the storefront's script (); the other providers may use another ().
     private static string MatchText(MediaTrack track, string value) => Normalize(track.IsAppleMusic ? SimplifyAppleText(value) : value);
     private static bool Matches(MediaTrack track, string title, string artist, double seconds)
         => MatchText(track, track.Title) == MatchText(track, title) && Regex.Split(track.Artist, @"\s*[/、,，&;；]\s*").Where(a => a.Length > 0).All(a => MatchText(track, artist).Contains(MatchText(track, a), StringComparison.Ordinal))

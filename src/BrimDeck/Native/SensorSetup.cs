@@ -12,7 +12,7 @@ using Microsoft.Win32;
 
 namespace BrimDeck.Native;
 
-// Enhanced sensors (the settings page "增强传感器"): the processor's temperature and power read through the PawnIO driver, which
+// Enhanced sensors (the settings page ""): the processor's temperature and power read through the PawnIO driver, which
 // opens only for SYSTEM and administrators. The user installs PawnIO itself (winget, or its own installer); BrimDeck then sets up
 // its sensor service once, with one administrator prompt, and stays a normal process that asks the service for readings
 // (SensorClient). Neither is in BrimDeck's installer: the service is downloaded from this version's GitHub release and must match

@@ -38,7 +38,7 @@ public sealed partial class SettingsWindow
     }
 
     // An info mark (ⓘ). A Border has no automation peer, so a screen reader would find the mark's name and description empty:
-    // this one reads as a button named for its setting ("开机自启动说明") with the description as its help text (AttachSettingHelp),
+    // this one reads as a button named for its setting ("") with the description as its help text (AttachSettingHelp),
     // and invoking it opens or closes the description, as hovering or focusing it does.
     private sealed class HelpMark : Border
     {

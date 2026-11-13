@@ -152,7 +152,7 @@ public sealed record GpuSample(double Usage, Reading<ulong> DedicatedBytes)
     public uint VendorId { get; init; }
     public string? Location { get; init; }
     // In degrees Celsius as Task Manager reads it; null without a sensor. TemperatureFrom names the adapter it was read from
-    // when that is not this one (this adapter has no sensor and another has), and TemperatureKind says its kind ("独显").
+    // when that is not this one (this adapter has no sensor and another has), and TemperatureKind says its kind ("dGPU").
     public double? Temperature { get; init; }
     public string? TemperatureFrom { get; init; }
     public string? TemperatureKind { get; init; }
@@ -166,7 +166,7 @@ public sealed record GpuSample(double Usage, Reading<ulong> DedicatedBytes)
     public string LegacyKey { get; init; } = "";
     public GpuKind Kind { get; init; }
     // A connected adapter without engine readings at the moment (a laptop's discrete GPU asleep, a driver between readings): it
-    // stays listed and choosable, and shows "暂无读数" in place of its figures.
+    // stays listed and choosable, and shows "No readings yet" in place of its figures.
     public bool NoReadings { get; init; }
     public IReadOnlyList<double> History { get; init; } = [];
     public double? DedicatedFraction => DedicatedBytes.TryGet(out var used) && DedicatedTotal is { } total && total > 0 ? Math.Clamp((double)used / total, 0, 1) : null;

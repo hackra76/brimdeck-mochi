@@ -94,7 +94,7 @@ internal static class ShelfFiles
         Icons[path] = icon;
         return icon;
     }
-    // The Explorer's name for the file's type, such as "PNG 文件" or "文件夹".
+    // The Explorer's name for the file's type, such as "PNG " or "".
     public static string TypeName(string path)
     {
         if (Types.TryGetValue(path, out var known)) return known;

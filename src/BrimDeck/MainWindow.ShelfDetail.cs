@@ -421,7 +421,7 @@ public partial class MainWindow
         facts.Add((Loc.T("分类", "Category"), CategoryNames(ShelfSide.Files, file.Categories), target => OpenMenu(CategoryChoices(ShelfSide.Files, [file.Id]), target)));
         return facts;
     }
-    // The categories an entry is in, in their order, or "无".
+    // The categories an entry is in, in their order, or "".
     private string CategoryNames(ShelfSide side, List<Guid> ids) => ShelfData.Categories(side).Where(c => ids.Contains(c.Id)).Select(Shelf.CategoryName).ToList() is { Count: > 0 } names
         ? string.Join(Loc.T("、", ", "), names) : Loc.T("无", "None");
 
@@ -429,7 +429,7 @@ public partial class MainWindow
     {
         var panel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom };
         panel.Children.Add(PillButton(Loc.T("粘贴", "Paste"), true, () => PasteClip(clip)));
-        // Text pastes as plain text from a button of its own beside "粘贴".
+        // Text pastes as plain text from a button of its own beside "".
         if (clip.Kind != ClipKind.Image)
         {
             var plain = PillButton(Loc.T("粘贴为纯文本", "Paste as plain text"), false, () => PasteClip(clip, plain: true)); plain.Margin = new Thickness(6, 0, 0, 0);
@@ -484,7 +484,7 @@ public partial class MainWindow
         foreach (var file in files) _picked.Remove(file.Id);
         _app.Shelf.RemoveFiles(files);
     }
-    // Taking files off the list: "移除" only forgets them; "删除原文件", in red, sends the files themselves to the Recycle Bin
+    // Taking files off the list: "" only forgets them; "", in red, sends the files themselves to the Recycle Bin
     // (so they can be brought back) and forgets them too.
     private void AddRemoval(ContextMenu menu, IReadOnlyList<TransferFile> files)
     {
@@ -602,7 +602,7 @@ public partial class MainWindow
         menu.Items.Add(Item(Loc.T("删除", "Delete"), () => DeleteClips([clip]), MenuIcons.Delete, danger: true));
         return menu;
     }
-    // "加入常用" (or "移出常用") on its own row, and the user's categories, when there are any, in a menu beside it.
+    // "" (or "") on its own row, and the user's categories, when there are any, in a menu beside it.
     private void AddFiling(ContextMenu menu, ClipEntry clip)
     {
         menu.Items.Add(Separator());
@@ -611,7 +611,7 @@ public partial class MainWindow
             () => SetCategory(ShelfSide.Clipboard, [clip.Id], ShelfData.Favorites, add: !favorite), StarData));
         if (FilingMenu(ShelfSide.Clipboard, [clip.Id]) is { } filing) menu.Items.Add(filing);
     }
-    // "加入分类" with the user's categories, or nothing when the user has made none. An entry can be in several: a category all the
+    // "" with the user's categories, or nothing when the user has made none. An entry can be in several: a category all the
     // entries are in is checked, and choosing it takes them out of it; choosing another puts them in it as well.
     private MenuItem? FilingMenu(ShelfSide side, IReadOnlyList<Guid> ids)
     {
@@ -653,8 +653,8 @@ public partial class MainWindow
         AddRemoval(menu, files);
         return menu;
     }
-    // The details' "分类": every category, "常用" too, those the entry is in checked; choosing one puts it in or takes it out.
-    // "无" takes it out of all of them.
+    // The details' "": every category, "Pinned" too, those the entry is in checked; choosing one puts it in or takes it out.
+    // "" takes it out of all of them.
     private ContextMenu CategoryChoices(ShelfSide side, IReadOnlyList<Guid> ids)
     {
         var menu = NewMenu();
@@ -667,7 +667,7 @@ public partial class MainWindow
                 : Item(category.Name, () => SetCategory(side, ids, category.Id, add: !In(category.Id)), check: In(category.Id), dot: category.Color));
         return menu;
     }
-    // The user's categories, with their counts, when they do not fit beside "全部" and "常用".
+    // The user's categories, with their counts, when they do not fit beside "All" and "Pinned".
     private ContextMenu CategoryListMenu(ShelfSide side)
     {
         var menu = NewMenu();

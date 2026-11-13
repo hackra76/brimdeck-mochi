@@ -10,11 +10,11 @@ using BrimDeck.Native;
 
 namespace BrimDeck;
 
-// The clipboard and file transfer's settings, in their own group ("中转站"). The page's size is set with the other pages under
-// "展开外观". "剪贴板": whether the clipboard is recorded (the history stays on this computer, encrypted for the current Windows
-// user, until BrimDeck exits), its categories and the phrases; "文件中转": its categories. The panel only uses the categories and
+// The clipboard and file transfer's settings, in their own group (""). The page's size is set with the other pages under
+// "". "": whether the clipboard is recorded (the history stays on this computer, encrypted for the current Windows
+// user, until BrimDeck exits), its categories and the phrases; "": its categories. The panel only uses the categories and
 // phrases; they are made and changed here, each category with what goes in by itself (SettingsShelfRules) and, on the clipboard,
-// whether what is in it is kept. "文件中转" also sets whether files dragged out are copied or moved.
+// whether what is in it is kept. "" also sets whether files dragged out are copied or moved.
 public partial class SettingsWindow
 {
     internal const int ClipboardSettingsPage = 13, TransferSettingsPage = 14;
@@ -37,7 +37,7 @@ public partial class SettingsWindow
         QuickSizeRow(sizes);
     }
 
-    // ---- 剪贴板 ----
+    // ----  ----
     private void ClipboardSettings()
     {
         WatchShelf();
@@ -98,7 +98,7 @@ public partial class SettingsWindow
         RefreshExcludedApps();
     }
 
-    // ---- 文件中转 ----
+    // ----  ----
     private void TransferSettings()
     {
         WatchShelf();
@@ -168,7 +168,7 @@ public partial class SettingsWindow
         int count = side == ShelfSide.Clipboard ? ShelfData.Clips.Count(clip => clip.Categories.Contains(id)) : ShelfData.Files.Count(file => file.Categories.Contains(id));
         return side == ShelfSide.Clipboard ? Loc.T($"{count} 条", count == 1 ? "1 entry" : $"{count} entries") : Loc.T($"{count} 个", count == 1 ? "1 file" : $"{count} files");
     }
-    // "常用": no handle, no color and no delete; it is always first.
+    // "Pinned": no handle, no color and no delete; it is always first.
     private Grid FavoritesRow()
     {
         var row = CategoryColumns();
@@ -183,7 +183,7 @@ public partial class SettingsWindow
         Grid.SetColumn(count, 5); row.Children.Add(count);
         return row;
     }
-    // Handle, color, name (180 wide), what the category does by itself, "一直保留" (the clipboard's), count, the filter button, delete.
+    // Handle, color, name (180 wide), what the category does by itself, "" (the clipboard's), count, the filter button, delete.
     private const double CategoryNameWidth = 180, KeepColumnWidth = 116;
     private static Grid CategoryColumns()
     {
@@ -241,7 +241,7 @@ public partial class SettingsWindow
         bool open = _openCategory == category.Id;
         var options = CategoryOptionsButton(side, category, open);
         Grid.SetColumn(options, 6); row.Children.Add(options);
-        // Deleting puts the entries only in this category back in "全部", where they go with the history, so it asks first. Entries
+        // Deleting puts the entries only in this category back in "All", where they go with the history, so it asks first. Entries
         // also in another category stay there.
         var remove = GlyphButton("M 0,0 L 8,8 M 8,0 L 0,8", 8, 8, Loc.T("删除 ", "Delete ") + category.Name, () =>
         {
@@ -277,8 +277,8 @@ public partial class SettingsWindow
         ShelfEdited(); ShowPage(_page);
     }
 
-    // Everything in "常用", newest first: what was added from the panel and the phrases written here. Text can be changed in place;
-    // the cross deletes a phrase (it exists only here) and takes anything else out of "常用", back to its other categories or the
+    // Everything in "Pinned", newest first: what was added from the panel and the phrases written here. Text can be changed in place;
+    // the cross deletes a phrase (it exists only here) and takes anything else out of "Pinned", back to its other categories or the
     // history.
     private void FavoritesList()
     {

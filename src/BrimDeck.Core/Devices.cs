@@ -195,7 +195,7 @@ public static class Devices
     // The figure as shown: "85%", or "—" for a device that reports no battery.
     public static string Figure(int? percent) => percent is { } p ? Clamp(p).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%" : "—";
 
-    // A line for the tooltip and the settings: "左 80% · 右 75% · 盒 60% · 充电中 · 蓝牙".
+    // A line for the tooltip and the settings: "Left 80% · Right 75% · Case 60% · Charging · Bluetooth".
     public static string Describe(DeviceBattery device)
     {
         var parts = new List<string>();

@@ -25,7 +25,7 @@ public sealed class ClipEntry
     public DateTimeOffset Copied { get; set; }
     // The application that copied it (process name), shown in the details; empty for a phrase.
     public string Source { get; set; } = "";
-    // The categories it is in, "常用" among them; an entry can be in several.
+    // The categories it is in, "Pinned" among them; an entry can be in several.
     public List<Guid> Categories { get; set; } = [];
     // The first of them, also written for the versions up to 1.3.0-alpha.2, which knew one category per entry and read only this.
     [JsonPropertyName("Category")] public Guid? LegacyCategory { get => Shelf.First(Categories); set => Shelf.AddLegacy(Categories, value); }
@@ -50,7 +50,7 @@ public sealed class ShelfCategory
     public string Name { get; set; } = "";
     // "#RRGGBB", taken from the theme's swatches when the category is made.
     public string Color { get; set; } = "#9CB9FF";
-    // Clipboard only: whether its entries are kept until deleted, or go with the history when BrimDeck exits. "常用" always keeps.
+    // Clipboard only: whether its entries are kept until deleted, or go with the history when BrimDeck exits. "Pinned" always keeps.
     // A category made now starts cleared on exit (AddCategory); one saved before the choice existed has none and stays kept, as
     // every category was then.
     [JsonPropertyName("Keep")] public bool? KeepChosen { get; set; }
@@ -63,7 +63,7 @@ public enum ShelfSide { Clipboard, Files }
 
 public sealed class ShelfData
 {
-    // "常用", the clipboard's own category: always first, never renamed or deleted; the phrases the user writes go there.
+    // "Pinned", the clipboard's own category: always first, never renamed or deleted; the phrases the user writes go there.
     public static readonly Guid Favorites = new("5f1c2b7e-0c4a-4f2e-9a61-3d2f8e1b6c01");
 
     public List<ClipEntry> Clips { get; set; } = [];
@@ -75,7 +75,7 @@ public sealed class ShelfData
     // The categories the user made, which can be renamed, colored, reordered and deleted.
     public IEnumerable<ShelfCategory> OwnCategories(ShelfSide side) => Categories(side).Where(category => category.Id != Favorites);
 
-    // A phrase, and an entry in "常用" or in a category set to keep, stays until the user deletes it; the rest is history, cleared
+    // A phrase, and an entry in "Pinned" or in a category set to keep, stays until the user deletes it; the rest is history, cleared
     // when BrimDeck exits (and when it starts, after an exit that did not clear it).
     public bool Kept(ClipEntry clip) => clip.Manual || clip.Categories.Any(id => id == Favorites || ClipCategories.FirstOrDefault(c => c.Id == id)?.Keep == true);
 
@@ -90,7 +90,7 @@ public sealed class ShelfData
         data.FileCategories = [.. (data.FileCategories ?? []).Where(category => category is not null && category.Id != Favorites)];
         foreach (var category in data.ClipCategories.Concat(data.FileCategories))
             if (category.Rule is { } rule) rule.Conditions = [.. (rule.Conditions ?? []).Where(condition => condition is not null)];
-        // "常用" comes first, also in history saved before it existed, and the phrases written then are in it.
+        // "Pinned" comes first, also in history saved before it existed, and the phrases written then are in it.
         data.ClipCategories.RemoveAll(category => category.Id == Favorites);
         data.ClipCategories.Insert(0, new ShelfCategory { Id = Favorites, Name = "常用" });
         // A category that is gone is dropped from the entries in it; an entry left in none goes back to the whole list.
@@ -192,7 +192,7 @@ public static class Shelf
             string.Create(CultureInfo.InvariantCulture, $"hsl({Math.Round(h)}, {Math.Round(s * 100)}%, {Math.Round(l * 100)}%)"));
     }
 
-    // The first line that has text and how many lines follow it, for the one-line row ("+N 行").
+    // The first line that has text and how many lines follow it, for the one-line row ("+N lines").
     public static (string First, int More) FirstLine(string text)
     {
         var lines = text.Replace("\r\n", "\n").Split('\n');
@@ -224,11 +224,11 @@ public static class Shelf
         return entry;
     }
 
-    // The same for the file transfer, which has no "常用": every file in "全部", a category's files in it. Only the records go; the
+    // The same for the file transfer, which has no "Pinned": every file in "All", a category's files in it. Only the records go; the
     // files themselves stay where they are.
     public static List<TransferFile> ClearableFiles(ShelfData data, Guid? category)
         => data.Files.Where(file => category is not { } id || file.Categories.Contains(id)).ToList();
-    // "清除" in the file transfer: in "全部" every record goes (returned); in a category, the files only in it go and the others leave it.
+    // "Clear" in the file transfer: in "All" every record goes (returned); in a category, the files only in it go and the others leave it.
     public static List<TransferFile> ClearFiles(ShelfData data, Guid? category) => Clear(ClearableFiles(data, category), category, file => file.Categories);
 
     // An entry copied again from the page: it goes to the top as a new copy would, with the time of this copy; it keeps its categories.
@@ -242,15 +242,15 @@ public static class Shelf
     // The history, without what is kept (ShelfData.Kept): cleared when BrimDeck exits.
     public static List<ClipEntry> History(ShelfData data) => data.Clips.Where(clip => !data.Kept(clip)).ToList();
 
-    // What "清除" reaches where it is pressed: in "全部" everything not kept (ShelfData.Kept: phrases, "常用" and the categories set
-    // to keep stay); in one of the user's categories, what is in it. Nothing in "常用".
+    // What "Clear" reaches where it is pressed: in "All" everything not kept (ShelfData.Kept: phrases, "Pinned" and the categories set
+    // to keep stay); in one of the user's categories, what is in it. Nothing in "Pinned".
     public static List<ClipEntry> Clearable(ShelfData data, Guid? category) => category switch
     {
         null => History(data),
         { } id when id == ShelfData.Favorites => [],
         { } id => data.Clips.Where(clip => clip.Categories.Contains(id)).ToList()
     };
-    // "清除" itself: in "全部" all it reaches is deleted (returned). In a category, the entries only in it are deleted; those also in
+    // "Clear" itself: in "All" all it reaches is deleted (returned). In a category, the entries only in it are deleted; those also in
     // another category only leave this one, so clearing one category never takes anything out of another.
     public static List<ClipEntry> Clear(ShelfData data, Guid? category) => Clear(Clearable(data, category), category, clip => clip.Categories);
     private static List<T> Clear<T>(List<T> reached, Guid? category, Func<T, List<Guid>> categories)
@@ -295,7 +295,7 @@ public static class Shelf
         return added;
     }
 
-    // The name shown for a category; "常用" in the language of the interface.
+    // The name shown for a category; "Pinned" in the language of the interface.
     public static string CategoryName(ShelfCategory category) => category.Id == ShelfData.Favorites ? Loc.T("常用", "Favorites") : category.Name;
 
     // A category the user makes goes last, in the next of the colors given (the panel theme's swatches).
@@ -308,7 +308,7 @@ public static class Shelf
         return category;
     }
 
-    // The user's categories in a new order; "常用" stays first, and a category missing from the order keeps its place at the end.
+    // The user's categories in a new order; "Pinned" stays first, and a category missing from the order keeps its place at the end.
     public static void Reorder(ShelfData data, ShelfSide side, IReadOnlyList<Guid> order)
     {
         var categories = data.Categories(side);
@@ -320,7 +320,7 @@ public static class Shelf
         categories.AddRange(sorted);
     }
 
-    // A phrase the user writes goes to the top of "常用".
+    // A phrase the user writes goes to the top of "Pinned".
     public static ClipEntry AddPhrase(ShelfData data, string text, DateTimeOffset now)
     {
         var phrase = new ClipEntry { Kind = Classify(text), Text = text, Manual = true, Copied = now, Categories = [ShelfData.Favorites] };
@@ -358,7 +358,7 @@ public static class Shelf
         return (value < 10 ? value.ToString("0.#", CultureInfo.InvariantCulture) : value.ToString("0", CultureInfo.InvariantCulture)) + " " + units[unit];
     }
 
-    // A time on a row: "刚刚", minutes and hours today, "昨天", then the date.
+    // A time on a row: "Just now", minutes and hours today, "Yesterday", then the date.
     public static string When(DateTimeOffset time, DateTimeOffset now)
     {
         var span = now - time;

@@ -184,10 +184,10 @@ internal static class UI
         int minutes = Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes));
         return Loc.T($"{minutes} 分后", $"in {minutes}m");
     }
-    // "Gemini · 5 小时" → group "Gemini", which orders the quota pages. The group stays in the data's words.
+    // "Gemini · 5 " → group "Gemini", which orders the quota pages. The group stays in the data's words.
     public static string QuotaGroup(Quota quota) => quota.Label.Contains('·') ? quota.Label.Split('·')[0].Trim() : "";
-    // "5 小时额度" → "5 小时"; "Gemini · 5 小时" → "Gemini 5 小时" and "Claude · 每周" → "Claude 每周", written like
-    // Claude's "Opus 每周", so a grouped quota names its group in its own row. The shown label is translated.
+    // "5 " → "5 "; "Gemini · 5 " → "Gemini 5 " and "Claude · " → "Claude ", written like
+    // Claude's "Opus ", so a grouped quota names its group in its own row. The shown label is translated.
     public static string QuotaLabel(Quota quota)
     {
         var period = (quota.Label.Contains('·') ? quota.Label.Split('·')[^1] : quota.Label).Replace("额度", "", StringComparison.Ordinal).Trim();
@@ -202,7 +202,7 @@ internal static class UI
 
 // One line of text set to a given width: the space between its characters grows evenly to fill it, and the glyphs keep their
 // shapes. Captions stacked in a column, such as "Today" over "Week", then start and end on the same vertical lines.
-// Text that already has the width, such as "今日" and "七日", is drawn as it is.
+// Text that already has the width, such as "" and "", is drawn as it is.
 internal sealed class JustifiedText(string text, double size, string color, double width) : FrameworkElement
 {
     private static FormattedText Format(string text, double size, Brush brush, double pixelsPerDip) =>

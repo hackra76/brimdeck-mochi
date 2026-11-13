@@ -100,7 +100,7 @@ public partial class App : Application
         UseLanguage(); UseFont();
         PanelTheme.Use(Settings);
         ScheduleDaylight();
-        // "跟随系统" follows the Windows app theme while BrimDeck runs.
+        // "Follow system" follows the Windows app theme while BrimDeck runs.
         Microsoft.Win32.SystemEvents.UserPreferenceChanged += SystemThemeChanged;
         // The language a first start takes from Windows is kept, even if the display language changes later.
         if (Store.IsFirstStart) FlushSettings();

@@ -209,7 +209,7 @@ internal sealed class MonitorView : Grid
     // few kinds of engine an adapter has always fill it.
     public const double EngineColumn = 1000;
 
-    // The small gauge's widest line with a temperature, "(G) 100 % 独显 105 °C" (the kind only for the graphics adapter, when its
+    // The small gauge's widest line with a temperature, "(G) 100 %  105 °C" (the kind only for the graphics adapter, when its
     // temperature is another adapter's), as FigureGauge lays it out (its dial, the gaps, the figure in the display face, the unit
     // and the detail), so no reading is ever cut.
     private static double SmallLine(MonitorLayout layout, bool gpu)
@@ -276,7 +276,7 @@ internal sealed class MonitorView : Grid
             string switchTo = _nextGpu is { } next ? Loc.T("点击切换到 ", "Click to show ") + GpuChoice.Describe(next.Name, next.Kind) : "";
             if (!cpuMain) _gpuGauge.Button = switchTo.Length > 0 ? Loc.T("切换显卡", "Switch GPU") : null;
             // The adapter's name and its memory are in the tooltip and in the block's line, not spelled out beside the figure. After the
-            // figure: the adapter's kind where there is more than one ("独显"), and its temperature, "独显 · 48 °C"; a temperature read
+            // figure: the adapter's kind where there is more than one ("dGPU"), and its temperature, " · 48 °C"; a temperature read
             // from another adapter (this one has no sensor) carries that adapter's kind instead.
             string kind = several && !cpuMain ? GpuChoice.KindName(gpu.Kind) : "";
             string heatText = temperature.Length > 0 && gpu.TemperatureKind is { } from2 ? from2 + " " + temperature : temperature;

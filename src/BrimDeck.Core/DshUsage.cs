@@ -37,7 +37,7 @@ public static class DshUsage
     // GET /api/v0/users/get_user_summary with the grant in x-dsh-auth-token, as DeepSeek Harness reads it:
     // {code:0, data:{biz_code:0, biz_data:{normal_wallets:[{currency, balance}], bonus_wallets:[{currency, balance}],
     // total_costs:[{currency, amount}]}}}. Amounts are decimal strings with up to 16 places. The platform's web console
-    // shows these as the topped-up balance, the granted balance and the account's total cost ("累计消费金额").
+    // shows these as the topped-up balance, the granted balance and the account's total cost ("Total cost").
     // The two wallets together are the balance /user/balance reports; each is cut to whole cents first, so the two
     // sources show the same amounts.
     public static List<UsageMetric>? Summary(JsonElement root)

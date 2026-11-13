@@ -115,7 +115,7 @@ public sealed partial class SettingsWindow
         var canvas = new Canvas { Width = 24, Height = 24 }; canvas.Children.Add(path);
         return new Viewbox { Width = 12, Height = 12, Child = canvas, IsHitTestVisible = false };
     }
-    // Opens the color picker under the button with the color as it is when clicked; "默认" restores the fallback.
+    // Opens the color picker under the button with the color as it is when clicked; "" restores the fallback.
     private void AttachClockPicker(ButtonBase target, Func<string> current, string fallback, Action<string> apply)
     {
         var popup = new Popup { PlacementTarget = target, Placement = PlacementMode.Bottom, StaysOpen = false, AllowsTransparency = true, VerticalOffset = 4 };
@@ -162,7 +162,7 @@ public sealed partial class SettingsWindow
             int index = i;
             var stop = new Button { Style = (Style)FindResource("SettingsColorButton"), Foreground = UI.Brush(S.ClockGradient[i]), ToolTip = names[i], Margin = new Thickness(i == 0 ? 0 : 4, 0, 0, 0) };
             AutomationProperties.SetName(stop, Loc.T("渐变", "Gradient ") + names[i]);
-            // "默认" restores this stop of the theme's first preset gradient.
+            // "" restores this stop of the theme's first preset gradient.
             var fallback = PanelTheme.Current.ClockGradients[0].Stops[index];
             AttachClockPicker(stop, () => S.ClockGradient[index], fallback, value => { Change(s => s.ClockGradient[index] = value); Refresh(); });
             stops.Add(stop); line.Children.Add(stop);

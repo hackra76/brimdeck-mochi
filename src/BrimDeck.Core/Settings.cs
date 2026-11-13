@@ -506,7 +506,7 @@ public sealed class DeckSettings
     // The music page's current lyric, its color chosen as the equalizer's is (EqualizerColor): White is the theme's primary text color.
     public ClockColor MusicLyricColor { get; set; } = ClockColor.Cover;
     public string MusicLyricCustomColor { get; set; } = ClockColors.DefaultCustom;
-    // Offers "网易云音乐 · 完整控制" in the source menu, or alone in its place when nothing plays.
+    // Offers " · " in the source menu, or alone in its place when nothing plays.
     public bool NeteaseFullControlEntry { get; set; }
     // Restarts a player started the normal way with full control, without asking again; switching it on asks once.
     public bool NeteaseAutoFullControl { get; set; }
@@ -601,7 +601,7 @@ public sealed class DeckSettings
     public ProcessSort MonitorSort { get; set; }
     public MonitorMain MonitorMain { get; set; }
     // The graphics adapter the monitor shows, by its key (GpuSample.Key), and its name to find it by should its ids change and to
-    // name it while it is not connected; null for 自动 (GpuChoice.Auto). Files saved before there was a choice read as 自动.
+    // name it while it is not connected; null for Auto (GpuChoice.Auto). Files saved before there was a choice read as Auto.
     public string? MonitorGpu { get; set; }
     public string? MonitorGpuName { get; set; }
     // Where the graphics adapters' usage comes from, on the page and the collapsed row alike (GpuUsageSource).

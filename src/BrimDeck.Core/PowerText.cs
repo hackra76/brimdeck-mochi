@@ -20,8 +20,8 @@ public static class PowerText
     private static string Quality(PowerSample power) => power.Estimated ? Loc.T("估算", "estimated") : Loc.T("实测", "measured");
     private static string Bracket(string text) => Loc.T("（" + text + "）", " (" + text + ")");
 
-    // Where the whole machine's figure comes from, the tooltip's last line: "电池放电（实测）", or the parts the estimate adds up and what
-    // it leaves out: "CPU + GPU 估算，不含屏幕、硬盘、风扇等".
+    // Where the whole machine's figure comes from, the tooltip's last line: "（）", or the parts the estimate adds up and what
+    // it leaves out: "CPU + GPU ，、、".
     private static string Source(PowerSample power) => power.Source switch
     {
         PowerSource.SystemMeter => Loc.T("整机功率计", "system meter") + Bracket(Loc.T("实测", "measured")),
@@ -33,10 +33,10 @@ public static class PowerText
     public static string NoPower(string reason) => Line(Loc.T("整机功耗", "System power"), "—") + "\n" + Line(Loc.T("原因", "Reason"), reason);
 
     // The power tooltip as a table, a column for the whole machine and one each for the CPU and the GPU where this machine has them:
-    //              整机       CPU       GPU
-    //   当前       42.2 W  ≈  34.3 W  +  7.9 W
-    //   5 分钟内峰值  75.2 W     52.0 W     23.1 W
-    //   5 分钟内均值  46.2 W     38.0 W     8.2 W
+    //                     CPU       GPU
+    //          42.2 W  ≈  34.3 W  +  7.9 W
+    //   5   75.2 W     52.0 W     23.1 W
+    //   5   46.2 W     38.0 W     8.2 W
     // "≈" and "+" join the current row only where the whole machine is the estimate made of these parts. Notes under it: what could not
     // be read, then where the whole machine's figure comes from. Null without a reading (NoPower then).
     public static PowerTable? Table(Reading<PowerSample> power, PowerSummary? whole, PowerTrack cpu, PowerTrack gpu)
@@ -70,13 +70,13 @@ public static class PowerText
         return new PowerTable(columns, rows, sum, notes);
     }
 
-    // What the power line shows, after its unit: "整机", "CPU", "GPU".
+    // What the power line shows, after its unit: "", "CPU", "GPU".
     public static string ViewName(PowerView view) => view switch { PowerView.Cpu => "CPU", PowerView.Gpu => "GPU", _ => Loc.T("整机", "System") };
 
-    // The power line's mean at its right end: "均值 46 W".
+    // The power line's mean at its right end: " 46 W".
     public static string Mean(double watts) => Loc.T("均值 ", "Mean ") + PowerFormat.Compact(watts, 9999) + " W";
 
-    // "放电 23.4 W", "充电 31.0 W", "已接通电源，未在充电", "已充满".
+    // " 23.4 W", " 31.0 W", "，", "".
     public static string State(BatterySample battery) => battery.State switch
     {
         BatteryState.Charging => Loc.T("充电", "Charging") + (battery.HasRate ? " " + Watts(battery.Watts) : ""),
@@ -85,7 +85,7 @@ public static class PowerText
         _ => Loc.T("放电", "Discharging") + (battery.HasRate ? " " + Watts(battery.Watts) : "")
     };
 
-    // After the battery's charge on the page: the time, where there is one ("剩余 1:42", "充满 0:40"); nothing otherwise, since the
+    // After the battery's charge on the page: the time, where there is one (" 1:42", " 0:40"); nothing otherwise, since the
     // charge and the battery's drawing (the plug while on mains) already say full, plugged in or on battery.
     public static string Brief(BatterySample battery) => battery.State switch
     {

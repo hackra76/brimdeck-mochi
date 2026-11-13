@@ -109,8 +109,8 @@ public sealed record QuotaRing(IReadOnlyList<double?> Shares, string Detail)
     public static IReadOnlyList<UsageMetric> Choices(ProviderSnapshot snapshot) => Ordered(snapshot.Metrics.Where(metric =>
         metric.UsedPercent is { } used && double.IsFinite(used) || metric.Kind is MetricKind.Balance or MetricKind.Spend && metric.Amount is not null));
 
-    // The default order of a source's quotas: the account balance first; then a source that groups its quotas ("Gemini · 5 小时",
-    // "Claude · 每周", or one Claude organization's before another's) keeps its groups in its own order, and within a group, as for a
+    // The default order of a source's quotas: the account balance first; then a source that groups its quotas ("Gemini · 5 ",
+    // "Claude · ", or one Claude organization's before another's) keeps its groups in its own order, and within a group, as for a
     // source without groups, the shortest window comes first (five hours, a day, a week, a month) and quotas without a window (tool
     // calls, a key's balance, an amount spent) come last. Quotas that tie keep the source's order, so Claude's week comes before its
     // models' weeks and New API's key balance before today's spending. Antigravity: Gemini's five hours and week, then Claude's five hours.

@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace BrimDeck.Core;
 
-// The interface language. Each text is written as a pair where it is used: Loc.T("中文", "English").
+// The interface language. Each text is written as a pair where it is used: Loc.T("Chinese", "English").
 // Some Chinese labels also serve as identifiers: quota names that are compared, split at "·" and kept with retained
 // quotas, and player names that route commands and lyrics. They stay Chinese in the data and are translated where they
 // are shown, by Label.
@@ -20,7 +20,7 @@ public static class Loc
     // An English count with its noun: "1 item", "2 items".
     public static string Count(long count, string one, string many) => $"{count} {(count == 1 ? one : many)}";
 
-    // The Windows display language decides the language of a first start and of "恢复默认". Every Chinese variant,
+    // The Windows display language decides the language of a first start and of "Reset to default". Every Chinese variant,
     // Traditional included, shows Simplified Chinese; any other language shows English.
     public static string SystemLanguage() => SystemLanguage(CultureInfo.CurrentUICulture);
     public static string SystemLanguage(CultureInfo culture) => culture.TwoLetterISOLanguageName == "zh" ? Chinese : English;

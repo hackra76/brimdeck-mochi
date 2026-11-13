@@ -13,20 +13,20 @@ public static class ProviderScripts
     public static string Example => Loc.IsEnglish ? ExampleEnglish : ExampleChinese;
 
     private const string ExampleChinese = """
-        // 定义 fetchUsage(ctx)，返回数组（必填，至少一项）。每项是一条配额，每页两条，点击翻页。
+        //  fetchUsage(ctx)，（，）。，，。
         async function fetchUsage(ctx) {
-          // ctx.site：站点地址，字符串，未填写时为空。
-          // ctx.secrets.key：API 密钥，字符串，未填写时为空。
-          // ctx.language：界面语言，"zh-CN" 或 "en-US"。
-          // 读取接口：const res = await ctx.http.get(地址, { headers: { ... } }); res.json() 取内容。
+          // ctx.site：，，。
+          // ctx.secrets.key：API ，，。
+          // ctx.language：，"zh-CN"  "en-US"。
+          // ：const res = await ctx.http.get(, { headers: { ... } }); res.json() 。
           return [
             {
-              title: "5 小时",         // 字符串，必填。显示在左上方。
-              percent: 35,             // 数字，选填，0–100。决定进度条长度；达到 70 和 90 时分别使用提示色和告警色，并触发额度提醒。不填或为空时，进度条以主题色画满。
-              value: "$12.50",         // 字符串，选填。显示在 title 下方、进度条上方；不填或为空时不显示。
-              suffix: "已用",          // 字符串，选填。显示在 value 右侧的灰色小字。
-              note: "无上限",          // 字符串，选填。与 title 同一行，靠右显示。
-              resetAt: "2 时 13 分后"  // 字符串，选填。与 value 同一行，靠右显示，位于进度条上方。
+              title: "5 小时",         // ，。。
+              percent: 35,             // ，，0–100。； 70  90 ，。，。
+              value: "$12.50",         // ，。 title 、；。
+              suffix: "已用",          // ，。 value 。
+              note: "无上限",          // ，。 title ，。
+              resetAt: "2 时 13 分后"  // ，。 value ，，。
             }
           ];
         }

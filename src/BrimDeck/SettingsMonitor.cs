@@ -9,14 +9,14 @@ using BrimDeck.Core;
 
 namespace BrimDeck;
 
-// The system monitor's own settings page ("系统监控 › 显示与读数"), as AI usage and music have theirs: how the expanded page looks
-// and what the collapsed notch or capsule shows. The page's size stays with the other pages' sizes under "展开外观", and the
-// switches that show the readings in the notch or the capsule stay under "收起外观 › 显示内容", next to the quota rings.
+// The system monitor's own settings page (" › "), as AI usage and music have theirs: how the expanded page looks
+// and what the collapsed notch or capsule shows. The page's size stays with the other pages' sizes under "", and the
+// switches that show the readings in the notch or the capsule stay under " › ", next to the quota rings.
 public sealed partial class SettingsWindow
 {
     // The colors come first on their own, as they color both the collapsed readings and the expanded page: a color per reading,
     // with ftop's schemes and the panel theme's colors under them as quick presets. Then what the collapsed row shows and how the
-    // expanded page looks, under the music page's "收起时" and "展开时".
+    // expanded page looks, under the music page's "" and "".
     private void MonitorSettings()
     {
         bool syncing = false;
@@ -29,7 +29,7 @@ public sealed partial class SettingsWindow
         foreach (var role in Enum.GetValues<MonitorRole>()) roles.Children.Add(SwatchCell(RoleName(role), RoleHelp(role), () => RoleSwatch(role, Refresh), refresh));
         // Quick presets under the colors, as under the collapsed readings' table: one sets every color, and the one the colors
         // match is lit, else none (the colors are then the user's own). Each is shown by its CPU, memory and GPU colors as the
-        // panel draws them with the panel theme in use. Each segment fits its three dots and "跟随主题" inside its padding; at 97
+        // panel draws them with the panel theme in use. Each segment fits its three dots and "" inside its padding; at 97
         // DIPs the centred content overflowed and lost the first dot's left edge.
         var presets = KeepPreview(new UniformGrid { Columns = 4, Width = 420 });
         foreach (var palette in Enum.GetValues<MonitorPalette>().Where(palette => palette != MonitorPalette.Custom))
@@ -98,7 +98,7 @@ public sealed partial class SettingsWindow
                 "GPU driver: matches nvidia-smi and HWiNFO; Windows is used where the driver gives no reading. Windows: matches Task Manager; choose it when the driver's reading is wrong.")));
     }
 
-    // Under the last row of "展开时": a line in amber for every reading stopped because its driver did not answer (SensorGuard),
+    // Under the last row of "": a line in amber for every reading stopped because its driver did not answer (SensorGuard),
     // with a button that turns it on again. Shown whatever the switches say, until the reading is turned on again; nothing without
     // a stop. Filled again when a reading stops or is turned on (SensorStopsChanged).
     private Action? _refreshStops;
@@ -187,7 +187,7 @@ public sealed partial class SettingsWindow
         finally { _grantingFrames = false; FrameAccessChanged?.Invoke(); }
     }
 
-    // The graphics adapter the monitor shows, on the page and in the collapsed readings alike: 自动, or one of the adapters found,
+    // The graphics adapter the monitor shows, on the page and in the collapsed readings alike: Auto, or one of the adapters found,
     // named with its kind. The adapters are the ones the monitor reads while it runs, else the ones DXGI lists. A chosen adapter
     // that is not connected stays in the list, marked, so the choice can be seen and changed.
     private Grid GpuChoiceRow()
@@ -199,7 +199,7 @@ public sealed partial class SettingsWindow
         // An adapter without readings at the moment stays in the list, marked.
         options.AddRange(found.Select(gpu => ((string?)gpu.Key, gpu.Name, GpuChoice.Describe(gpu.Name, gpu.Kind) + (gpu.NoReadings ? Loc.T("（暂无读数）", " (no reading)") : ""))));
         // The saved card is found as the monitor finds it (GpuChoice.Find): while it is not connected, another card of the same model
-        // is never shown as chosen; the saved one is listed as not connected instead, and the monitor shows 自动 meanwhile.
+        // is never shown as chosen; the saved one is listed as not connected instead, and the monitor shows Auto meanwhile.
         int selected = S.MonitorGpu is not { } saved ? 0 : GpuChoice.Find(found, gpu => (gpu.Key, gpu.LegacyKey, gpu.Name, gpu.Luid), saved, S.MonitorGpuName) is var at and >= 0 ? at + 1 : -1;
         if (selected < 0)
         {
@@ -250,7 +250,7 @@ public sealed partial class SettingsWindow
         settings.MonitorPalette = settings.MonitorCustomColors.Changed ? MonitorPalette.Custom : settings.MonitorCustomColors.Base;
     }
 
-    // A reading's color as the panel draws it. The picker's "默认" returns it to the preset's.
+    // A reading's color as the panel draws it. The picker's "" returns it to the preset's.
     private Button RoleSwatch(MonitorRole role, Action refreshed)
     {
         string? own = S.MonitorPalette == MonitorPalette.Custom ? S.MonitorCustomColors.Get(role) : null;
@@ -269,7 +269,7 @@ public sealed partial class SettingsWindow
         return button;
     }
 
-    // The collapsed readings' color at the warning or critical level, as the panel draws it; "默认" returns it to the panel theme's.
+    // The collapsed readings' color at the warning or critical level, as the panel draws it; "" returns it to the panel theme's.
     private Button LevelSwatch(MemoryLevel level, Action refreshed)
     {
         bool critical = level == MemoryLevel.Critical;
@@ -312,7 +312,7 @@ public sealed partial class SettingsWindow
         _ => null
     };
 
-    // What the collapsed notch or capsule shows when its "系统监控" switch is on: a table of the readings, laid out as the app list
+    // What the collapsed notch or capsule shows when its "" switch is on: a table of the readings, laid out as the app list
     // is (drag handle, the reading's colors from the scheme, switches), CPU, GPU and the drives each with a menu of what they
     // show, with Full and Brief under it as quick presets, then the readings' warning and critical colors; and whether each
     // surface widens to its content.
@@ -433,7 +433,7 @@ public sealed partial class SettingsWindow
             Grid.SetColumn(menu, 2); row.Children.Add(menu);
         }
         // The reading's colors in the normal state as the scheme gives them, one per channel (the core columns: one per kind of
-        // core). They are set under "各项颜色", so they only show here.
+        // core). They are set under "", so they only show here.
         var dots = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Background = Brushes.Transparent,
             ToolTip = Loc.T("颜色在上方“各项颜色”中设置。", "Set under Reading colors above.") };
         var fills = Enumerable.Range(0, CompactMonitor.Channels(item)).Select(channel =>

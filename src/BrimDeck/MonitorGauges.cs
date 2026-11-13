@@ -155,7 +155,7 @@ internal sealed class FigureGauge : FrameworkElement
         }
     }
 
-    // For screen readers: the reading and what it shows after the figure, "CPU 占用 47% · 62 °C", and on the small gauge what a
+    // For screen readers: the reading and what it shows after the figure, "CPU 47% · 62 °C", and on the small gauge what a
     // click does (its Button name, which can change); the tooltip stays the help text.
     protected override AutomationPeer OnCreateAutomationPeer() => new DrawnPeer(this, AutomationControlType.ProgressBar, Spoken,
         () => Clicked?.Invoke(), () => _button, () => _hasShare ? _share.Target : null);
@@ -269,7 +269,7 @@ internal sealed class ColumnGraph : FrameworkElement
     private readonly string _name, _action;
     public event Action? Clicked;
 
-    // name: what the graph shows, for screen readers ("CPU 各核心占用").
+    // name: what the graph shows, for screen readers ("CPU ").
     public ColumnGraph(double maxColumn, double label, bool labels, double gap = 3, string? button = null, string name = "")
     {
         _maxColumn = maxColumn; _label = label; _labels = labels; _gap = gap; _button = button is not null; _name = name; _action = button ?? "";
@@ -301,7 +301,7 @@ internal sealed class ColumnGraph : FrameworkElement
 
     protected override Size MeasureOverride(Size availableSize) => new(0, 0);
 
-    // For screen readers: a list of the columns, each read as its tooltip says ("性能核 3 · 47% · 3.41 GHz"); as a button, the
+    // For screen readers: a list of the columns, each read as its tooltip says (" 3 · 47% · 3.41 GHz"); as a button, the
     // graph's name and what a click does.
     protected override AutomationPeer OnCreateAutomationPeer() => _button
         ? new DrawnPeer(this, AutomationControlType.Button, () => _name + Loc.T("，", ", ") + _action, () => Clicked?.Invoke())
@@ -400,7 +400,7 @@ internal sealed class BlockGauge : FrameworkElement
 
     protected override AutomationPeer OnCreateAutomationPeer() => new DrawnPeer(this, AutomationControlType.Button, Spoken, () => Clicked?.Invoke());
     // For screen readers, named as the block it is, with the memory its line shows, so it never reads the same as the small GPU figure beside the main
-    // gauge that does the same thing (I-02): "GPU 占用块：占用 12% · 显存 18%，切换为以 GPU 为主".
+    // gauge that does the same thing (I-02): "GPU ： 12% ·  18%， GPU ".
     // Without a reading it says what the tooltip says (the adapter has none, and why), never a usage of zero.
     private string Spoken() => MonitorSpeech.GpuBlock(_hasValue ? _value.Target : null, _hasTick ? _tick.Target : null, DrawnPeer.FirstLine(ToolTip), _action);
 
@@ -456,7 +456,7 @@ internal sealed class MemoryBlock : FrameworkElement
         Height = compact ? Math.Ceiling(body * 1.7) : Math.Ceiling(body * 1.7 + 6 + 5 + 5 + 3);
     }
 
-    // For screen readers: "物理内存 63% · 正常", the memory in use as its value.
+    // For screen readers: " 63% · ", the memory in use as its value.
     protected override AutomationPeer OnCreateAutomationPeer() => new DrawnPeer(this, AutomationControlType.ProgressBar, () => DrawnPeer.FirstLine(ToolTip),
         share: () => _memory?.UsedFraction);
 
@@ -550,7 +550,7 @@ internal sealed class NetworkBlock : FrameworkElement
         Height = Math.Ceiling(body * 1.7);
     }
 
-    // For screen readers: "网络 · 下载 1.2 MB/s · 上传 85 KB/s".
+    // For screen readers: " ·  1.2 MB/s ·  85 KB/s".
     protected override AutomationPeer OnCreateAutomationPeer() => new DrawnPeer(this, AutomationControlType.Text, () => Loc.T("网络 · ", "Network · ") + DrawnPeer.FirstLine(ToolTip));
 
     public void Set(Reading<NetworkSample> reading, IReadOnlyList<double> down, IReadOnlyList<double> up)

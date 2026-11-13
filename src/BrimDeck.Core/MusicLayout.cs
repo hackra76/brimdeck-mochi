@@ -41,7 +41,7 @@ public sealed record MusicLayout(MusicMetrics Metrics, double Density, double Bo
     double ModeX, bool ShowFullControl, double FullControlRoom)
 {
     // The entry label shortens step by step to the room right of the transport.
-    // In English the second step keeps the meaning in two words; "En…" in Segoe UI is narrower than "启…".
+    // In English the second step keeps the meaning in two words; "En…" in Segoe UI is narrower than "…".
     public static string[] FullControlLabels => Loc.IsEnglish ? ["Enable full control", "Full control", "Enable…", "En…"] : ["启用完整控制", "启用完整…", "启用…", "启…"];
     // The chrome is 6 padding and a 1 border on each side. The minimum holds the shortest label at the largest (13) type.
     public const double FullControlGap = 8, FullControlChrome = 14, FullControlMinimum = 38;

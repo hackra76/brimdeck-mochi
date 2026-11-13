@@ -1,8 +1,5 @@
 <div align="center">
 
-<a href="README.md"><img src="https://img.shields.io/badge/English-0A84FF?style=for-the-badge" alt="English"></a>
-<a href="README.zh-CN.md"><img src="https://img.shields.io/badge/%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-3A3A3C?style=for-the-badge" alt="简体中文"></a>
-
 <img src="docs/icon.png" width="96" alt="BrimDeck icon">
 
 # BrimDeck - A Dynamic Island for Windows
@@ -14,9 +11,9 @@ A native Windows app built with C# and WPF, designed for performance and smoothn
 [![Download](https://img.shields.io/badge/Download-Windows%2011%20x64-9CB9FF?style=flat-square)](https://github.com/MoFeng2223/BrimDeck/releases/latest)
 [![Latest release](https://img.shields.io/github/v/release/MoFeng2223/BrimDeck?style=flat-square&label=Latest&color=98DBB0)](https://github.com/MoFeng2223/BrimDeck/releases/latest)
 [![License](https://img.shields.io/badge/License-Apache%202.0-E5A385?style=flat-square)](LICENSE)
-![Interface languages](https://img.shields.io/badge/Interface-English%20%7C%20%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-B9A8FF?style=flat-square)
+![Interface language](https://img.shields.io/badge/Interface-English-B9A8FF?style=flat-square)
 
-<p><a href="#features">Features</a> · <a href="#install">Install</a> · <a href="#quick-start">Quick start</a> · <a href="#privacy">Privacy</a> · <a href="#faq">FAQ</a> · <a href="#contributing">Contributing</a> · <a href="README.zh-CN.md">简体中文</a></p>
+<p><a href="#features">Features</a> · <a href="#install">Install</a> · <a href="#quick-start">Quick start</a> · <a href="#privacy">Privacy</a> · <a href="#faq">FAQ</a> · <a href="#contributing">Contributing</a></p>
 
 <img src="docs/en-US/images/hero.png" width="100%" alt="BrimDeck opens from the notch at the top of the screen into the AI usage panel, switches to the music page, the system monitor page, the clipboard and file transfer page and the device batteries page, then collapses">
 

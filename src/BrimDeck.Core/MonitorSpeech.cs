@@ -5,8 +5,8 @@ namespace BrimDeck.Core;
 public static class MonitorSpeech
 {
     // The large GPU block, named as the block it is so it never reads the same as the small GPU figure beside the main gauge that does
-    // the same thing: "GPU 占用块：占用 12% · 显存 18%，切换为以 GPU 为主". usage: 0 to 1, or null while the adapter has no reading,
-    // when it says what the tooltip's first line says (note: "暂无读数：…") and never a usage of zero; vram: the memory line, if drawn.
+    // the same thing: "GPU ： 12% ·  18%， GPU ". usage: 0 to 1, or null while the adapter has no reading,
+    // when it says what the tooltip's first line says (note: "：…") and never a usage of zero; vram: the memory line, if drawn.
     public static string GpuBlock(double? usage, double? vram, string note, string action)
     {
         string head = Loc.T("GPU 占用块：", "GPU block: ");

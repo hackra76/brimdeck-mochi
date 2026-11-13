@@ -7,7 +7,7 @@ using BrimDeck.Core;
 
 namespace BrimDeck;
 
-// "系统监控 › 增强传感器": the processor's temperature and power read through the PawnIO driver (Native.SensorSetup). Two steps,
+// " › ": the processor's temperature and power read through the PawnIO driver (Native.SensorSetup). Two steps,
 // each with its state: PawnIO, which the user installs (winget in a window of its own, or PawnIO's own download), and the sensor
 // service, set up and removed with one administrator prompt each. The states are looked at again whenever the page is shown or the
 // window comes back to the front, so returning from PawnIO's installer shows it installed. Without either, the monitor still reads

@@ -54,7 +54,7 @@ internal sealed class ProcessListView : FrameworkElement
 
     private (int Rows, int Columns) Grid => MonitorLayout.ListGrid(ActualWidth, ActualHeight, _layout.RowHeight);
 
-    // For screen readers: the two sort pills, then each app's row as it shows ("Chrome，CPU 12%，内存 1.2 GB"); invoking a row
+    // For screen readers: the two sort pills, then each app's row as it shows ("Chrome，CPU 12%， 1.2 GB"); invoking a row
     // opens its card, as a click does.
     protected override AutomationPeer OnCreateAutomationPeer() => new DrawnPeer(this, AutomationControlType.List, () => Loc.T("进程列表", "Process list"), parts: Parts);
     private IEnumerable<DrawnPart> Parts()

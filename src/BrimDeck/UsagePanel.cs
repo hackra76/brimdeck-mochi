@@ -50,7 +50,7 @@ public partial class MainWindow
             _ => new(tier, 12, 15, 10.5, 10, 10, 9.5, 9.5, 18, 13, 4, 2, 3, 8, 28, 0, 0, 10, false, false)
         };
         // Totals row: a fixed caption column keeps the token figures of both rows on one vertical line.
-        // Wide enough for "今日" and "七日", or for "Today" and "Week".
+        // Wide enough for "" and "", or for "Today" and "Week".
         public double CaptionWidth => Math.Ceiling(Foot * (Loc.IsEnglish ? 3.7 : 2.7));
         // A single column wider than 480 DIP lays its quotas side by side with larger numbers.
         public Layout Wide() => this with
@@ -278,10 +278,10 @@ public partial class MainWindow
     {
         const int capacity = 2;
         var quotas = snapshot.Metrics.OrderBy(x => x.Window is > 0 ? x.Window.Value : int.MaxValue).ToList();
-        // Antigravity labels its quotas "Gemini · 5 小时", "Claude · 每周" and so on. Each group starts its own page, Gemini first,
+        // Antigravity labels its quotas "Gemini · 5 ", "Claude · " and so on. Each group starts its own page, Gemini first,
         // so the first page shows rows 1 and 2 (Gemini) and a click on the column shows rows 3 and 4 (Claude), the same rows and
         // click-to-page as any other app with more than two quotas. Labels without a group come last.
-        // Claude groups by organization when an account reads several ("Pro · 5 小时额度", "Team · 每周额度"): each organization
+        // Claude groups by organization when an account reads several ("Pro · 5-hour limit", "Team · "): each organization
         // starts its own page, in the order the service gave them, so Pro's 5-hour and weekly quotas come first, then its Fable
         // quota, then Team's.
         string Group(UsageMetric metric) => UI.QuotaGroup(new Quota(metric.Label, 0, null));
@@ -565,7 +565,7 @@ public partial class MainWindow
     // slot is the quota's place in its column: a bar keeps its place's last share (QuotaBar), so a new reading eases the same bar
     // and a quota page flip eases each bar from the quota it replaces, as the monitor page's values move.
     // remaining (DeckSettings.QuotaRingRemaining): a quota with a share shows what is left: the bar's length, a percentage as the big
-    // number ("58% 剩余") and the share at the label's right; an amount (a balance, an amount spent) keeps its figure. The colors
+    // number ("58% ") and the share at the label's right; an amount (a balance, an amount spent) keeps its figure. The colors
     // still follow the used share, so warning and critical mean the same either way.
     private static Grid QuotaBlock(AppEntry entry, UsageMetric quota, Layout layout, int slot, bool remaining = false)
     {
@@ -606,7 +606,7 @@ public partial class MainWindow
         var countText = CountLabel(quota);
         var sideText = countText.Length > 0 ? countText : quota.Kind is MetricKind.Balance or MetricKind.Spend && quota.UsedPercent is { } percent
             ? left ? Loc.T($"{100 - used:0.#}% 剩余", $"{100 - used:0.#}% left") : Loc.T($"{Math.Max(0, percent):0.#}% 已用", $"{Math.Max(0, percent):0.#}% used") : quota.Unlimited ? Loc.T("无上限", "No limit") : "";
-        // Times sit beside the number, next to the track; shares, counts and "无上限" sit at the label's right.
+        // Times sit beside the number, next to the track; shares, counts and "" sit at the label's right.
         // A quota with both a reset and an expiry keeps the reset below and moves the expiry up.
         bool expiryAbove = resetText.Length > 0 && expiryText.Length > 0;
         // A custom item places its own strings in the same two spots.
@@ -681,7 +681,7 @@ public partial class MainWindow
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = grouped ? GridLength.Auto : new GridLength(1, GridUnitType.Star) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
-        // Captions end on one vertical line, so "今日" and "七日" stack cleanly and both figures start at the same distance.
+        // Captions end on one vertical line, so "" and "" stack cleanly and both figures start at the same distance.
         var caption = new JustifiedText(label, layout.Foot, UI.Tertiary, captionWidth)
         { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
         row.Children.Add(caption);

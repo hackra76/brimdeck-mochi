@@ -238,7 +238,7 @@ public static class Razer
 // The 2.4 GHz mice of the Chinese brands, each a frame on a vendor collection.
 public static class Dongles
 {
-    // AULA (狼蛛) keyboards on their 2.4 GHz receiver (VID 0x3554, the F87 PRO's 0xFA09, usage page 0xFF02, usage 0x0002,
+    // AULA (Tarantula) keyboards on their 2.4 GHz receiver (VID 0x3554, the F87 PRO's 0xFA09, usage page 0xFF02, usage 0x0002,
     // report id 0x13, 20 bytes): [report id, command, 0x01, 0x00, zeros, checksum], the checksum the low byte of the sum of the
     // nineteen bytes before it. These are the frames the AULA F87 PRO software writes, read from its HID sessions. Command 0x05
     // asks for the receiver's state; the receiver answers with an 0x0A report: [0x13, 0x0A, 0x01, 0x00, length (4), source

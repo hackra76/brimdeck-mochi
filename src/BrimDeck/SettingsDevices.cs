@@ -12,7 +12,7 @@ namespace BrimDeck;
 // what order), the level at which a battery shows as low, and the list of devices, read while this page is open: each with a
 // handle to reorder it, its name (click to rename it) and where it shows, in the collapsed row and on the page. A device the
 // user changed anything for is remembered (DeviceLists.Remember) and stays listed, dimmed, while it is not connected, with a
-// button to forget it. Whether the page shows, and its size, are set with the other pages under 展开外观.
+// button to forget it. Whether the page shows, and its size, are set with the other pages under .
 public partial class SettingsWindow
 {
     private const int DevicesSettingsPage = 12;
@@ -33,7 +33,7 @@ public partial class SettingsWindow
         }
         Target.Children.Add(holder);
 
-        // Whether the notch and the capsule show the devices is set with their other parts (收起外观 › 显示内容).
+        // Whether the notch and the capsule show the devices is set with their other parts ( › ).
         SectionTitle(Loc.T("收起时", "When collapsed"));
         _devicePreview = new Border { Height = 96, CornerRadius = new CornerRadius(8), Background = UI.Brush(Inset), BorderBrush = UI.Brush(Divider), BorderThickness = new Thickness(1),
             Margin = new Thickness(0, 0, 0, 12) };
@@ -239,7 +239,7 @@ public partial class SettingsWindow
             Grid.SetColumn(toggle, column); row.Children.Add(toggle);
             return toggle;
         }
-        // The device's four colors; "默认" returns one to the default (DeviceInks).
+        // The device's four colors; "" returns one to the default (DeviceInks).
         var colors = MonitorThemeColors.For(S);
         void Swatch(string label, string? own, string standard, Action<DeviceChoice, string?> set, int column)
         {

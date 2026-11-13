@@ -10,7 +10,7 @@ using BrimDeck.Core;
 
 namespace BrimDeck;
 
-// The "面板主题" page: the basic themes, the built-in extensions, and the user's own themes (the files in the themes folder),
+// The "" page: the basic themes, the built-in extensions, and the user's own themes (the files in the themes folder),
 // which can be opened or deleted here. Each card shows the collapsed capsule in its theme, as the collapsed view's style cards
 // do: a fixed miniature that does not follow later changes to the panel. Choosing a card applies it at once and holds the panel
 // open as a preview; what the user changed under the theme being left is kept for it (ThemeChoices). While the page is shown,
@@ -27,7 +27,7 @@ public sealed partial class SettingsWindow
     // Set when the folder needs no new read for this rebuild: the theme changed without the page, or the page just read it.
     // Saved files are covered by the watcher, and the Reload button reads it again.
     private bool _themesFresh;
-    // The "当前主题" section, replaced alone when a card is chosen.
+    // The "" section, replaced alone when a card is chosen.
     private StackPanel? _themeDetails;
     // Each card's miniature, kept while its palette stays the same; a file theme gets a new palette each time it is read.
     private readonly Dictionary<(string Card, string Language), (PanelPalette Palette, FrameworkElement Preview)> _themePreviews = [];
@@ -147,7 +147,7 @@ public sealed partial class SettingsWindow
         if (!theme.BuiltIn)
         {
             if (theme.File.Author.Length > 0) rows.Add(Row(Loc.T("作者", "Author"), TextLine(theme.File.Author, 12, TextSecondary)));
-            if (theme.File.Homepage.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) rows.Add(Row(Loc.T("来源", "Source"), Link(Loc.T("主页 ↗", "Homepage ↗"), theme.File.Homepage)));
+            if (theme.File.Homepage.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) rows.Add(Row(Loc.T("", "Source"), Link(Loc.T(" ↗", "Homepage ↗"), theme.File.Homepage)));
         }
         if (theme.Path is { } path)
         {

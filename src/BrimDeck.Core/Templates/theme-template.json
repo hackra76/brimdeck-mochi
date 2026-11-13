@@ -1,6 +1,6 @@
 {
   // BrimDeck panel theme template (format 1). Save the file in the themes folder (Settings › Panel theme › Open themes folder;
-  // 设置 › 面板主题 › 打开主题文件夹), then choose it. While that page is open, saving reloads the theme ("Reload" / "重新加载"
+  // Settings › Panel theme › Open theme folder), then choose it. While that page is open, saving reloads the theme ("Reload" / "Reload"
   // does so by hand). Comments like this one are allowed; delete any line you do not need: whatever is left out comes from the
   // base theme. Colors are "#RRGGBB" or "#AARRGGBB" (AA = opacity, 00-FF).
   // Text that would be hard to read is never shown as written: a color below its contrast minimum is lightened or darkened

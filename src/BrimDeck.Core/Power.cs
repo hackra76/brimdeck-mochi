@@ -214,15 +214,15 @@ public static class PowerFormat
         return (minutes / 60).ToString(CultureInfo.InvariantCulture) + ":" + (minutes % 60).ToString("00", CultureInfo.InvariantCulture);
     }
 
-    // How long the peak and the mean cover, in seconds under a minute and then in whole minutes, half a minute rounding up: "45 秒",
-    // "64 秒" is "1 分钟", "124 秒" is "2 分钟". A sample takes the interval and the reading itself, so a full curve is a little longer.
+    // How long the peak and the mean cover, in seconds under a minute and then in whole minutes, half a minute rounding up: "45 ",
+    // "64 " is "1 ", "124 " is "2 ". A sample takes the interval and the reading itself, so a full curve is a little longer.
     public static string Span(double seconds)
     {
         int whole = Math.Max(1, (int)Math.Round(double.IsFinite(seconds) ? seconds : 0));
         return whole < 60 ? Loc.T($"{whole} 秒", $"{whole} s") : Duration(TimeSpan.FromMinutes(Math.Round(whole / 60.0, MidpointRounding.AwayFromZero)));
     }
 
-    // A time in the two largest units that apply: "3 小时 12 分", "12 分钟", "不到 1 分钟".
+    // A time in the two largest units that apply: "3  12 ", "12 ", " 1 ".
     public static string Duration(TimeSpan time)
     {
         int minutes = (int)Math.Round(time.TotalMinutes);
