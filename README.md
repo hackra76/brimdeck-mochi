@@ -44,6 +44,11 @@ This fork combines [BrimDeck](https://github.com/MoFeng2223/BrimDeck) with the a
   - Shapes idle mood from Antigravity remaining quota (`Energetic` ≥ 50%, `Normal`, `Low`/`Critical` → `RateLimit` with sweat droplets, `Depleted` → `Sleeping` with floating `z`).
 - **Interactive Gestures**: Hover to track your cursor, click to wave (`Greet`), or triple-click rapidly for `Dizzy`.
 
+### Credits & Acknowledgments
+
+- **[BrimDeck](https://github.com/MoFeng2223/BrimDeck)** by **[MoFeng2223](https://github.com/MoFeng2223)** — Original Windows 11 Dynamic Island base application, quota monitoring, media controls, and WPF architecture (Apache-2.0).
+- **[Coucou](https://github.com/Louis-CFM/coucou)** by **[Louis-CFM](https://github.com/Louis-CFM)** — Original **Mochi** AI companion character, procedural expressions, gestures, and animation design.
+
 ## Features
 
 ### Collapsed styles
