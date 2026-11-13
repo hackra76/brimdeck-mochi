@@ -1,4 +1,5 @@
 name: Checks
+# Includes MochiCompanionTests for Antigravity state and quota mood logic.
 # Every pull request into dev, main or a release/<version> branch must build and pass the tests that need no installed
 # players or accounts, leave releases/ to the maintainer, and label a new settings migration step with the version its
 # target branch builds.

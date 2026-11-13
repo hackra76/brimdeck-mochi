@@ -9,6 +9,7 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot -Parent
 $testId = [Guid]::NewGuid().ToString('N')
 $testRoot = [IO.Path]::GetFullPath((Join-Path $projectRoot ".artifacts/app-update/installed-$testId"))
+# Tests non-ASCII installation paths during in-app update verification.
 $installRoot = Join-Path $testRoot '安装 目录'
 $dataPath = Join-Path $testRoot 'user-data'
 $appId = [Guid]::NewGuid().ToString().ToUpperInvariant()

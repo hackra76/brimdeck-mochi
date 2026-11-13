@@ -23,7 +23,8 @@
   #define AppId "9D9AD6ED-CF62-4527-A587-6DBE94A74B9E"
 #endif
 #ifndef AppName
-  #define AppName "BrimDeck"
+  ; BrimDeck + Mochi Companion Windows Installer Script (Inno Setup)
+#define AppName "BrimDeck"
 #endif
 #ifndef MainExe
   #define MainExe "BrimDeck.exe"
