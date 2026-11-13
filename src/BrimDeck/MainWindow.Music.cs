@@ -1037,10 +1037,14 @@ public partial class MainWindow
             if (double.IsNaN(_compactWanted) || Math.Abs(notchWanted - _compactWanted) > .5 || Math.Abs(notchWanted - _compactRequired) > .5)
             { _compactWanted = notchWanted; _compactRequired = notchWanted; Dispatcher.BeginInvoke(DispatcherPriority.Background, FitCompactToContent); }
             double miniSize = CompactMusicLayout.Whole(Math.Max(28 * scale, shape.Surface.Height - 2));
+            double hostWidth = SnapDown(contentWidth, dpiOnly);
+            double hostHeight = Math.Max(miniSize, shape.Surface.Height - 2);
             var miniMochi = AcquireCompactMochi(miniSize);
+            miniMochi.Width = hostWidth;
+            miniMochi.Height = hostHeight;
             miniMochi.HorizontalAlignment = HorizontalAlignment.Center;
             miniMochi.VerticalAlignment = VerticalAlignment.Center;
-            var host = new Grid { Width = SnapDown(contentWidth, dpiOnly), Height = Math.Max(miniSize, shape.Surface.Height - 2) };
+            var host = new Grid { Width = hostWidth, Height = hostHeight };
             host.Children.Add(miniMochi);
             CompactRings.Children.Add(host);
             UpdateMusicTimer();

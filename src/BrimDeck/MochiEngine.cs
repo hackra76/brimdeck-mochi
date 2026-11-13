@@ -154,13 +154,15 @@ public sealed class MochiEngine
         Greet();
         double t = NowSec();
         _launchGreetingStart = t;
-        _launchGreetingUntil = t + 2.4;
-        _oy = -0.95;
-        Anim(MochiPropKey.Oy, [new(0.08, 260, MochiEase.Out), new(-0.22, 180, MochiEase.Out), new(0, 220, MochiEase.Back)]);
-        Anim(MochiPropKey.Sy, [new(1.0, 220, MochiEase.Linear), new(0.72, 90, MochiEase.Out), new(1.14, 140, MochiEase.Out), new(1, 220, MochiEase.InOut)]);
-        Anim(MochiPropKey.Sx, [new(1.0, 220, MochiEase.Linear), new(1.24, 90, MochiEase.Out), new(0.92, 140, MochiEase.Out), new(1, 220, MochiEase.InOut)]);
-        Anim(MochiPropKey.Ox, [new(0, 420, MochiEase.Linear), new(0.50, 320, MochiEase.Out), new(0.50, 700, MochiEase.Linear), new(0, 350, MochiEase.InOut)]);
-        Emit("spark", 5);
+        _launchGreetingUntil = t + 2.6;
+        _oy = -0.65;
+        _ox = -1.5;
+        Anim(MochiPropKey.Oy, [new(0.10, 240, MochiEase.Out), new(-0.24, 180, MochiEase.Out), new(0, 220, MochiEase.Back)]);
+        Anim(MochiPropKey.Sy, [new(1.0, 200, MochiEase.Linear), new(0.68, 90, MochiEase.Out), new(1.16, 140, MochiEase.Out), new(1, 220, MochiEase.InOut)]);
+        Anim(MochiPropKey.Sx, [new(1.0, 200, MochiEase.Linear), new(1.28, 90, MochiEase.Out), new(0.90, 140, MochiEase.Out), new(1, 220, MochiEase.InOut)]);
+        Anim(MochiPropKey.Ox, [new(0.65, 420, MochiEase.Back), new(0.65, 850, MochiEase.Linear), new(0, 380, MochiEase.InOut)]);
+        Anim(MochiPropKey.Blush, [new(0.85, 250, MochiEase.Out), new(0.85, 1100, MochiEase.Linear), new(0, 450, MochiEase.InOut)]);
+        Emit("spark", 6);
     }
 
     public void Poke()
