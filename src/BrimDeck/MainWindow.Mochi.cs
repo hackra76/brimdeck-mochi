@@ -69,7 +69,6 @@ public partial class MainWindow
         _mochiPoll.Tick += (_, _) => UpdateMochiStatus();
         _mochiPoll.Start();
 
-        _compactMochi.DragOutRequested += OnMochiDragOutRequested;
         _compactMochi.Clicked += () => { if (!_expanded) SetExpanded(true); };
         ExpandedMochi.DragOutRequested += OnMochiDragOutRequested;
 
@@ -155,7 +154,7 @@ public partial class MainWindow
         _desktopMochi?.Mochi.SetOutfit(Settings.MochiOutfit);
 
         bool allowDrag = _lead is null && Settings.MochiEnabled && Settings.MochiDesktopRoamingEnabled;
-        _compactMochi.AllowDragOut = allowDrag;
+        _compactMochi.AllowDragOut = false;
         ExpandedMochi.AllowDragOut = allowDrag;
 
         if (!Settings.MochiEnabled || !Settings.MochiDesktopRoamingEnabled)
@@ -293,8 +292,8 @@ public partial class MainWindow
             }
         }
 
-        // Auto-retract roaming desktop Mochi back to the island when an urgent alert arrives
-        if (_roamingOnDesktop && status.State is MochiState.Approval or MochiState.Question or MochiState.Error or MochiState.RateLimit)
+        // Auto-retract roaming desktop Mochi back to the island when an urgent notification/alert arrives
+        if (_roamingOnDesktop && status.State is MochiState.Approval or MochiState.Question or MochiState.Error)
             ReturnMochiToIsland(clearSavedPosition: false);
 
         // Trigger a brief celebration emote when transitioning into Finished while quota is healthy.

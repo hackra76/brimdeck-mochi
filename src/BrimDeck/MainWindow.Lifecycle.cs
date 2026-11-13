@@ -86,6 +86,17 @@ public partial class MainWindow
     private void Boot()
     {
         if (_poweringOff || _app.Exiting || _retiring) return;
+        if (Settings.MochiEnabled && Settings.MochiLaunchGreetingEnabled)
+        {
+            _bootWaiting = false;
+            _bootDot = false;
+            _bootEnds = 0;
+            ResetDotPose();
+            SetImmediate(HoverZone, OpacityProperty, 1d);
+            SetImmediate(Compact, OpacityProperty, 1d);
+            TriggerMochiLaunchGreetingIfEnabled();
+            return;
+        }
         if (_expanded || IsSuppressed || !CanAnimateLifecycle) { SetImmediate(HoverZone, OpacityProperty, 1d); TriggerMochiLaunchGreetingIfEnabled(); return; }
         SetImmediate(HoverZone, OpacityProperty, 0d);
         _bootWaiting = true;
