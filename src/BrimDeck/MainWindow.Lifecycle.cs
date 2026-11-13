@@ -131,7 +131,7 @@ public partial class MainWindow
             if (_expanded) return;
             _booting = true;
             SetExpanded(false);
-            int greetDelay = Math.Max(120, (int)(Settings.AnimationDuration * 0.55));
+            int greetDelay = Math.Max(250, Settings.AnimationDuration + 180);
             _ = Task.Delay(greetDelay).ContinueWith(_ => Dispatcher.BeginInvoke(() =>
             {
                 if (!_poweringOff && !_app.Exiting && !_retiring)

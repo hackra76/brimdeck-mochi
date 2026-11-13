@@ -151,11 +151,16 @@ public sealed class MochiEngine
 
     public void StartLaunchGreeting()
     {
+        Greet();
         double t = NowSec();
         _launchGreetingStart = t;
         _launchGreetingUntil = t + 2.4;
-        Emit("spark", 4);
-        Greet();
+        _oy = -0.95;
+        Anim(MochiPropKey.Oy, [new(0.08, 260, MochiEase.Out), new(-0.22, 180, MochiEase.Out), new(0, 220, MochiEase.Back)]);
+        Anim(MochiPropKey.Sy, [new(1.0, 220, MochiEase.Linear), new(0.72, 90, MochiEase.Out), new(1.14, 140, MochiEase.Out), new(1, 220, MochiEase.InOut)]);
+        Anim(MochiPropKey.Sx, [new(1.0, 220, MochiEase.Linear), new(1.24, 90, MochiEase.Out), new(0.92, 140, MochiEase.Out), new(1, 220, MochiEase.InOut)]);
+        Anim(MochiPropKey.Ox, [new(0, 420, MochiEase.Linear), new(0.50, 320, MochiEase.Out), new(0.50, 700, MochiEase.Linear), new(0, 350, MochiEase.InOut)]);
+        Emit("spark", 5);
     }
 
     public void Poke()
@@ -454,23 +459,6 @@ public sealed class MochiEngine
         double cx = width / 2.0 + _ox * r;
         double cy = height / 2.0 + _oy * r + r * 0.06;
 
-        // Launch drop-in greeting (Coucou drop + bounce + side peek)
-        if (now < _launchGreetingUntil)
-        {
-            double elapsed = now - _launchGreetingStart;
-            if (elapsed < 0.45)
-            {
-                double p = elapsed / 0.45;
-                double drop = (1.0 - p) * (1.0 - p);
-                cy -= height * 0.65 * drop;
-            }
-            else if (elapsed < 1.55)
-            {
-                double sway = Math.Sin(((elapsed - 0.45) / 1.10) * Math.PI);
-                cx += r * 0.32 * sway;
-            }
-        }
-
         bool dance = _dancingLevel > 0.001;
         if (dance)
         {
@@ -491,7 +479,7 @@ public sealed class MochiEngine
             dc.PushTransform(new TranslateTransform(-px, -py));
         }
 
-        if (!IsMini && _hands > 0.01 && r > 10)
+        if ((!IsMini || now < _launchGreetingUntil) && _hands > 0.01 && r > 7)
             DrawHandsBehind(dc, r, rx, ry, cx, cy);
 
         var resolvedOutfit = MochiOutfits.ResolveOutfit(_outfit, DateTime.Now);
