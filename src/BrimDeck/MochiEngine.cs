@@ -137,8 +137,33 @@ public sealed class MochiEngine
     private int _greetToken;
     private bool _isDancing;
     private double _dancingLevel;
+    private MochiOutfit _outfit = MochiOutfit.Auto;
+    private bool _mailbox;
+    private double _mailboxLevel;
+    private Color? _updateHintColor;
+    private double _launchGreetingStart;
+    private double _launchGreetingUntil;
 
     public void SetDancing(bool dancing) => _isDancing = dancing;
+    public void SetOutfit(MochiOutfit outfit) => _outfit = outfit;
+    public void SetMailbox(bool mailbox) => _mailbox = mailbox;
+    public void SetUpdateHint(Color? color) => _updateHintColor = color;
+
+    public void StartLaunchGreeting()
+    {
+        double t = NowSec();
+        _launchGreetingStart = t;
+        _launchGreetingUntil = t + 2.4;
+        Emit("spark", 4);
+        Greet();
+    }
+
+    public void Poke()
+    {
+        Squash();
+        MochiSound.Play(MochiSoundKind.Poke);
+        TriggerEmote(MochiEmote.Happy, 1.1);
+    }
 
     public void SetState(MochiState next, bool force = false)
     {
@@ -156,15 +181,19 @@ public sealed class MochiEngine
             case MochiState.Finished:
                 DoRoll(950, 1);
                 Emit("spark", 5);
+                MochiSound.Play(MochiSoundKind.Finished);
                 break;
             case MochiState.Error:
                 Anim(MochiPropKey.Ox, [new(0.08, 50, MochiEase.Out), new(-0.08, 70, MochiEase.InOut), new(0.05, 70, MochiEase.InOut), new(0, 90, MochiEase.Out)]);
+                MochiSound.Play(MochiSoundKind.Error);
                 break;
             case MochiState.Approval:
                 Anim(MochiPropKey.Oy, [new(-0.2, 150, MochiEase.Out), new(0, 300, MochiEase.Back)]);
+                MochiSound.Play(MochiSoundKind.Approval);
                 break;
             case MochiState.Dizzy:
                 DoRoll(1300, 2);
+                MochiSound.Play(MochiSoundKind.Dizzy);
                 break;
             case MochiState.Question:
                 Blink();
@@ -212,6 +241,7 @@ public sealed class MochiEngine
         }
         else
         {
+            MochiSound.Play(MochiSoundKind.Slap);
             _eyeOverride = MochiEyeShape.Line;
             _eyeOverrideUntil = t + 0.8;
         }
@@ -231,6 +261,7 @@ public sealed class MochiEngine
         _waveUntil = t + 1.55;
         _eyeOverride = MochiEyeShape.Happy;
         _eyeOverrideUntil = t + 1.9;
+        MochiSound.Play(MochiSoundKind.Greet);
         Anim(MochiPropKey.Oy, [new(-0.08, 200, MochiEase.Out), new(0, 220, MochiEase.Back)]);
         Anim(MochiPropKey.Hands, [new(1, 240, MochiEase.Out)]);
         Anim(MochiPropKey.Sy, [new(0.94, 100, MochiEase.Out), new(1, 260, MochiEase.Back)]);
@@ -341,6 +372,11 @@ public sealed class MochiEngine
         if (_dancingLevel < danceTarget) _dancingLevel = Math.Min(danceTarget, _dancingLevel + dt / 0.3);
         else if (_dancingLevel > danceTarget) _dancingLevel = Math.Max(danceTarget, _dancingLevel - dt / 0.5);
 
+        // Smooth mailbox morph transition
+        double mailboxTarget = _mailbox ? 1.0 : 0.0;
+        if (_mailboxLevel < mailboxTarget) _mailboxLevel = Math.Min(mailboxTarget, _mailboxLevel + dt / 0.25);
+        else if (_mailboxLevel > mailboxTarget) _mailboxLevel = Math.Max(mailboxTarget, _mailboxLevel - dt / 0.25);
+
         // Auto blink
         if (n >= _nextBlink && _cfg.Eye != MochiEyeShape.Closed)
         {
@@ -411,18 +447,36 @@ public sealed class MochiEngine
 
     public void Draw(DrawingContext dc, double width, double height)
     {
+        double now = NowSec();
         double r = Math.Min(width, height) * 0.30;
         double rx = r * 1.14;
         double ry = r * 0.88;
         double cx = width / 2.0 + _ox * r;
         double cy = height / 2.0 + _oy * r + r * 0.06;
 
+        // Launch drop-in greeting (Coucou drop + bounce + side peek)
+        if (now < _launchGreetingUntil)
+        {
+            double elapsed = now - _launchGreetingStart;
+            if (elapsed < 0.45)
+            {
+                double p = elapsed / 0.45;
+                double drop = (1.0 - p) * (1.0 - p);
+                cy -= height * 0.65 * drop;
+            }
+            else if (elapsed < 1.55)
+            {
+                double sway = Math.Sin(((elapsed - 0.45) / 1.10) * Math.PI);
+                cx += r * 0.32 * sway;
+            }
+        }
+
         bool dance = _dancingLevel > 0.001;
         if (dance)
         {
             double px = cx;
             double py = cy + ry;
-            double beat = (NowSec() * 112.0) / 60.0;
+            double beat = (now * 112.0) / 60.0;
             double hop = Math.Abs(Math.Sin(Math.PI * beat));
             double land = Math.Pow(1.0 - hop, 6.0);
             double dx = 0.08 * r * Math.Sin(Math.PI * beat) * _dancingLevel;
@@ -440,14 +494,20 @@ public sealed class MochiEngine
         if (!IsMini && _hands > 0.01 && r > 10)
             DrawHandsBehind(dc, r, rx, ry, cx, cy);
 
+        var resolvedOutfit = MochiOutfits.ResolveOutfit(_outfit, DateTime.Now);
+        double outfitAlpha = Math.Max(0.0, 1.0 - _mailboxLevel * 1.4);
+
         dc.PushTransform(new TranslateTransform(cx, cy));
         if (Math.Abs(_tilt) > 0.001) dc.PushTransform(new RotateTransform(_tilt * 180.0 / Math.PI));
         if (Math.Abs(_sx - 1) > 0.001 || Math.Abs(_sy - 1) > 0.001) dc.PushTransform(new ScaleTransform(_sx, _sy));
 
-        var body = BuildBodyGeometry(rx, ry);
-        DrawBody(dc, body, r, rx, ry);
+        MochiOutfits.DrawBehind(dc, resolvedOutfit, r, _yaw, _pitch, outfitAlpha);
+
+        var body = BuildBodyGeometry(rx, ry, _mailboxLevel);
+        DrawBody(dc, body, r, rx, ry, MochiOutfits.IsPumpkin(resolvedOutfit) && outfitAlpha > 0.1);
         DrawBlush(dc, body, r, rx, ry);
         DrawEyes(dc, body, r, rx, ry);
+        MochiOutfits.DrawFront(dc, resolvedOutfit, r, _yaw, _pitch, outfitAlpha);
 
         if (Math.Abs(_sx - 1) > 0.001 || Math.Abs(_sy - 1) > 0.001) dc.Pop();
         if (Math.Abs(_tilt) > 0.001) dc.Pop();
@@ -455,6 +515,16 @@ public sealed class MochiEngine
 
         if (_badge is { } badge && _badgeS > 0.01)
             DrawBadge(dc, badge, r, cx, cy);
+
+        // Update hint dot when idle or sleeping
+        if (_updateHintColor is { } hintCol && (State == MochiState.Idle || State == MochiState.Sleeping))
+        {
+            double pulse = 0.65 + 0.35 * Math.Sin(now * 3.5);
+            var dotBrush = new SolidColorBrush(Color.FromArgb((byte)(230 * pulse), hintCol.R, hintCol.G, hintCol.B));
+            var ringPen = new Pen(new SolidColorBrush(Color.FromArgb((byte)(110 * pulse), hintCol.R, hintCol.G, hintCol.B)), Math.Max(1.0, r * 0.07));
+            var pt = new Point(cx + rx * 0.72, cy - ry * 0.72);
+            dc.DrawEllipse(dotBrush, ringPen, pt, Math.Max(2.2, r * 0.14), Math.Max(2.2, r * 0.14));
+        }
 
         DrawParticles(dc, r, cx, cy);
 
@@ -467,10 +537,12 @@ public sealed class MochiEngine
         }
     }
 
-    private static StreamGeometry BuildBodyGeometry(double rx, double ry)
+    private static StreamGeometry BuildBodyGeometry(double rx, double ry, double mailboxLevel = 0)
     {
         const int n = 64;
-        const double expN = 2.0 / 2.7;
+        double expN = Lerp(2.0 / 2.7, 0.24, mailboxLevel);
+        double mx = rx * Lerp(1.0, 1.08, mailboxLevel);
+        double my = ry * Lerp(1.0, 0.94, mailboxLevel);
         var geo = new StreamGeometry();
         using var ctx = geo.Open();
         for (int i = 0; i <= n; i++)
@@ -478,8 +550,8 @@ public sealed class MochiEngine
             double a = (double)i / n * Math.PI * 2;
             double ca = Math.Cos(a);
             double sa = Math.Sin(a);
-            double px = rx * (ca >= 0 ? Math.Pow(ca, expN) : -Math.Pow(-ca, expN));
-            double py = ry * (sa >= 0 ? Math.Pow(sa, expN) : -Math.Pow(-sa, expN));
+            double px = mx * (ca >= 0 ? Math.Pow(ca, expN) : -Math.Pow(-ca, expN));
+            double py = my * (sa >= 0 ? Math.Pow(sa, expN) : -Math.Pow(-sa, expN));
             var pt = new Point(px, py);
             if (i == 0) ctx.BeginFigure(pt, true, true);
             else ctx.LineTo(pt, true, true);
@@ -488,9 +560,11 @@ public sealed class MochiEngine
         return geo;
     }
 
-    private void DrawBody(DrawingContext dc, Geometry body, double r, double rx, double ry)
+    private void DrawBody(DrawingContext dc, Geometry body, double r, double rx, double ry, bool pumpkin = false)
     {
-        var baseGrad = new LinearGradientBrush(BaseTop, BaseBottom, new Point(0.85, 0.08), new Point(0.1, 0.95));
+        var topCol = pumpkin ? Color.FromRgb(255, 169, 77) : BaseTop;
+        var botCol = pumpkin ? Color.FromRgb(232, 89, 12) : BaseBottom;
+        var baseGrad = new LinearGradientBrush(topCol, botCol, new Point(0.85, 0.08), new Point(0.1, 0.95));
         dc.DrawGeometry(baseGrad, null, body);
 
         if (_tint > 0.01)
@@ -538,9 +612,11 @@ public sealed class MochiEngine
 
     private void DrawEyes(DrawingContext dc, Geometry body, double r, double rx, double ry)
     {
-        var shape = _eyeOverride ?? (_isDancing && _dancingLevel > 0.15 && !IsMini && (State == MochiState.Idle || State == MochiState.Finished)
-            ? MochiEyeShape.Happy
-            : _cfg.Eye);
+        var shape = _mailboxLevel > 0.5
+            ? MochiEyeShape.Cup
+            : _eyeOverride ?? (_isDancing && _dancingLevel > 0.15 && !IsMini && (State == MochiState.Idle || State == MochiState.Finished)
+                ? MochiEyeShape.Happy
+                : _cfg.Eye);
         dc.PushClip(body);
         var ink = new SolidColorBrush(IsMini ? MiniInkColor : InkColor);
         double eyeMult = IsMini ? 1.85 : 1.0;

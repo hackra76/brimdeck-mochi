@@ -265,6 +265,7 @@ public partial class MainWindow : Window
         ApplyLanguage();
         ApplyTheme();
         ApplySurface();
+        ApplyMochiSettings();
         WindowsHost.SetCapturable(this, Settings.WindowCapture);
         // Made ordinary, at startup too, the panel goes beneath the window in use like a closed one; so does an ordinary panel
         // whose indicator is no longer called for.

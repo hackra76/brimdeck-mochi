@@ -23,6 +23,11 @@ public partial class MochiCompanion
     private readonly MochiEngine _engine = new();
     private readonly MochiSurface _surface;
     private bool _renderingHooked;
+    private Point? _dragStart;
+    private bool _dragTriggered;
+
+    public bool AllowDragOut { get; set; }
+    public event Action<Point>? DragOutRequested;
 
     public static readonly DependencyProperty IsMiniProperty = DependencyProperty.Register(
         nameof(IsMini), typeof(bool), typeof(MochiCompanion),
@@ -56,6 +61,7 @@ public partial class MochiCompanion
         IsVisibleChanged += (_, _) => UpdateRenderSubscription();
 
         MouseLeftButtonDown += OnMochiClicked;
+        MouseLeftButtonUp += OnMochiMouseUp;
         MouseMove += OnMochiMouseMove;
         MouseLeave += (_, _) => _engine.SetLook(0, 0);
     }
@@ -70,12 +76,22 @@ public partial class MochiCompanion
     }
 
     public void Greet() => _engine.Greet();
+    public void StartLaunchGreeting() => _engine.StartLaunchGreeting();
+    public void Poke() => _engine.Poke();
     public void TriggerEmote(MochiEmote emote, double duration = 1.8) => _engine.TriggerEmote(emote, duration);
     public void SetGlobalLook(double nx, double ny) => _engine.SetLook(nx, ny);
     public void SetDancing(bool dancing) => _engine.SetDancing(dancing);
+    public void SetOutfit(MochiOutfit outfit) => _engine.SetOutfit(outfit);
+    public void SetMailbox(bool mailbox) => _engine.SetMailbox(mailbox);
+    public void SetUpdateHint(Color? color) => _engine.SetUpdateHint(color);
 
     private void OnMochiClicked(object sender, MouseButtonEventArgs e)
     {
+        if (AllowDragOut)
+        {
+            _dragStart = e.GetPosition(this);
+            _dragTriggered = false;
+        }
         if (IsMini)
         {
             _engine.Squash();
@@ -86,8 +102,25 @@ public partial class MochiCompanion
             _engine.Greet();
     }
 
+    private void OnMochiMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        _dragStart = null;
+        _dragTriggered = false;
+    }
+
     private void OnMochiMouseMove(object sender, MouseEventArgs e)
     {
+        if (AllowDragOut && !_dragTriggered && _dragStart is { } start && e.LeftButton == MouseButtonState.Pressed)
+        {
+            var cur = e.GetPosition(this);
+            if ((cur - start).Length > 28)
+            {
+                _dragTriggered = true;
+                _dragStart = null;
+                DragOutRequested?.Invoke(PointToScreen(cur));
+                return;
+            }
+        }
         if (ActualWidth <= 1 || ActualHeight <= 1) return;
         var pos = e.GetPosition(this);
         double nx = (pos.X / ActualWidth - 0.5) * 2.0;

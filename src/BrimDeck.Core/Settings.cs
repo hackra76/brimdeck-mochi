@@ -547,6 +547,17 @@ public sealed class DeckSettings
     // The collapsed panel opens on a click instead of on hover; OpenDelay then does not apply.
     public bool ClickToExpand { get; set; } = true;
     public bool MochiEnabled { get; set; } = true;
+    public MochiOutfit MochiOutfit { get; set; } = MochiOutfit.Auto;
+    public bool MochiDanceEnabled { get; set; } = true;
+    public bool MochiAutoSleepEnabled { get; set; } = true;
+    public int MochiAutoSleepMinutes { get; set; } = 5;
+    public bool MochiLaunchGreetingEnabled { get; set; } = true;
+    public bool MochiSoundsEnabled { get; set; } = true;
+    public bool MochiDesktopRoamingEnabled { get; set; } = true;
+    public double? MochiDesktopX { get; set; }
+    public double? MochiDesktopY { get; set; }
+    public bool MochiMiniBotsEnabled { get; set; } = true;
+    public bool MochiUpdateHintEnabled { get; set; } = true;
     public int CloseDelay { get; set; } = 0;
     public int AnimationDuration { get; set; } = 360;
     public bool Animations { get; set; } = true;

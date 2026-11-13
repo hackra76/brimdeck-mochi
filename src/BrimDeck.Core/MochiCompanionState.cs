@@ -30,6 +30,22 @@ public enum MochiEmote
     Annoyed
 }
 
+public enum MochiOutfit
+{
+    Auto,
+    None,
+    SantaHat,
+    PartyHat,
+    WitchHat,
+    Sunglasses,
+    RoundGlasses,
+    Bow,
+    Scarf,
+    Pumpkin
+}
+
+public sealed record MochiAgentTask(string SessionId, MochiState State, string? Detail, DateTimeOffset UpdatedUtc);
+
 public enum MochiQuotaMood
 {
     Energetic,
@@ -206,9 +222,12 @@ public sealed class MochiAgentPipeListener : IDisposable
 {
     public const string PipeName = "brimdeck-mochi-agent";
     private readonly CancellationTokenSource _cts = new();
-    private readonly Action<MochiState, string?> _onState;
+    private readonly Action<MochiState, string?, string?> _onState;
 
     public MochiAgentPipeListener(Action<MochiState, string?> onState)
+        : this((state, detail, _) => onState(state, detail)) { }
+
+    public MochiAgentPipeListener(Action<MochiState, string?, string?> onState)
     {
         _onState = onState;
         _ = Task.Run(() => ListenLoopAsync(_cts.Token));
@@ -234,14 +253,19 @@ public sealed class MochiAgentPipeListener : IDisposable
                     if (MochiCompanionLogic.ParseHookEvent(line) is { } state)
                     {
                         string? detail = null;
+                        string? sessionId = null;
                         try
                         {
                             using var doc = JsonDocument.Parse(line);
                             if (doc.RootElement.TryGetProperty("tool_name", out var t))
                                 detail = t.GetString();
+                            if (doc.RootElement.TryGetProperty("session_id", out var sid))
+                                sessionId = sid.GetString();
+                            else if (doc.RootElement.TryGetProperty("conversation_id", out var cid))
+                                sessionId = cid.GetString();
                         }
                         catch (JsonException) { }
-                        _onState(state, detail);
+                        _onState(state, detail, sessionId);
                     }
                 }
             }

@@ -63,6 +63,7 @@ function sendToPipe(payload) {
 
 const stdinText = await readStdinBrief();
 let toolName;
+let sessionId;
 let eventToSend = mappedEvent;
 
 if (stdinText.trim()) {
@@ -70,6 +71,11 @@ if (stdinText.trim()) {
     const parsed = JSON.parse(stdinText);
     if (typeof parsed.tool_name === "string" && parsed.tool_name) {
       toolName = parsed.tool_name;
+    }
+    if (typeof parsed.session_id === "string" && parsed.session_id) {
+      sessionId = parsed.session_id;
+    } else if (typeof parsed.conversation_id === "string" && parsed.conversation_id) {
+      sessionId = parsed.conversation_id;
     }
     if (parsed.requires_approval === true || parsed.approval === true) {
       eventToSend = "approval";
@@ -79,4 +85,7 @@ if (stdinText.trim()) {
   }
 }
 
-await sendToPipe(toolName ? { event: eventToSend, tool_name: toolName } : { event: eventToSend });
+const payload = { event: eventToSend };
+if (toolName) payload.tool_name = toolName;
+if (sessionId) payload.session_id = sessionId;
+await sendToPipe(payload);
