@@ -181,8 +181,9 @@ For how to use it and its settings, see [Clipboard and file transfer](docs/en-US
 
 Requires Windows 11 (x64). Windows 10 (version 2004 or later) has limited support.
 
-1. Download the standalone release from [Releases](https://github.com/hackra76/brimdeck-mochi/releases/latest):
-   - Portable standalone zip: `BrimDeck-Mochi-win-x64-<version>.zip`. Extract it and run `BrimDeck.exe`.
+1. Download one of these files from [Releases](https://github.com/hackra76/brimdeck-mochi/releases/latest):
+   - Installer: `BrimDeck-<version>-Setup.exe`. Run it and follow the steps.
+   - Portable: `BrimDeck-<version>-Portable-x64.zip`. Extract it and run `BrimDeck.exe` in the `BrimDeck` folder.
 2. If Windows shows "Windows protected your PC", select "More info", then "Run anyway".
 
 Both versions update from within the app, and both keep settings and data in `%LOCALAPPDATA%\BrimDeck`.
