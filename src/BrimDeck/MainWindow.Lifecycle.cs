@@ -86,7 +86,7 @@ public partial class MainWindow
     private void Boot()
     {
         if (_poweringOff || _app.Exiting || _retiring) return;
-        if (_expanded || IsSuppressed || !CanAnimateLifecycle) { SetImmediate(HoverZone, OpacityProperty, 1d); return; }
+        if (_expanded || IsSuppressed || !CanAnimateLifecycle) { SetImmediate(HoverZone, OpacityProperty, 1d); TriggerMochiLaunchGreetingIfEnabled(); return; }
         SetImmediate(HoverZone, OpacityProperty, 0d);
         _bootWaiting = true;
         int boot = ++_boot;
@@ -106,7 +106,7 @@ public partial class MainWindow
     {
         int boot = ++_boot; _bootWaiting = false;
         if (_poweringOff || _app.Exiting || _retiring) return;
-        if (_expanded || IsSuppressed || !CanAnimateLifecycle) { SetImmediate(HoverZone, OpacityProperty, 1d); return; }
+        if (_expanded || IsSuppressed || !CanAnimateLifecycle) { SetImmediate(HoverZone, OpacityProperty, 1d); TriggerMochiLaunchGreetingIfEnabled(); return; }
         var shape = Collapsed = ShapeFor(EffectiveStyle);
         PlaceDot(shape);
         _bootDot = true; Island.SettledClip = false;
@@ -131,6 +131,12 @@ public partial class MainWindow
             if (_expanded) return;
             _booting = true;
             SetExpanded(false);
+            int greetDelay = Math.Max(120, (int)(Settings.AnimationDuration * 0.55));
+            _ = Task.Delay(greetDelay).ContinueWith(_ => Dispatcher.BeginInvoke(() =>
+            {
+                if (!_poweringOff && !_app.Exiting && !_retiring)
+                    TriggerMochiLaunchGreetingIfEnabled();
+            }));
         });
     }
 

@@ -109,24 +109,30 @@ public partial class MainWindow
         ApplyMochiSettings();
         UpdateMochiStatus();
 
-        if (Settings.MochiEnabled)
-        {
-            if (Settings.MochiLaunchGreetingEnabled)
-            {
-                _compactMochi.StartLaunchGreeting();
-                ExpandedMochi.StartLaunchGreeting();
-                _desktopMochi?.Mochi.StartLaunchGreeting();
-            }
-            else
-            {
-                ExpandedMochi.Greet();
-            }
-        }
+        if (!CanAnimateLifecycle)
+            TriggerMochiLaunchGreetingIfEnabled();
 
         if (_lead is null && Settings.MochiEnabled && Settings.MochiDesktopRoamingEnabled
             && Settings.MochiDesktopX is { } sx && Settings.MochiDesktopY is { } sy)
         {
             ShowDesktopMochiAt(sx, sy);
+        }
+    }
+
+    private bool _launchGreeted;
+    internal void TriggerMochiLaunchGreetingIfEnabled()
+    {
+        if (_launchGreeted || !Settings.MochiEnabled) return;
+        _launchGreeted = true;
+        if (Settings.MochiLaunchGreetingEnabled)
+        {
+            _compactMochi.StartLaunchGreeting();
+            ExpandedMochi.StartLaunchGreeting();
+            _desktopMochi?.Mochi.StartLaunchGreeting();
+        }
+        else
+        {
+            ExpandedMochi.Greet();
         }
     }
 
