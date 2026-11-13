@@ -128,6 +128,7 @@ public partial class MainWindow : Window
         InitializeMonitor();
         InitializeShelf();
         InitializeDevices();
+        InitializeMochi();
         InitializeResize();
         InitializeScale();
         InitializeShadow();
@@ -578,6 +579,7 @@ public partial class MainWindow : Window
     {
         Snapshots = snapshots; _updatedAt = DateTimeOffset.Now; FirstReadEnded();
         DetectThresholds();
+        UpdateMochiStatus();
         RenderCompact(); RenderUsage();
     }
 

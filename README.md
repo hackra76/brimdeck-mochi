@@ -34,6 +34,16 @@ A native Windows app built with C# and WPF, designed for performance and smoothn
 - **Works out of the box**: Detects Claude, Codex, Cursor and other tools already signed in on this PC. No keys to enter and no extra sign-in.
 - **Native Windows**: Built on .NET and WPF to deliver smooth animation with low resource use.
 
+## Mochi AI Companion (BrimDeck + Coucou)
+
+This fork combines [BrimDeck](https://github.com/MoFeng2223/BrimDeck) with the animated **Mochi** companion inspired by [Coucou](https://github.com/Louis-CFM/coucou), rendered natively in WPF (`MochiCompanion` / `MochiEngine`):
+
+- **Top-Notch & Expanded Presence**: Mini Mochi lives inside the collapsed pill alongside your quota rings and clock, while an interactive Mochi sits in the expanded toolbar.
+- **Antigravity Activity & Quota Moods**:
+  - Reacts to live Antigravity session writes (`~/.gemini/antigravity/conversations`) and optional hook events over `\\.\pipe\brimdeck-mochi-agent` (`Approval`, `Thinking`, `Working`, `Searching`, `Question`, `Error`, `Finished`).
+  - Shapes idle mood from Antigravity remaining quota (`Energetic` ≥ 50%, `Normal`, `Low`/`Critical` → `RateLimit` with sweat droplets, `Depleted` → `Sleeping` with floating `z`).
+- **Interactive Gestures**: Hover to track your cursor, click to wave (`Greet`), or triple-click rapidly for `Dizzy`.
+
 ## Features
 
 ### Collapsed styles

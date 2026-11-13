@@ -16,6 +16,7 @@ try
     await PiUsageTests.Run(root, Check);
     ModelUsageTests.Run(Check);
     AntigravityUsageTests.Run(root, Check);
+    BrimDeck.Tests.MochiCompanionTests.Run(Check);
     await MusicTests.Run(Check);
     await AppleMusicLyricsTests.Run(root, Check);
     await KugouTests.Run(Check);
