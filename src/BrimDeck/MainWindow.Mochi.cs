@@ -115,7 +115,15 @@ public partial class MainWindow
         if (_lead is null && Settings.MochiEnabled && Settings.MochiDesktopRoamingEnabled
             && Settings.MochiDesktopX is { } sx && Settings.MochiDesktopY is { } sy)
         {
-            ShowDesktopMochiAt(sx, sy);
+            Loaded += (_, _) =>
+            {
+                if (_roamingOnDesktop || _desktopMochi is { IsVisible: true }) return;
+                if (Settings.MochiEnabled && Settings.MochiDesktopRoamingEnabled
+                    && Settings.MochiDesktopX is { } lx && Settings.MochiDesktopY is { } ly)
+                {
+                    ShowDesktopMochiAt(lx, ly);
+                }
+            };
         }
     }
 
@@ -200,8 +208,11 @@ public partial class MainWindow
         if (!_desktopMochi.IsVisible) _desktopMochi.Show();
         _roamingOnDesktop = true;
         ExpandedMochi.Visibility = Visibility.Collapsed;
-        RenderCompact();
-        FitCompactToContent();
+        if (IsLoaded)
+        {
+            RenderCompact();
+            FitCompactToContent();
+        }
     }
 
     internal void ReturnMochiToIsland(bool clearSavedPosition = true)
@@ -222,8 +233,11 @@ public partial class MainWindow
         if (wasRoaming)
         {
             ExpandedMochi.Visibility = Settings.MochiEnabled ? Visibility.Visible : Visibility.Collapsed;
-            RenderCompact();
-            FitCompactToContent();
+            if (IsLoaded)
+            {
+                RenderCompact();
+                FitCompactToContent();
+            }
         }
     }
 
