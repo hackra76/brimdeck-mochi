@@ -135,6 +135,10 @@ public sealed class MochiEngine
     private double _externalLookUntil;
     private double _waveStart, _waveUntil;
     private int _greetToken;
+    private bool _isDancing;
+    private double _dancingLevel;
+
+    public void SetDancing(bool dancing) => _isDancing = dancing;
 
     public void SetState(MochiState next, bool force = false)
     {
@@ -332,6 +336,11 @@ public sealed class MochiEngine
         if (_eyeOverride is not null && n >= _eyeOverrideUntil)
             _eyeOverride = null;
 
+        // Smooth 112-BPM music dance fade-in (0.3 s) and fade-out (0.5 s)
+        double danceTarget = _isDancing ? 1.0 : 0.0;
+        if (_dancingLevel < danceTarget) _dancingLevel = Math.Min(danceTarget, _dancingLevel + dt / 0.3);
+        else if (_dancingLevel > danceTarget) _dancingLevel = Math.Max(danceTarget, _dancingLevel - dt / 0.5);
+
         // Auto blink
         if (n >= _nextBlink && _cfg.Eye != MochiEyeShape.Closed)
         {
@@ -408,6 +417,26 @@ public sealed class MochiEngine
         double cx = width / 2.0 + _ox * r;
         double cy = height / 2.0 + _oy * r + r * 0.06;
 
+        bool dance = _dancingLevel > 0.001;
+        if (dance)
+        {
+            double px = cx;
+            double py = cy + ry;
+            double beat = (NowSec() * 112.0) / 60.0;
+            double hop = Math.Abs(Math.Sin(Math.PI * beat));
+            double land = Math.Pow(1.0 - hop, 6.0);
+            double dx = 0.08 * r * Math.Sin(Math.PI * beat) * _dancingLevel;
+            double dy = -0.20 * r * hop * _dancingLevel;
+            double rotDeg = 0.10 * Math.Sin(Math.PI * beat) * _dancingLevel * 180.0 / Math.PI;
+            double dsx = 1.0 + 0.045 * land * _dancingLevel;
+            double dsy = 1.0 - 0.06 * land * _dancingLevel;
+
+            dc.PushTransform(new TranslateTransform(px + dx, py + dy));
+            dc.PushTransform(new RotateTransform(rotDeg));
+            dc.PushTransform(new ScaleTransform(dsx, dsy));
+            dc.PushTransform(new TranslateTransform(-px, -py));
+        }
+
         if (!IsMini && _hands > 0.01 && r > 10)
             DrawHandsBehind(dc, r, rx, ry, cx, cy);
 
@@ -428,6 +457,14 @@ public sealed class MochiEngine
             DrawBadge(dc, badge, r, cx, cy);
 
         DrawParticles(dc, r, cx, cy);
+
+        if (dance)
+        {
+            dc.Pop();
+            dc.Pop();
+            dc.Pop();
+            dc.Pop();
+        }
     }
 
     private static StreamGeometry BuildBodyGeometry(double rx, double ry)
@@ -501,7 +538,9 @@ public sealed class MochiEngine
 
     private void DrawEyes(DrawingContext dc, Geometry body, double r, double rx, double ry)
     {
-        var shape = _eyeOverride ?? _cfg.Eye;
+        var shape = _eyeOverride ?? (_isDancing && _dancingLevel > 0.15 && !IsMini && (State == MochiState.Idle || State == MochiState.Finished)
+            ? MochiEyeShape.Happy
+            : _cfg.Eye);
         dc.PushClip(body);
         var ink = new SolidColorBrush(IsMini ? MiniInkColor : InkColor);
         double eyeMult = IsMini ? 1.85 : 1.0;

@@ -267,6 +267,7 @@ public partial class MainWindow
         // Native lyric events must update compact text even while playback is paused.
         UpdateMusicPosition();
         UpdateMusicTimer();
+        UpdateMochiDance();
     }
     private void ScheduleTimelineHoldEnd(DateTimeOffset now)
     {
@@ -1138,7 +1139,7 @@ public partial class MainWindow
             readingCut = CompactSpacing.CutFade(readingWidths, strip?.Gap ?? 0, readings.Window, Math.Min(Snap(layout.TextEdge, dpi), unit));
         }
         var shown = new List<(object Part, CompactSpacing.Part Size)>();
-        shown.Add(("mochi", new(mochiSize)));
+        if (Settings.MochiEnabled) shown.Add(("mochi", new(mochiSize)));
         if (hasCover) shown.Add(("cover", new(layout.CoverSize)));
         foreach (var part in Settings.CompactOrder(EffectiveStyle))
         {

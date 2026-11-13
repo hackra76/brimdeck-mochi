@@ -72,6 +72,7 @@ public partial class MochiCompanion
     public void Greet() => _engine.Greet();
     public void TriggerEmote(MochiEmote emote, double duration = 1.8) => _engine.TriggerEmote(emote, duration);
     public void SetGlobalLook(double nx, double ny) => _engine.SetLook(nx, ny);
+    public void SetDancing(bool dancing) => _engine.SetDancing(dancing);
 
     private void OnMochiClicked(object sender, MouseButtonEventArgs e)
     {

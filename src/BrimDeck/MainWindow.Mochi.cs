@@ -17,7 +17,7 @@ public partial class MainWindow
     private bool _hoverPeek;
 
     private bool IsMochiOnlyNotch =>
-        !_expanded && !_hoverPeek && !_preview && !CompactColumnMode
+        Settings.MochiEnabled && !_expanded && !_hoverPeek && !_preview && !CompactColumnMode
         && EffectiveStyle != CompactStyle.Line && _alert is null;
 
     internal void SetHoverPeek(bool peek)
@@ -97,8 +97,17 @@ public partial class MainWindow
         }
         _lastResolvedMochiState = status.State;
 
+        ExpandedMochi.Visibility = Settings.MochiEnabled ? Visibility.Visible : Visibility.Collapsed;
         _compactMochi.ApplyStatus(status);
         ExpandedMochi.ApplyStatus(status);
+        UpdateMochiDance();
+    }
+
+    internal void UpdateMochiDance()
+    {
+        bool dancing = Settings.MochiEnabled && MusicAudioActive;
+        _compactMochi.SetDancing(dancing);
+        ExpandedMochi.SetDancing(dancing);
     }
 
     private MochiCompanion AcquireCompactMochi(double size)
