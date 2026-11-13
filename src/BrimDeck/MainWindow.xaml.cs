@@ -407,6 +407,16 @@ public partial class MainWindow : Window
     }
     private CollapsedShape ShapeFor(CompactStyle style)
     {
+        if (IsMochiOnlyNotch && style != CompactStyle.Line && !ColumnFor(style))
+        {
+            double miniWanted = CompactMusicLayout.Whole(86 * _scale);
+            if (style == CompactStyle.Capsule && _frame.Edge != ScreenEdge.Top)
+            {
+                var onScreen = CollapsedGeometry.Resolve(Settings, style, _screenMonitor, _screenWork, _pixelsPerDip, miniWanted, miniWanted, _scale);
+                return onScreen with { Surface = _frame.FromScreen(onScreen.Surface) };
+            }
+            return CollapsedGeometry.Resolve(Settings, style, MonitorBoundsDip, WorkDip, _pixelsPerDip, miniWanted, miniWanted, _scale);
+        }
         double? wanted = Settings.CompactAutoWidth(style) && !double.IsNaN(_compactWanted) ? _compactWanted : null;
         // The capsule keeps its place on the screen; docked with the bottom (MainWindow.Edge.cs) it is only seen from there.
         if (style == CompactStyle.Capsule && _frame.Edge != ScreenEdge.Top)
@@ -700,7 +710,7 @@ public partial class MainWindow : Window
         // The smooth memory mode holds off full collections while a panel is open (App.UpdateCollectionLatency).
         if (expanded && !wasExpanded) _app.UpdateCollectionLatency();
         _escapeDismissal?.SetEnabled(expanded && !_preview || _moveArmed);
-        if (!expanded) { CloseSourceMenu(); _popupReturnArea = null; _leave.Stop(); _pageSwitchHold.Stop(); _detailPopup?.Close(); }
+        if (!expanded) { CloseSourceMenu(); _popupReturnArea = null; _leave.Stop(); _pageSwitchHold.Stop(); _detailPopup?.Close(); if (!_pointerInside) _hoverPeek = false; }
         if (wasExpanded && !expanded) PanelClosed();
         Collapsed = ShapeFor(EffectiveStyle);
         var shape = Collapsed;
@@ -933,6 +943,7 @@ public partial class MainWindow : Window
         CheckMoveOvertaken();
         if (_preview && _previewExpanded || IsSuppressed || !IsVisible || PresentationSource.FromVisual(Stage) is null || Resizing || BootHoldsPointer) return;
         var cursor = WindowsHost.Cursor();
+        UpdateMochiGlobalLook(cursor);
         // Move mode: the panel does not open (MainWindow.Move.cs).
         if (_moveArmed) { TrackMove(cursor); return; }
         // Mouse pass-through: hovering does nothing (MainWindow.ClickThrough.cs).
@@ -999,11 +1010,13 @@ public partial class MainWindow : Window
         {
             _popupReturnArea = null;
             _leave.Stop(); if (_expanded || IsSuppressed) return;
+            SetHoverPeek(true);
             _hover.Stop(); if (Settings.ClickToExpand) return;
             _hover.Interval = TimeSpan.FromMilliseconds(Math.Max(1, Settings.OpenDelay)); _hover.Start();
         }
         else
         {
+            if (!_expanded && _hoverPeek && !_preview) SetHoverPeek(false);
             _hover.Stop(); if (!_expanded || _preview || _pageSwitchHold.IsEnabled || _detailPopup is not null || MediaSourceButton.ContextMenu?.IsOpen == true || ShelfHolds) return;
             int delay = Math.Max(_popupReturnArea is null ? 1 : 50, Settings.CloseDelay);
             _leftAt = Environment.TickCount64;

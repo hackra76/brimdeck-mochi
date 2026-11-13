@@ -545,7 +545,7 @@ public sealed class DeckSettings
     public const int MaxSurfaceTransparency = 90;
     public int OpenDelay { get; set; } = 0;
     // The collapsed panel opens on a click instead of on hover; OpenDelay then does not apply.
-    public bool ClickToExpand { get; set; }
+    public bool ClickToExpand { get; set; } = true;
     public int CloseDelay { get; set; } = 0;
     public int AnimationDuration { get; set; } = 360;
     public bool Animations { get; set; } = true;
@@ -557,7 +557,7 @@ public sealed class DeckSettings
     // The panel window can be captured on its own by recording apps (OBS window capture). Off, the window keeps the no-activate
     // style that recording apps cannot capture, and that keeps it out of Alt+Tab.
     public bool WindowCapture { get; set; }
-    public WindowBehavior Maximized { get; set; } = WindowBehavior.Line;
+    public WindowBehavior Maximized { get; set; } = WindowBehavior.Normal;
     public WindowBehavior Borderless { get; set; } = WindowBehavior.Hide;
     public WindowBehavior Exclusive { get; set; } = WindowBehavior.Hide;
     // Whether a window behind the foreground one counts too: maximized or borderless across the panel's monitor, it calls for

@@ -14,6 +14,29 @@ public partial class MainWindow
     private string? _hookDetail;
     private DateTimeOffset _hookExpiresUtc;
     private MochiState _lastResolvedMochiState = MochiState.Idle;
+    private bool _hoverPeek;
+
+    private bool IsMochiOnlyNotch =>
+        !_expanded && !_hoverPeek && !_preview && !CompactColumnMode
+        && EffectiveStyle != CompactStyle.Line && _alert is null;
+
+    internal void SetHoverPeek(bool peek)
+    {
+        if (_hoverPeek == peek) return;
+        _hoverPeek = peek;
+        if (peek) _compactMochi.TriggerEmote(MochiEmote.Happy, 0.9);
+        RenderCompact();
+        FitCompactToContent();
+    }
+
+    internal void UpdateMochiGlobalLook(Point cursorScreen)
+    {
+        if (_expanded || PresentationSource.FromVisual(Island) is null || !(Island.ActualWidth > 0)) return;
+        var center = Island.PointToScreen(new Point(Island.ActualWidth / 2.0, Island.ActualHeight / 2.0));
+        double nx = Math.Clamp((cursorScreen.X - center.X) / 480.0, -1, 1);
+        double ny = Math.Clamp(-(cursorScreen.Y - center.Y) / 360.0, -1, 1);
+        _compactMochi.SetGlobalLook(nx, ny);
+    }
 
     private void InitializeMochi()
     {

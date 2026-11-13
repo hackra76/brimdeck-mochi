@@ -132,6 +132,7 @@ public sealed class MochiEngine
     private double _nextBlink = NowSec() + 1.5;
     private double _nextAmbient = NowSec() + 2.5;
     private double _nextParticle = NowSec() + 1.0;
+    private double _externalLookUntil;
     private double _waveStart, _waveUntil;
     private int _greetToken;
 
@@ -173,10 +174,11 @@ public sealed class MochiEngine
         }
     }
 
-    public void SetLook(double x, double y)
+    public void SetLook(double x, double y, bool holdBriefly = true)
     {
-        _tgYaw = Math.Clamp(x, -1, 1) * 0.45;
-        _tgPitch = Math.Clamp(y, -1, 1) * 0.35;
+        _tgYaw = Math.Clamp(x, -1, 1) * 0.48;
+        _tgPitch = Math.Clamp(y, -1, 1) * 0.36;
+        if (holdBriefly) _externalLookUntil = NowSec() + 2.5;
     }
 
     public void Blink()
@@ -349,7 +351,7 @@ public sealed class MochiEngine
             _tgYaw = Math.Sin(elapsed * 2.2) * 0.52;
             _tgPitch = Math.Cos(elapsed * 1.4) * 0.16;
         }
-        else if (State == MochiState.Idle && n >= _nextAmbient)
+        else if (State == MochiState.Idle && n >= _nextAmbient && n >= _externalLookUntil)
         {
             _tgYaw = (_rng.NextDouble() - 0.5) * 0.45;
             _tgPitch = (_rng.NextDouble() - 0.5) * 0.24;

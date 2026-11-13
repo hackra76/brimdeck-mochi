@@ -1029,6 +1029,24 @@ public partial class MainWindow
         var shape = Collapsed; _compactRendered = shape;
         double scale = CompactMusicLayout.SafeScale(shape.Scale);
         double contentWidth = CompactContentWidth(shape);
+        if (IsMochiOnlyNotch)
+        {
+            double dpiOnly = VisualTreeHelper.GetDpi(this).DpiScaleX;
+            double notchWanted = CompactMusicLayout.Whole(86 * scale);
+            if (double.IsNaN(_compactWanted) || Math.Abs(notchWanted - _compactWanted) > .5 || Math.Abs(notchWanted - _compactRequired) > .5)
+            { _compactWanted = notchWanted; _compactRequired = notchWanted; Dispatcher.BeginInvoke(DispatcherPriority.Background, FitCompactToContent); }
+            double miniSize = CompactMusicLayout.Whole(24 * scale);
+            var miniMochi = AcquireCompactMochi(miniSize);
+            miniMochi.HorizontalAlignment = HorizontalAlignment.Center;
+            miniMochi.VerticalAlignment = VerticalAlignment.Center;
+            var host = new Grid { Width = SnapDown(contentWidth, dpiOnly), Height = CompactMusicLayout.Whole(26 * scale) };
+            host.Children.Add(miniMochi);
+            CompactRings.Children.Add(host);
+            UpdateMusicTimer();
+            _stripShowing = false;
+            UpdateMonitorDemand();
+            return;
+        }
         bool media = Settings.ShowsMusic(EffectiveStyle) && _mediaTrack is { State: not MediaState.Stopped };
         bool showCover = Settings.MusicCompactCover && !PausedHides(PausedMusicHide.Cover), hideText = PausedHides(PausedMusicHide.Text);
         bool equalizer = CompactEqualizerShown;
