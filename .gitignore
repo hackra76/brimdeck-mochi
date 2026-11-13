@@ -40,3 +40,5 @@ output/
 # Local development notes: architecture, design decisions, plans, release steps
 dev-docs/
 publish/
+
+*_wpftmp.csproj
