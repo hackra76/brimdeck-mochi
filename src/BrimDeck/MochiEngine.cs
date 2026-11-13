@@ -448,7 +448,7 @@ public sealed class MochiEngine
     public void Draw(DrawingContext dc, double width, double height)
     {
         double now = NowSec();
-        double r = Math.Min(width, height) * 0.30;
+        double r = Math.Min(width, height) * (IsMini ? 0.42 : 0.40);
         double rx = r * 1.14;
         double ry = r * 0.88;
         double cx = width / 2.0 + _ox * r;

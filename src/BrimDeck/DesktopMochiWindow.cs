@@ -11,7 +11,7 @@ namespace BrimDeck;
 /// </summary>
 public sealed class DesktopMochiWindow : Window
 {
-    public MochiCompanion Mochi { get; } = new() { Width = 112, Height = 112 };
+    public MochiCompanion Mochi { get; } = new() { Width = 128, Height = 128 };
     public event Action<double, double>? PositionCommitted;
     public event Action? ReturnToIslandRequested;
     public event Action? OpenSettingsRequested;
@@ -22,8 +22,8 @@ public sealed class DesktopMochiWindow : Window
 
     public DesktopMochiWindow()
     {
-        Width = 124;
-        Height = 124;
+        Width = 140;
+        Height = 140;
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
         Background = Brushes.Transparent;
@@ -48,6 +48,14 @@ public sealed class DesktopMochiWindow : Window
         PreviewMouseLeftButtonDown += OnPreviewMouseDown;
         PreviewMouseMove += OnPreviewMouseMove;
         PreviewMouseLeftButtonUp += OnPreviewMouseUp;
+    }
+
+    public void BeginExternalDrag(Point cursorScreen)
+    {
+        _pressScreen = cursorScreen;
+        _windowAtPress = new Point(Left, Top);
+        _dragging = true;
+        CaptureMouse();
     }
 
     private void OnPreviewMouseDown(object sender, MouseButtonEventArgs e)

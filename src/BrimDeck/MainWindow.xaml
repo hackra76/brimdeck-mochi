@@ -70,7 +70,7 @@
               <Grid x:Name="Toolbar" Height="{Binding Height.Value, ElementName=ToolbarRow}" VerticalAlignment="Top">
                 <!-- The clock and Mochi companion sit centered on the toolbar; the switches and the settings button sit inside their own insets. -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                  <local:MochiCompanion x:Name="ExpandedMochi" Width="32" Height="32" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                  <local:MochiCompanion x:Name="ExpandedMochi" Width="36" Height="36" Margin="0,0,8,0" VerticalAlignment="Center"/>
                   <TextBlock x:Name="ClockLabel" FontFamily="{DynamicResource FontPanel}" FontSize="12" Foreground="{DynamicResource PanelTertiary}" VerticalAlignment="Center" IsHitTestVisible="False"/>
                   <StackPanel x:Name="MiniMochisPanel" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0" Visibility="Collapsed"/>
                 </StackPanel>

@@ -70,6 +70,7 @@ public partial class MainWindow
         _mochiPoll.Start();
 
         _compactMochi.DragOutRequested += OnMochiDragOutRequested;
+        _compactMochi.Clicked += () => { if (!_expanded) SetExpanded(true); };
         ExpandedMochi.DragOutRequested += OnMochiDragOutRequested;
 
         // Only the lead panel owns the named pipe listener to avoid duplicate pipe servers on multi-monitor setups.
@@ -166,12 +167,14 @@ public partial class MainWindow
     private void OnMochiDragOutRequested(Point cursorScreen)
     {
         if (_lead is not null || !Settings.MochiEnabled || !Settings.MochiDesktopRoamingEnabled) return;
+        _islandPressed = false;
         var source = PresentationSource.FromVisual(this);
         double scaleX = source?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
         double scaleY = source?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
-        double left = cursorScreen.X / scaleX - 62;
-        double top = cursorScreen.Y / scaleY - 62;
+        double left = cursorScreen.X / scaleX - 70;
+        double top = cursorScreen.Y / scaleY - 70;
         ShowDesktopMochiAt(left, top);
+        _desktopMochi?.BeginExternalDrag(cursorScreen);
         SaveDesktopMochiPosition(left, top);
     }
 
@@ -338,6 +341,7 @@ public partial class MainWindow
     {
         if (_compactMochi.Parent is Panel prev)
             prev.Children.Remove(_compactMochi);
+        _compactMochi.IsMini = size < 26;
         _compactMochi.Width = size;
         _compactMochi.Height = size;
         return _compactMochi;

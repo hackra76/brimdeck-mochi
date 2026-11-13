@@ -23,11 +23,12 @@ public partial class MochiCompanion
     private readonly MochiEngine _engine = new();
     private readonly MochiSurface _surface;
     private bool _renderingHooked;
-    private Point? _dragStart;
+    private Point? _dragStartScreen;
     private bool _dragTriggered;
 
     public bool AllowDragOut { get; set; }
     public event Action<Point>? DragOutRequested;
+    public event Action? Clicked;
 
     public static readonly DependencyProperty IsMiniProperty = DependencyProperty.Register(
         nameof(IsMini), typeof(bool), typeof(MochiCompanion),
@@ -89,35 +90,53 @@ public partial class MochiCompanion
     {
         if (AllowDragOut)
         {
-            _dragStart = e.GetPosition(this);
+            _dragStartScreen = PointToScreen(e.GetPosition(this));
             _dragTriggered = false;
+            CaptureMouse();
+            e.Handled = true;
+            return;
         }
+        TriggerTapReaction(e.ClickCount);
+    }
+
+    private void OnMochiMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (IsMouseCaptured) ReleaseMouseCapture();
+        bool wasTap = _dragStartScreen is not null && !_dragTriggered;
+        _dragStartScreen = null;
+        _dragTriggered = false;
+        if (wasTap)
+        {
+            TriggerTapReaction(e.ClickCount);
+            Clicked?.Invoke();
+            e.Handled = true;
+        }
+    }
+
+    private void TriggerTapReaction(int clickCount)
+    {
         if (IsMini)
         {
             _engine.Squash();
             return;
         }
         _engine.Slap();
-        if (_engine.State != MochiState.Dizzy && e.ClickCount == 1)
+        if (_engine.State != MochiState.Dizzy && clickCount == 1)
             _engine.Greet();
-    }
-
-    private void OnMochiMouseUp(object sender, MouseButtonEventArgs e)
-    {
-        _dragStart = null;
-        _dragTriggered = false;
     }
 
     private void OnMochiMouseMove(object sender, MouseEventArgs e)
     {
-        if (AllowDragOut && !_dragTriggered && _dragStart is { } start && e.LeftButton == MouseButtonState.Pressed)
+        if (AllowDragOut && !_dragTriggered && _dragStartScreen is { } startScreen && e.LeftButton == MouseButtonState.Pressed)
         {
-            var cur = e.GetPosition(this);
-            if ((cur - start).Length > 28)
+            var curScreen = PointToScreen(e.GetPosition(this));
+            if ((curScreen - startScreen).Length > 16)
             {
                 _dragTriggered = true;
-                _dragStart = null;
-                DragOutRequested?.Invoke(PointToScreen(cur));
+                _dragStartScreen = null;
+                if (IsMouseCaptured) ReleaseMouseCapture();
+                e.Handled = true;
+                DragOutRequested?.Invoke(curScreen);
                 return;
             }
         }

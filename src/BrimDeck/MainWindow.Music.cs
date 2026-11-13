@@ -1033,14 +1033,14 @@ public partial class MainWindow
         if (IsMochiOnlyNotch)
         {
             double dpiOnly = VisualTreeHelper.GetDpi(this).DpiScaleX;
-            double notchWanted = CompactMusicLayout.Whole(86 * scale);
+            double notchWanted = CompactMusicLayout.Whole(96 * scale);
             if (double.IsNaN(_compactWanted) || Math.Abs(notchWanted - _compactWanted) > .5 || Math.Abs(notchWanted - _compactRequired) > .5)
             { _compactWanted = notchWanted; _compactRequired = notchWanted; Dispatcher.BeginInvoke(DispatcherPriority.Background, FitCompactToContent); }
-            double miniSize = CompactMusicLayout.Whole(24 * scale);
+            double miniSize = CompactMusicLayout.Whole(Math.Max(28 * scale, shape.Surface.Height - 2));
             var miniMochi = AcquireCompactMochi(miniSize);
             miniMochi.HorizontalAlignment = HorizontalAlignment.Center;
             miniMochi.VerticalAlignment = VerticalAlignment.Center;
-            var host = new Grid { Width = SnapDown(contentWidth, dpiOnly), Height = CompactMusicLayout.Whole(26 * scale) };
+            var host = new Grid { Width = SnapDown(contentWidth, dpiOnly), Height = Math.Max(miniSize, shape.Surface.Height - 2) };
             host.Children.Add(miniMochi);
             CompactRings.Children.Add(host);
             UpdateMusicTimer();
@@ -1091,7 +1091,7 @@ public partial class MainWindow
         double required = CompactMusicLayout.RequiredWidth(scale, media, steadyText, fixedFace,
             steadyRings > 0 ? CompactMusicLayout.RingSizeFor(ringDiameter, scale) : 0, CompactSpacing.Minimum(readingWidths, strip?.Gap ?? 0), equalizer, Settings.EqualizerBars, showCover);
         double row = layout.RowHeight, unit = CompactMusicLayout.Gap(scale);
-        double mochiSize = CompactMusicLayout.Whole(22 * scale);
+        double mochiSize = CompactMusicLayout.Whole(28 * scale);
         double mochiReserve = mochiSize + unit;
         wanted += mochiReserve;
         required += mochiReserve;
