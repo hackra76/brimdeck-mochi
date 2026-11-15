@@ -306,16 +306,17 @@ public static class QuotaParser
             string groupName = NormalizeAntigravityGroup(group.Get("displayName").Text());
             foreach (var bucket in group.Get("buckets").Items())
             {
-                if (bucket.Get("remainingFraction").Number() is not { } fraction) continue;
+                if (bucket.Get("remainingFraction").Number() is not { } fraction || bucket.Get("disabled").ValueKind == JsonValueKind.True) continue;
                 var id = bucket.Get("bucketId").Text();
-                var window = bucket.Get("window").Text();
+                var window = bucket.Get("window").Text().ToLowerInvariant();
                 var bucketTitle = bucket.Get("displayName").Text();
 
                 string resolvedGroup = groupName.Length > 0 ? groupName : InferAntigravityGroupFromBucket(id);
                 string windowLabel = window switch
                 {
                     "5h" => "5-hour",
-                    "weekly" => "Weekly",
+                    "daily" or "1d" => "Daily",
+                    "weekly" or "7d" => "Weekly",
                     _ when id.EndsWith("-5h", StringComparison.OrdinalIgnoreCase) => "5-hour",
                     _ when id.EndsWith("-weekly", StringComparison.OrdinalIgnoreCase) => "Weekly",
                     _ when bucketTitle.Length > 0 => bucketTitle,
@@ -325,7 +326,8 @@ public static class QuotaParser
                 int? minutes = (window, id) switch
                 {
                     ("5h", _) => 300,
-                    ("weekly", _) => 10080,
+                    ("daily" or "1d", _) => 1440,
+                    ("weekly" or "7d", _) => 10080,
                     (_, var b) when b.EndsWith("-5h", StringComparison.OrdinalIgnoreCase) => 300,
                     (_, var b) when b.EndsWith("-weekly", StringComparison.OrdinalIgnoreCase) => 10080,
                     _ => null

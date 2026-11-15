@@ -398,9 +398,10 @@ public sealed class Pricing : IDisposable
     // The catalog or manual model whose prices apply to a record.
     public ModelPrice? Match(TokenEntry entry)
     {
-        var model = Find(entry.Model);
+        // A record's own price name (TokenEntry.PriceModel) is tried first, then the name it shows.
+        var model = Find(entry.PriceModel ?? entry.Model) ?? (entry.PriceModel is null ? null : Find(entry.Model));
         if (model is null && entry.Key.StartsWith("ag:", StringComparison.Ordinal))
-            model = FindAntigravityBase(entry.Model);
+            model = FindAntigravityBase(entry.PriceModel ?? entry.Model) ?? (entry.PriceModel is { } family ? FindGeminiFamily(family) : null);
         else if (entry.Key.StartsWith("kimi:", StringComparison.Ordinal))
         {
             if (model is null && KimiUsage.PriceModel(entry.Model) is { } priced) model = Find(priced);
@@ -522,6 +523,22 @@ public sealed class Pricing : IDisposable
             return tiers.TryGetValue(shape.Family, out var words) && segments[length..].Any(words.Contains) ? null : price;
         }
         return null;
+    }
+    // An Antigravity orchestrator names only the family of the model it runs ("Orchestrator (Carbon)" → "carbon", see
+    // AntigravityUsage). It takes the price of the newest Gemini of that family in the catalog: "google/gemini-4-carbon", or
+    // "google/gemini-5-carbon" once that is listed. Variants such as ":batch" or "-preview" do not count.
+    private ModelPrice? FindGeminiFamily(string family)
+    {
+        if (!Regex.IsMatch(family, "^[a-z]+$")) return null;
+        var found = _found; var lookup = _lookup;
+        var key = "\0gemini-family:" + family;
+        if (found.TryGetValue(key, out var known)) return known;
+        var pattern = new Regex(@"^google/gemini-(\d+(?:\.\d+)*)-" + family + "$");
+        var price = lookup.Keys.Select(id => (Id: id, Match: pattern.Match(id))).Where(x => x.Match.Success)
+            .OrderByDescending(x => Version.TryParse(x.Match.Groups[1].Value.Contains('.') ? x.Match.Groups[1].Value : x.Match.Groups[1].Value + ".0", out var version) ? version : new Version())
+            .Select(x => lookup[x.Id]).FirstOrDefault();
+        found[key] = price;
+        return price;
     }
     // A model family is the words before the version, the first later word that starts with a digit:
     // "gemini-3.5-flash-lite" → ("gemini", 1), "claude-opus-4-6" → ("claude-opus", 2), "gpt-oss-120b" → ("gpt-oss", 2).
