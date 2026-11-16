@@ -38,7 +38,7 @@ public sealed record QuotaRing(IReadOnlyList<double?> Shares, string Detail)
     // while it reports nothing.
     public static QuotaRing For(ProviderSnapshot snapshot, AppEntry? entry, QuotaRingStyle style, bool remaining)
     {
-        var choices = Choices(snapshot);
+        var choices = Choices(snapshot, entry?.ColumnQuotaGroup);
         double? Shown(UsageMetric metric) => Used(metric, entry) is { } used ? remaining ? 100 - used : used : null;
         string Share(double shown) => remaining ? Loc.T($"剩余 {shown:0.#}%", $"{shown:0.#}% left") : Loc.T($"已用 {shown:0.#}%", $"{shown:0.#}% used");
         string Text(UsageMetric metric) => metric.ValueText.Length > 0 && metric.ValueText != "—" ? metric.ValueText + " " + metric.ValueSuffix : Loc.Label(metric.Label);
@@ -102,12 +102,26 @@ public sealed record QuotaRing(IReadOnlyList<double?> Shares, string Detail)
     public static bool IsAccountBalance(UsageMetric metric) => metric is { Kind: MetricKind.Balance, Label: "账户余额" } && (metric.Total is null || metric.TotalIsTarget);
 
     // The quotas the nested rings show by default, outside in (UsageMetric.Id), for the settings to start from.
-    public static IReadOnlyList<string> Automatic(ProviderSnapshot snapshot) => [.. Choices(snapshot).Take(MaximumRings).Select(metric => metric.Id)];
+    public static IReadOnlyList<string> Automatic(ProviderSnapshot snapshot, string? group = null) =>
+        [.. Choices(snapshot, group).Take(MaximumRings).Select(metric => metric.Id)];
 
     // The quotas an application's rings can be given (AppEntry.SingleRingQuota, AppEntry.RingQuotas), in their default order
     // (Ordered): every quota with a share, and every balance and amount spent, which a target gives a share.
-    public static IReadOnlyList<UsageMetric> Choices(ProviderSnapshot snapshot) => Ordered(snapshot.Metrics.Where(metric =>
-        metric.UsedPercent is { } used && double.IsFinite(used) || metric.Kind is MetricKind.Balance or MetricKind.Spend && metric.Amount is not null));
+    public static IReadOnlyList<UsageMetric> Choices(ProviderSnapshot snapshot, string? group = null)
+    {
+        var ordered = Ordered(snapshot.Metrics.Where(metric =>
+            metric.UsedPercent is { } used && double.IsFinite(used) || metric.Kind is MetricKind.Balance or MetricKind.Spend && metric.Amount is not null));
+        if (!string.IsNullOrWhiteSpace(group))
+        {
+            var filtered = ordered.Where(metric =>
+            {
+                string g = metric.Label.Contains('·') ? metric.Label.Split('·')[0].Trim() : "";
+                return string.Equals(g, group, StringComparison.OrdinalIgnoreCase);
+            }).ToList();
+            if (filtered.Count > 0) return filtered;
+        }
+        return ordered;
+    }
 
     // The default order of a source's quotas: the account balance first; then a source that groups its quotas ("Gemini · 5 ",
     // "Claude · ", or one Claude organization's before another's) keeps its groups in its own order, and within a group, as for a

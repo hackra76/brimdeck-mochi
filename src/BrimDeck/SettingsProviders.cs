@@ -540,22 +540,51 @@ public sealed partial class SettingsWindow
         var groups = snapshot.Metrics.Select(m => UI.QuotaGroup(new Quota(m.Label, 0, null))).Where(g => g.Length > 0).Distinct().ToList();
         if (groups.Count > 1 || entry.ColumnQuotaGroup.Length > 0)
         {
-            List<(string Id, string Label)> groupOptions = [("", Loc.T("全部（点击切换）", "All (click to cycle)")), .. groups.Select(g => (g, g))];
+            static string PoolLabel(string group) => group switch
+            {
+                "Gemini" => "Gemini (Hydrogen, Flash)",
+                "Claude" => "Claude (Sonnet, Opus, GPT)",
+                "Argon" => "Argon (Weekly)",
+                _ => group
+            };
+            List<(string Id, string Label)> groupOptions = [("", Loc.T("全部（点击列切换）", "All pools (click column to cycle)")), .. groups.Select(g => (g, PoolLabel(g)))];
             if (entry.ColumnQuotaGroup.Length > 0 && !groups.Contains(entry.ColumnQuotaGroup))
-                groupOptions.Add((entry.ColumnQuotaGroup, entry.ColumnQuotaGroup));
+                groupOptions.Add((entry.ColumnQuotaGroup, PoolLabel(entry.ColumnQuotaGroup)));
             string groupTitle = Loc.T("面板显示模型组", "Column model pool");
-            Line(groupTitle, () => Loc.T("指定这一列在展开面板中默认显示的模型/配额池；选“全部”时可点击该列切换。",
-                "Choose which discovered model or quota pool this column displays in the expanded panel. When set to All, click the column to cycle."),
-                Combo(groupTitle, groupOptions, entry.ColumnQuotaGroup, group => { Change(s => s.Entry(id)!.ColumnQuotaGroup = group); RefreshAppRow(id); }));
+            Line(groupTitle, () => Loc.T("指定这一列显示的模型/配额池，顶栏配额环也会自动同步为该池。",
+                "Choose which model pool this column displays. The notch ring automatically follows the selected pool."),
+                Combo(groupTitle, groupOptions, entry.ColumnQuotaGroup, group =>
+                {
+                    Change(s =>
+                    {
+                        var target = s.Entry(id)!;
+                        target.ColumnQuotaGroup = group;
+                        target.SingleRingQuota = "";
+                        target.RingQuotas = [];
+                        if (target.DisplayName is "" or "Antigravity" or "Gemini" or "Claude" or "Claude (AG)" or "Argon"
+                            || target.DisplayName.StartsWith("Gemini ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            target.DisplayName = group switch
+                            {
+                                "" => "Antigravity",
+                                "Claude" => "Claude (AG)",
+                                _ => group
+                            };
+                        }
+                    });
+                    RefreshAppRow(id);
+                }));
         }
 
+        // Filter ring choices to the selected pool so the user only sees relevant 5-hour / Weekly options.
+        var scopedChoices = QuotaRing.Choices(snapshot, entry.ColumnQuotaGroup);
         if (S.QuotaRingStyle == QuotaRingStyle.Single)
         {
             // By default the single ring shows the account balance where the source has one, else the most used quota (QuotaRing.For).
-            var account = choices.FirstOrDefault(QuotaRing.IsAccountBalance);
+            var account = scopedChoices.FirstOrDefault(QuotaRing.IsAccountBalance);
             List<(string Id, string Label)> options = [("", account is not null ? Name(account) : hasAccount && snapshot.Metrics.Count == 0 ? Loc.T("账户余额", "Account balance") : Loc.T("已用最高的一项", "Most used")),
-                .. choices.Where(metric => metric != account).Select(metric => (metric.Id, Name(metric)))];
-            if (entry.SingleRingQuota.Length > 0 && choices.All(metric => metric.Id != entry.SingleRingQuota)) options.Add((entry.SingleRingQuota, Label(entry.SingleRingQuota)));
+                .. scopedChoices.Where(metric => metric != account).Select(metric => (metric.Id, Name(metric)))];
+            if (entry.SingleRingQuota.Length > 0 && scopedChoices.All(metric => metric.Id != entry.SingleRingQuota)) options.Add((entry.SingleRingQuota, Label(entry.SingleRingQuota)));
             string title = Loc.T("配额环额度", "Ring quota");
             Line(title, null, Combo(title, options, account is not null && entry.SingleRingQuota == account.Id ? "" : entry.SingleRingQuota,
                 quota => { Change(s => s.Entry(id)!.SingleRingQuota = quota); RefreshAppRow(id); }));
@@ -563,9 +592,9 @@ public sealed partial class SettingsWindow
         }
 
         bool automatic = entry.RingQuotas.Count == 0;
-        var slots = (automatic ? QuotaRing.Automatic(snapshot) : entry.RingQuotas).Take(QuotaRing.MaximumRings).ToList();
-        List<(string Id, string Label)> quotas = [.. choices.Select(metric => (metric.Id, Name(metric)))];
-        foreach (var saved in entry.RingQuotas) if (choices.All(metric => metric.Id != saved)) quotas.Add((saved, Label(saved)));
+        var slots = (automatic ? QuotaRing.Automatic(snapshot, entry.ColumnQuotaGroup) : entry.RingQuotas).Take(QuotaRing.MaximumRings).ToList();
+        List<(string Id, string Label)> quotas = [.. scopedChoices.Select(metric => (metric.Id, Name(metric)))];
+        foreach (var saved in entry.RingQuotas) if (scopedChoices.All(metric => metric.Id != saved)) quotas.Add((saved, Label(saved)));
         if (quotas.Count == 0)
         {
             // Nothing read yet, or a source whose figures have nothing to draw (text only).
