@@ -164,6 +164,7 @@ public partial class MainWindow : Window
             _context = context;
             ApplySettings(!_expanded);
         };
+        Closed += (_, _) => WatchOutsidePress(false);
         // Esc also leaves move mode (MainWindow.Move.cs).
         SourceInitialized += (_, _) => { WindowsHost.ConfigureOverlay(this, Settings.WindowCapture); _escapeDismissal = new EscapeDismissal(this, () => { if (_moveArmed) CancelMove(); else if (!ShelfEscape()) SetExpanded(false, keyboard: true); }); };
         Loaded += async (_, _) =>
@@ -684,6 +685,7 @@ public partial class MainWindow : Window
     private void PanelClosed()
     {
         _app.UpdateCollectionLatency();
+        WatchOutsidePress(false);
         ResetShelf();
         HotkeyPanelCollapsed();
         ReplayCompactTitle();
@@ -1009,6 +1011,7 @@ public partial class MainWindow : Window
         if (inside) ReleaseHotkeyPin();
         if (inside)
         {
+            WatchOutsidePress(false);
             _popupReturnArea = null;
             _leave.Stop(); if (_expanded || IsSuppressed) return;
             SetHoverPeek(true);
@@ -1018,8 +1021,11 @@ public partial class MainWindow : Window
         else
         {
             if (!_expanded && _hoverPeek && !_preview) SetHoverPeek(false);
-            _hover.Stop(); if (!_expanded || _preview || _pageSwitchHold.IsEnabled || _detailPopup is not null || MediaSourceButton.ContextMenu?.IsOpen == true || ShelfHolds) return;
-            int delay = Math.Max(_popupReturnArea is null ? 1 : 50, Settings.CloseDelay);
+            _hover.Stop();
+            if (_expanded && !_preview) WatchOutsidePress(true);
+            if (!_expanded || _preview || _pageSwitchHold.IsEnabled || _detailPopup is not null || MediaSourceButton.ContextMenu?.IsOpen == true || ShelfHolds) return;
+            // A press outside closes the panel at once (MainWindow.OutsidePress.cs).
+            int delay = _pressedOutside ? 1 : Math.Max(_popupReturnArea is null ? 1 : 50, Settings.CloseDelay);
             _leftAt = Environment.TickCount64;
             _leave.Stop(); _leave.Interval = TimeSpan.FromMilliseconds(delay); _leave.Start();
         }
@@ -1030,11 +1036,12 @@ public partial class MainWindow : Window
         if (_pointerInside || _preview || _pageSwitchHold.IsEnabled || _detailPopup is not null || MediaSourceButton.ContextMenu?.IsOpen == true || ShelfHolds) { _leave.Stop(); return; }
         // Closing a calendar with either button must leave a path back to the results.
         // Keep checking until the cursor leaves that area; entering the island restores normal hover behavior.
-        if (_popupReturnArea is { } area && area.Contains(screenPoint)) return;
+        if (_popupReturnArea is { } area && area.Contains(screenPoint) && !_pressedOutside) return;
         // A mouse leave from the panel into the part of the hover area beside or above it is not an exit.
         if (_expanded && InsideOpenPanel(screenPoint)) { PointerChanged(true); return; }
-        // Still just past a resize grip: the pointer is most likely coming back to it. The panel waits, but not for long.
-        if (_expanded && NearGrips(screenPoint) && Environment.TickCount64 - _leftAt < GripHold) { _leave.Stop(); _leave.Interval = TimeSpan.FromMilliseconds(120); _leave.Start(); return; }
+        // Still just past a resize grip: the pointer is most likely coming back to it. The panel waits, but not for long, and not
+        // after a press outside.
+        if (_expanded && !_pressedOutside && NearGrips(screenPoint) && Environment.TickCount64 - _leftAt < GripHold) { _leave.Stop(); _leave.Interval = TimeSpan.FromMilliseconds(120); _leave.Start(); return; }
         _leave.Stop(); SetExpanded(false);
     }
     private void Settings_Click(object sender, RoutedEventArgs e)

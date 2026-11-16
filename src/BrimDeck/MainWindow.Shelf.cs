@@ -47,7 +47,10 @@ public partial class MainWindow
     // The details replace the page switch and the clock with their own header.
     internal bool ShelfHidesSwitch => _shelfDetail is not null;
     // The panel stays open while a menu of the page is open, while the user types in it, and while files are dragged over it.
-    internal bool ShelfHolds => _shelfMenu?.IsOpen == true || _shelfEdit is not null || _dropping || _draggingOut || _searchBox?.IsKeyboardFocusWithin == true;
+    // Typing needs the foreground. Window.IsActive is false when Deactivated runs, but WPF clears the keyboard focus only on
+    // WM_KILLFOCUS, which can come later: the search box still held it there and kept the panel open after a press elsewhere.
+    internal bool ShelfHolds => _shelfMenu?.IsOpen == true || _shelfEdit is not null || _dropping || _draggingOut
+        || IsActive && _searchBox?.IsKeyboardFocusWithin == true;
     private ShelfData ShelfData => _app.Shelf.Data;
 
     private void InitializeShelf()
