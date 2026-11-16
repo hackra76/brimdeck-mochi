@@ -285,6 +285,11 @@ public partial class MainWindow
         // starts its own page, in the order the service gave them, so Pro's 5-hour and weekly quotas come first, then its Fable
         // quota, then Team's.
         string Group(UsageMetric metric) => UI.QuotaGroup(new Quota(metric.Label, 0, null));
+        if (entry.ColumnQuotaGroup.Length > 0)
+        {
+            var filtered = quotas.Where(m => string.Equals(Group(m), entry.ColumnQuotaGroup, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (filtered.Count > 0) quotas = filtered;
+        }
         var order = snapshot.Metrics.Select(Group).Distinct().ToList();
         var sets = snapshot.Id switch
         {

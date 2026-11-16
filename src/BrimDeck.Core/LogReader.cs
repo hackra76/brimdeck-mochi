@@ -302,19 +302,79 @@ public static class QuotaParser
         var groups = root.Get("response").Get("groups");
         if (groups.ValueKind != JsonValueKind.Array) groups = root.Get("groups");
         foreach (var group in groups.Items())
+        {
+            string groupName = NormalizeAntigravityGroup(group.Get("displayName").Text());
             foreach (var bucket in group.Get("buckets").Items())
-                if (bucket.Get("remainingFraction").Number() is { } fraction)
+            {
+                if (bucket.Get("remainingFraction").Number() is not { } fraction) continue;
+                var id = bucket.Get("bucketId").Text();
+                var window = bucket.Get("window").Text();
+                var bucketTitle = bucket.Get("displayName").Text();
+
+                string resolvedGroup = groupName.Length > 0 ? groupName : InferAntigravityGroupFromBucket(id);
+                string windowLabel = window switch
                 {
-                    var id = bucket.Get("bucketId").Text();
-                    var label = id switch { "gemini-5h" => "Gemini · 5 小时", "gemini-weekly" => "Gemini · 每周", "3p-5h" => "Claude · 5 小时", "3p-weekly" => "Claude · 每周", _ => id };
-                    int? minutes = id switch { "gemini-5h" or "3p-5h" => 300, "gemini-weekly" or "3p-weekly" => 10080, _ => null };
-                    result.Add(new(label, (1 - Math.Clamp(fraction, 0, 1)) * 100, bucket.Get("resetTime").Date(), minutes));
-                }
+                    "5h" => "5-hour",
+                    "weekly" => "Weekly",
+                    _ when id.EndsWith("-5h", StringComparison.OrdinalIgnoreCase) => "5-hour",
+                    _ when id.EndsWith("-weekly", StringComparison.OrdinalIgnoreCase) => "Weekly",
+                    _ when bucketTitle.Length > 0 => bucketTitle,
+                    _ => id
+                };
+                string label = resolvedGroup.Length > 0 ? $"{resolvedGroup} · {windowLabel}" : windowLabel;
+                int? minutes = (window, id) switch
+                {
+                    ("5h", _) => 300,
+                    ("weekly", _) => 10080,
+                    (_, var b) when b.EndsWith("-5h", StringComparison.OrdinalIgnoreCase) => 300,
+                    (_, var b) when b.EndsWith("-weekly", StringComparison.OrdinalIgnoreCase) => 10080,
+                    _ => null
+                };
+                result.Add(new(label, (1 - Math.Clamp(fraction, 0, 1)) * 100, bucket.Get("resetTime").Date(), minutes));
+            }
+        }
         if (result.Count > 0) return result;
+
+        // Fallback to per-model configs from GetUserStatus, deduplicating tier suffixes like (Low)/(Medium)/(High)/(XHigh).
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var configs = root.Get("userStatus").Get("cascadeModelConfigData").Get("clientModelConfigs");
         foreach (var model in configs.Items())
-            if (model.Get("quotaInfo").Get("remainingFraction").Number() is { } fraction)
-                result.Add(new(model.Get("label").Text(), (1 - Math.Clamp(fraction, 0, 1)) * 100, model.Get("quotaInfo").Get("resetTime").Date()));
+        {
+            if (model.Get("quotaInfo").Get("remainingFraction").Number() is not { } fraction) continue;
+            string raw = model.Get("label").Text().Trim();
+            string baseName = StripModelTierSuffix(raw);
+            if (baseName.Length == 0 || !seen.Add(baseName)) continue;
+            result.Add(new(baseName, (1 - Math.Clamp(fraction, 0, 1)) * 100, model.Get("quotaInfo").Get("resetTime").Date()));
+        }
         return result;
+    }
+
+    private static string NormalizeAntigravityGroup(string displayName)
+    {
+        if (string.IsNullOrWhiteSpace(displayName)) return "";
+        if (displayName.Contains("Argon", StringComparison.OrdinalIgnoreCase)) return "Argon";
+        if (displayName.Contains("Claude", StringComparison.OrdinalIgnoreCase)) return "Claude";
+        if (displayName.Contains("Gemini", StringComparison.OrdinalIgnoreCase)) return "Gemini";
+        return displayName.Trim();
+    }
+
+    private static string InferAntigravityGroupFromBucket(string bucketId)
+    {
+        if (bucketId.Contains("argon", StringComparison.OrdinalIgnoreCase)) return "Argon";
+        if (bucketId.StartsWith("3p-", StringComparison.OrdinalIgnoreCase)) return "Claude";
+        if (bucketId.StartsWith("gemini-", StringComparison.OrdinalIgnoreCase)) return "Gemini";
+        return "";
+    }
+
+    private static string StripModelTierSuffix(string label)
+    {
+        int open = label.LastIndexOf('(');
+        if (open > 0 && label.EndsWith(')'))
+        {
+            string inner = label[(open + 1)..^1].Trim();
+            if (inner is "Low" or "Medium" or "High" or "XHigh")
+                return label[..open].Trim();
+        }
+        return label;
     }
 }

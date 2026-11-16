@@ -537,6 +537,18 @@ public sealed partial class SettingsWindow
         }
         Targets();
 
+        var groups = snapshot.Metrics.Select(m => UI.QuotaGroup(new Quota(m.Label, 0, null))).Where(g => g.Length > 0).Distinct().ToList();
+        if (groups.Count > 1 || entry.ColumnQuotaGroup.Length > 0)
+        {
+            List<(string Id, string Label)> groupOptions = [("", Loc.T("全部（点击切换）", "All (click to cycle)")), .. groups.Select(g => (g, g))];
+            if (entry.ColumnQuotaGroup.Length > 0 && !groups.Contains(entry.ColumnQuotaGroup))
+                groupOptions.Add((entry.ColumnQuotaGroup, entry.ColumnQuotaGroup));
+            string groupTitle = Loc.T("面板显示模型组", "Column model pool");
+            Line(groupTitle, () => Loc.T("指定这一列在展开面板中默认显示的模型/配额池；选“全部”时可点击该列切换。",
+                "Choose which discovered model or quota pool this column displays in the expanded panel. When set to All, click the column to cycle."),
+                Combo(groupTitle, groupOptions, entry.ColumnQuotaGroup, group => { Change(s => s.Entry(id)!.ColumnQuotaGroup = group); RefreshAppRow(id); }));
+        }
+
         if (S.QuotaRingStyle == QuotaRingStyle.Single)
         {
             // By default the single ring shows the account balance where the source has one, else the most used quota (QuotaRing.For).

@@ -155,6 +155,7 @@ public sealed class AppEntry
     // QuotaTargets: the amount that counts as 100% for each other balance or amount spent (UsageMetric.Id → amount), such as a gift
     // balance, a key's balance or today's spending, as BalanceTarget is for the account balance; the rings, the panel's bars and the
     // notices all follow it (DashboardUsage.Quota).
+    public string ColumnQuotaGroup { get; set; } = "";
     public string SingleRingQuota { get; set; } = "";
     public List<string> RingQuotas { get; set; } = [];
     public Dictionary<string, decimal> QuotaTargets { get; set; } = [];
@@ -196,6 +197,8 @@ public sealed class AppEntry
         OffPeakColor = AppPresets.NormalizeColor(OffPeakColor);
         OffPeakWarningColor = AppPresets.NormalizeColor(OffPeakWarningColor);
         OffPeakCriticalColor = AppPresets.NormalizeColor(OffPeakCriticalColor);
+        ColumnQuotaGroup = (ColumnQuotaGroup ?? "").Trim();
+        if (ColumnQuotaGroup.Length > 100) ColumnQuotaGroup = "";
         SingleRingQuota = (SingleRingQuota ?? "").Trim();
         if (SingleRingQuota.Length > 500) SingleRingQuota = "";
         RingQuotas = QuotaRing.Slots(RingQuotas);
