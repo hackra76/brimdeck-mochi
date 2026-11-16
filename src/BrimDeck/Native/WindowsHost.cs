@@ -87,8 +87,10 @@ public sealed class WindowsHost : IDisposable
     private ScreenContext _raisedKind = ScreenContext.Desktop;
     private void Poll()
     {
+        var taken = _taken;
         var context = DetectNow();
-        var change = ScreenPolicy.WhatChanged(context, _resolvedName, _resolvedPath, Current, _raisedName, _raisedPath);
+        _taken = null;
+        var change = ScreenPolicy.WhatChanged(context, _resolvedName, _resolvedPath, Current, _raisedName, _raisedPath, taken);
         if (change == ScreenPolicy.ForegroundChange.None) { WatchOrder(_window()); return; }
         var previous = (_raisedName, _raisedPath, _raisedKind);
         Current = context; _raisedName = _resolvedName; _raisedPath = _resolvedPath; _raisedKind = _backgroundKind;
@@ -324,8 +326,12 @@ public sealed class WindowsHost : IDisposable
         // foreground app the detection has just read.
         (_resolvedName, _resolvedPath) = context == ScreenContext.BackgroundFullscreen
             ? (_backgroundName, _backgroundPath) : (_appName, _appPath);
+        _taken = context;
         return context;
     }
+    // The context last handed out by DetectNow outside a poll, which the panel then goes by; the next poll compares with it
+    // (ScreenPolicy.WhatChanged) and clears it.
+    private ScreenContext? _taken;
     public static IntPtr PrimaryMonitor() => MonitorFromPoint(new POINT(), 1);
     public static (Rect Bounds, Rect Work, double Scale) PrimaryScreen() => Screen(PrimaryMonitor());
     // Null when the handle no longer names a connected monitor.

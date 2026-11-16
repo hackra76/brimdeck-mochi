@@ -121,25 +121,37 @@ public partial class App : Application
         Shelf = new ShelfService(folder, Dispatcher); Shelf.Apply(Settings);
         Deck = new MainWindow(this); MainWindow = Deck;
         Displays = Native.Displays.Current(); AssignDisplays();
-        Deck.Show();
-        InitializeHotkeys();
-        StartBackgroundUpdates();
+        // From here each step is on its own (Step): the app keeps running after an error at the start, and one step failing
+        // used to skip every later one, which left a panel with no tray icon, no saving and no answer to a second start.
+        Step(Deck.Show);
+        Step(InitializeHotkeys);
+        Step(StartBackgroundUpdates);
         // Only for a user who has the monitor page with its power line: the rest never open it.
-        if (Settings.MonitorPage && Settings.MonitorPower) PowerWarm.Start(Dispatcher);
-        WarmSettingsWriter();
-        ApplyMemoryMode();
-        DisplayPower.Install(Dispatcher);
-        DisplayPower.Changed += UpdateDeviceDemand;
+        Step(() => { if (Settings.MonitorPage && Settings.MonitorPower) PowerWarm.Start(Dispatcher); });
+        Step(WarmSettingsWriter);
+        Step(ApplyMemoryMode);
+        Step(() => { DisplayPower.Install(Dispatcher); DisplayPower.Changed += UpdateDeviceDemand; });
         _save.Tick += (_, _) => FlushSettings();
-        ApplyTray();
-        _settingsEvent = new EventWaitHandle(false, EventResetMode.AutoReset, eventName);
-        _listener = ThreadPool.RegisterWaitForSingleObject(_settingsEvent, (_, _) => Dispatcher.BeginInvoke(ShowFromRelaunch), null, Timeout.Infinite, false);
+        Step(ApplyTray);
+        Step(() =>
+        {
+            _settingsEvent = new EventWaitHandle(false, EventResetMode.AutoReset, eventName);
+            _listener = ThreadPool.RegisterWaitForSingleObject(_settingsEvent, (_, _) => Dispatcher.BeginInvoke(ShowFromRelaunch), null, Timeout.Infinite, false);
+        });
         if (e.Args.Contains("--settings")) OpenSettings();
         // A portable update that kept this version says why on the About page.
         else if (Updates.RestartFailed) OpenUpdateSettings();
     }
     // A resident app must not vanish without a trace. Unhandled errors are appended to crash.log in the data folder;
     // errors on the UI thread are logged and the app keeps running, and unobserved task errors are only logged.
+    // Runs one step of a start (OnStartup, a panel's Loaded) so that its failure is recorded like any other error and what
+    // follows it still runs.
+    internal void Step(Action step)
+    {
+        try { step(); }
+        catch (Exception ex) when (ex is not OutOfMemoryException) { _recordCrash?.Invoke(ex); }
+    }
+    private Action<object>? _recordCrash;
     private void RecordCrashes()
     {
         var log = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BrimDeck", "crash.log");
@@ -154,6 +166,7 @@ public partial class App : Application
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         }
+        _recordCrash = Write;
         DispatcherUnhandledException += (_, args) => { Write(args.Exception); args.Handled = !Exiting; };
         AppDomain.CurrentDomain.UnhandledException += (_, args) => Write(args.ExceptionObject);
         TaskScheduler.UnobservedTaskException += (_, args) => { Write(args.Exception); args.SetObserved(); };

@@ -104,6 +104,12 @@ internal static class FullscreenRuleTests
             && ScreenPolicy.WhatChanged(ScreenContext.Maximized, "app", "q", ScreenContext.Maximized, "app", "p") == ScreenPolicy.ForegroundChange.App);
         check("What changed: identical readings change nothing",
             ScreenPolicy.WhatChanged(ScreenContext.Desktop, "app", "p", ScreenContext.Desktop, "app", "p") == ScreenPolicy.ForegroundChange.None);
+        // The panel read the lock screen's full screen for itself as it started and no poll saw it: the first poll, on the desktop
+        // like the host's own start, still reports the change, and a context the panel read that still holds reports none.
+        check("What changed: a context the panel read for itself and no poll saw is a context change",
+            ScreenPolicy.WhatChanged(ScreenContext.Desktop, "", "", ScreenContext.Desktop, "", "", ScreenContext.Borderless) == ScreenPolicy.ForegroundChange.Context
+            && ScreenPolicy.WhatChanged(ScreenContext.Desktop, "app", "p", ScreenContext.Desktop, "app", "p", ScreenContext.Desktop) == ScreenPolicy.ForegroundChange.None
+            && ScreenPolicy.WhatChanged(ScreenContext.Desktop, "app2", "p", ScreenContext.Desktop, "app", "p", ScreenContext.Desktop) == ScreenPolicy.ForegroundChange.App);
         var many = new DeckSettings { FullscreenRules = Enumerable.Range(0, 40).Select(i => new FullscreenRule("App" + i)).ToList() };
         many.Normalize();
         check("The rule list is capped", many.FullscreenRules.Count == AppPresets.MaximumFullscreenExceptions);

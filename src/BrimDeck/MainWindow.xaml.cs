@@ -169,11 +169,13 @@ public partial class MainWindow : Window
         SourceInitialized += (_, _) => { WindowsHost.ConfigureOverlay(this, Settings.WindowCapture); _escapeDismissal = new EscapeDismissal(this, () => { if (_moveArmed) CancelMove(); else if (!ShelfEscape()) SetExpanded(false, keyboard: true); }); };
         Loaded += async (_, _) =>
         {
-            _virtualDesktops ??= new VirtualDesktopPresence(this);
+            // Each step on its own (App.Step): an error in one used to end the handler there, and a panel that never came to
+            // follow the pointer showed but could not be opened.
+            _app.Step(() => _virtualDesktops ??= new VirtualDesktopPresence(this));
             _context = _host.DetectNow();
-            if (_lead is { } lead) { Snapshots = lead.Snapshots; _updatedAt = lead._updatedAt; DetectThresholds(); UpdateNotice(); }
-            ApplySettings();
-            Boot();
+            if (_lead is { } lead) _app.Step(() => { Snapshots = lead.Snapshots; _updatedAt = lead._updatedAt; DetectThresholds(); UpdateNotice(); });
+            _app.Step(ApplySettings);
+            _app.Step(Boot);
             _trackPointer = true; UpdatePointerTracking();
             ScheduleClock(); _clock.Start(); StartMusic();
             if (_lead is null) { _app.AssignDisplays(); await RefreshAutomaticallyAsync(); }
