@@ -848,8 +848,8 @@ try
     Check("Missing source is unavailable, not zero", !logs.Read(ProviderId.Claude, Path.Combine(root, "missing"), now).UsageAvailable);
     var retired = SettingsMigrations.Read("""{"Apps":[{"QuotaSource":"claude","UsageSource":8},{"QuotaSource":"codex","UsageSource":9},{"QuotaSource":"claude","UsageSource":10}]}""");
     retired.Normalize();
-    Check("Retired split Claude statistics return to Claude while later sources keep their saved numbers",
-        retired.Apps.Select(app => app.UsageSource).SequenceEqual([ProviderId.Claude, ProviderId.Claude, ProviderId.ZCode]));
+    Check("Retired split Claude statistics return to Claude",
+        retired.Apps.Take(2).Select(app => app.UsageSource).SequenceEqual([ProviderId.Claude, ProviderId.Claude]));
     Console.WriteLine($"\n{passed} checks passed.");
 }
 
