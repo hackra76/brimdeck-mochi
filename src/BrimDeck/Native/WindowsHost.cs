@@ -351,6 +351,14 @@ public sealed class WindowsHost : IDisposable
         if (handle == IntPtr.Zero || !IsWindowVisible(handle) || IsIconic(handle)) return;
         SetWindowPos(handle, new IntPtr(topmost ? -1 : 0), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
     }
+    // Whether the window under a point, in screen physical pixels, belongs to this app.
+    public static bool OwnWindowAt(Point point)
+    {
+        var hit = WindowFromPoint(new POINT { X = (int)point.X, Y = (int)point.Y });
+        if (hit == IntPtr.Zero) return false;
+        GetWindowThreadProcessId(hit, out var pid);
+        return pid == Environment.ProcessId;
+    }
     // Whether another window is over the panel at a point in device pixels: the window the pointer reaches there belongs to
     // another app and lies above the panel. The panel's transparent parts, and windows that let the mouse through, are
     // passed over as the pointer passes them.
