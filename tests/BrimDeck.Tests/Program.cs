@@ -83,8 +83,6 @@ try
     FullscreenRuleTests.Run(Check);
     LanguageTests.Run(root, Check);
     await ClaudeRateLimitTests.Run(root, Check);
-    await OfficialPriceTests.Run(root, Check);
-    await GrokBotUsageTests.Run(root, Check);
     await CursorUsageTests.Run(root, Check);
     await CursorPricesTests.Run(root, Check);
     var priceTime = DateTimeOffset.UtcNow;
@@ -368,10 +366,10 @@ try
         File.Delete(credentialPath);
         desktopFixture.State = new(true, [], true);
         result = (await Refresh(onlyClaude)).Single();
-        Check("Unreadable Desktop login is not reported as missing installation", !result.LiveQuota && result.StatusLabel == "读取失败" && result.Status.Contains("桌面版"));
+        Check("Unreadable Desktop login is not reported as missing installation", !result.LiveQuota && result.StatusLabel == "Read failed" && result.Status.Contains("desktop", StringComparison.OrdinalIgnoreCase));
         desktopFixture.State = new(true, []);
         result = (await Refresh(onlyClaude)).Single();
-        Check("Installed Desktop without valid cache prompts original app login", result.StatusLabel == "等待登录" && !result.LiveQuota);
+        Check("Installed Desktop without valid cache prompts original app login", result.StatusLabel == "Waiting for sign-in" && !result.LiveQuota);
 
         desktopFixture.State = new(true, desktopCredentials);
         var historyPath = Path.Combine(classicProfile, "plan-usage-history.json");
@@ -429,7 +427,7 @@ try
             var limited = (await restarted.RefreshAsync(onlyClaude)).Single();
             Check("After a restart, rate limiting still shows the per-model quota read before it", limited.LiveQuota && limited.Quotas.Any(q => q.Label == "Fable 每周" && q.UsedPercent == 44));
             Check("The desktop app's newer local sample still decides the 5-hour and weekly shares", limited.Quotas.Single(q => q.Minutes == 300).UsedPercent == 41);
-            Check("The status says when the carried-over per-model quotas were read", limited.Status.Contains("按模型的额度为") && limited.Status.Contains(usageClock.LocalDateTime.ToString("HH:mm")));
+            Check("The status says when the carried-over per-model quotas were read", limited.Status.Contains("per-model quotas read at") && limited.Status.Contains(usageClock.LocalDateTime.ToString("HH:mm")));
             // A sign-in that cannot be read for a moment drops only this run's reading; the kept one comes back with the sign-in.
             desktopFixture.State = new(true, [], true);
             var unreadable = (await restarted.RefreshAsync(onlyClaude)).Single();
@@ -457,9 +455,8 @@ try
         ClaudeQuotaSnapshot? readInEnglish;
         Loc.Use(Loc.English);
         try { readInEnglish = ClaudeQuotaCache.Parse(keptText, usageClock.AddMinutes(1), "current"); }
-        finally { Loc.Use(Loc.Chinese); }
-        Check("A kept reading names its sources in the language shown now", readInEnglish is { Source: "Claude Code · account quota", PlanSource: "Claude account" } &&
-            ClaudeQuotaCache.Parse(keptText, usageClock.AddMinutes(1), "current") is { Source: "Claude Code · 账户配额", PlanSource: "Claude 账户" });
+        finally { Loc.Use(Loc.English); }
+        Check("A kept reading names its sources in the language shown now", readInEnglish is { Source: "Claude Code · account quota", PlanSource: "Claude account" });
         // A Claude Code sign-in names its account in the local account record that Claude Code writes when signing in.
         File.WriteAllText(credentialPath, """{"claudeAiOauth":{"accessToken":"test-code","subscriptionType":"pro"}}""");
         File.WriteAllText(profilePath, """{"oauthAccount":{"accountUuid":"code-account"}}""");
@@ -526,7 +523,7 @@ try
             var statistics = (await seatsService.RefreshAsync(new DeckSettings { Apps = [new AppEntry { Id = ProviderId.Claude, QuotaOnline = false }] }))
                 .Single(snapshot => !snapshot.Configurations.Contains(ProviderCatalog.LocalQuota));
             Check("Without an online Claude row, the statistics snapshot names the local account record's plan for a row switched on to show before its first reading",
-                statistics.Plan == "Team Premium" && statistics.PlanSource == "Claude 本地账户记录");
+                statistics.Plan == "Team Premium" && statistics.PlanSource == "Claude local account record");
             var both = (await seatsService.RefreshAsync(onlyClaude)).Single();
             Check("Each organization of the account is read, the personal one first and each under its name", both.LiveQuota && both.Plan == "Pro + Team Premium" &&
                 both.Quotas.Select(q => q.Label).SequenceEqual(["Pro · 5 小时额度", "Pro · 每周额度", "Team · 5 小时额度", "Team · 每周额度", "Team · Fable 每周"]) &&
@@ -543,7 +540,7 @@ try
         {
             var partial = (await withoutKept.RefreshAsync(onlyClaude)).Single();
             Check("An organization that cannot be read is named in the status while the other's quotas show",
-                partial.LiveQuota && partial.Quotas.Count == 2 && partial.Quotas.All(q => q.Label.StartsWith("Pro · ", StringComparison.Ordinal)) && partial.Status.Contains("Team 暂时无法读取"));
+                partial.LiveQuota && partial.Quotas.Count == 2 && partial.Quotas.All(q => q.Label.StartsWith("Pro · ", StringComparison.Ordinal)) && partial.Status.Contains("Team cannot be read right now"));
         }
         File.Delete(profilePath); File.Delete(quotaFile);
         desktopFixture.State = new(true, desktopCredentials);
@@ -570,9 +567,9 @@ try
         var localColumns = DashboardUsage.Columns(bothLocal, localResults);
         Check("Offline Claude rows send no request and read no sign-in", quotaHandler.Requests.Count == 0 && desktopFixture.ReadCalls == readCalls);
         Check("Two offline Claude rows share one local reading", localResults.Count(s => s.Configurations.Contains(ProviderCatalog.LocalQuota)) == 1 &&
-            localColumns.All(c => c.Quota.LiveQuota && c.Quota.IsStale && c.Quota.StatusLabel == "本地记录" && c.Quota.Quotas.Single(q => q.Minutes == 300).UsedPercent == 44));
+            localColumns.All(c => c.Quota.LiveQuota && c.Quota.IsStale && c.Quota.StatusLabel == "Local record" && c.Quota.Quotas.Single(q => q.Minutes == 300).UsedPercent == 44));
         Check("An offline Claude reading is timed when BrimDeck read it and names the time of the desktop record", localColumns.All(c => c.Quota.QuotaTime == usageClock &&
-            c.Quota.Status.StartsWith("来自 Claude 桌面版，最新记录于 ", StringComparison.Ordinal)));
+            c.Quota.Status.StartsWith("From the Claude desktop app, latest record at ", StringComparison.Ordinal)));
 
         var mixed = ClaudeRows(true, false);
         quotaHandler.Requests.Clear();
@@ -586,7 +583,7 @@ try
         quotaHandler.Requests.Clear();
         var emptyColumn = DashboardUsage.Columns(bothLocal, await Refresh(bothLocal))[0].Quota;
         Check("Offline Claude without a local record says so instead of inventing a value", !emptyColumn.LiveQuota && emptyColumn.Quotas.Count == 0 &&
-            emptyColumn.StatusLabel == "无本地记录" && quotaHandler.Requests.Count == 0);
+            emptyColumn.StatusLabel == "No local record" && quotaHandler.Requests.Count == 0);
 
     }
     var failingDesktop = new FailingDesktopSources();
@@ -594,13 +591,13 @@ try
     {
         var onlyAntigravity = Only(ProviderId.Antigravity);
         var failed = (await service.RefreshAsync(onlyAntigravity)).Single();
-        Check("Process discovery failure is not mislabeled as signed out", failed.StatusLabel == "检测失败" && !failed.Status.Contains("登录", StringComparison.Ordinal));
+        Check("Process discovery failure is not mislabeled as signed out", failed.StatusLabel == "Detection failed" && !failed.Status.Contains("sign", StringComparison.OrdinalIgnoreCase));
         failingDesktop.Fail = false;
         var recovered = (await service.RefreshAsync(onlyAntigravity)).Single();
         Check("Discovery errors do not prevent subsequent refresh", recovered.StatusLabel != failed.StatusLabel);
         failingDesktop.Unreadable = true;
         var elevated = (await service.RefreshAsync(onlyAntigravity)).Single();
-        Check("An Antigravity language server that cannot be read says it runs as administrator", elevated.StatusLabel == "无法读取" && elevated.Status.Contains("管理员", StringComparison.Ordinal));
+        Check("An Antigravity language server that cannot be read says it runs as administrator", elevated.StatusLabel == "Cannot read" && elevated.Status.Contains("administrator", StringComparison.OrdinalIgnoreCase));
     }
     var quotas = QuotaParser.Codex(Json("""
         {"rate_limit":{"primary_window":{"used_percent":16,"limit_window_seconds":604800,"reset_after_seconds":3600}}}
@@ -647,13 +644,13 @@ try
             {"bucketId":"preview-off","window":"5h","remainingFraction":1,"disabled":true}]}]}}
         """));
     Check("Antigravity quota summary keeps the known groups and periods",
-        antigravityQuotas.Take(2).Select(q => (q.Label, q.Minutes)).SequenceEqual([("Gemini · 每周", (int?)10080), ("Gemini · 5 小时", 300)]) &&
-        antigravityQuotas[3] is { Label: "Claude · 每周", Minutes: 10080 });
-    Check("Antigravity weekly Argon quota gets its own group and a weekly window", antigravityQuotas[2] is { Label: "Argon · 每周", Minutes: 10080, UsedPercent: 50 });
+        antigravityQuotas.Take(2).Select(q => (q.Label, q.Minutes)).SequenceEqual([("Gemini · Weekly", (int?)10080), ("Gemini · 5-hour", 300)]) &&
+        antigravityQuotas[3] is { Label: "Claude · Weekly", Minutes: 10080 });
+    Check("Antigravity weekly Argon quota gets its own group and a weekly window", antigravityQuotas[2] is { Label: "Argon · Weekly", Minutes: 10080, UsedPercent: 50 });
     Check("Antigravity unknown buckets use the service's group name, window and bucket name",
-        antigravityQuotas.Skip(4).Select(q => (q.Label, q.Minutes)).SequenceEqual([("Preview Models · 每周", (int?)10080), ("Preview Models · Burst Limit", null)]));
+        antigravityQuotas.Skip(4).Select(q => (q.Label, q.Minutes)).SequenceEqual([("Preview Models · Weekly", (int?)10080), ("Preview Models · Burst Limit", null)]));
     Check("Antigravity bucket ids without a window still give the period",
-        QuotaParser.Antigravity(Json("""{"groups":[{"buckets":[{"bucketId":"argon-weekly","remainingFraction":1}]}]}""")).Single() is { Label: "Argon · 每周", Minutes: 10080 });
+        QuotaParser.Antigravity(Json("""{"groups":[{"buckets":[{"bucketId":"argon-weekly","remainingFraction":1}]}]}""")).Single() is { Label: "Argon · Weekly", Minutes: 10080 });
     Check("Cursor free membership is displayed as a real plan", PlanParser.Cursor(Json("""{"membershipType":"free"}""")) == "free");
     Check("Cursor quota alone does not imply a paid plan", PlanParser.Cursor(Json("""{"planUsage":{"totalPercentUsed":0}}""")) == "");
     Check("Antigravity uses the named user tier before its service plan", PlanParser.Antigravity(Json("""{"userStatus":{"userTier":{"name":"Example Tier"},"planStatus":{"planInfo":{"planName":"Pro"}}}}""")) == "Example Tier");
@@ -768,7 +765,7 @@ try
     Check("Quota-only event does not reset deduplication", parsed.Entries.Sum(x => x.Output) == 40);
     Check("Codex cache input not double counted; reasoning not added", parsed.Entries.Sum(x => x.Total) == 270);
     Check("Codex model context retained", parsed.Entries.All(x => x.Model == "gpt-6-astra"));
-    Check("Malformed JSONL reported, valid rows retained", parsed.UsageNote.Contains("未能读取") && parsed.Entries.Count == 2);
+    Check("Malformed JSONL reported, valid rows retained", parsed.UsageNote.Contains("could not be read") && parsed.Entries.Count == 2);
     Check("Cached reads stable", logs.Read(ProviderId.Codex, codexRoot, now).Entries.Count == 2);
     var older = Event(now.AddDays(-45), 90, 30, 10, 5);
     var oldFile = Path.Combine(sessions, "older.jsonl");
@@ -796,14 +793,14 @@ try
     var smallReader = new LogReader(4096);
     var skippedRead = smallReader.Read(ProviderId.Claude, longRoot, now);
     Check("A line over the limit is skipped and the lines around it are read",
-        skippedRead.Entries.Select(e => e.Key).SequenceEqual(["claude:before", "claude:after"]) && skippedRead.UsageNote.Contains("1 处记录未能读取"));
+        skippedRead.Entries.Select(e => e.Key).SequenceEqual(["claude:before", "claude:after"]) && skippedRead.UsageNote.Contains("1 record could not be read"));
     File.AppendAllText(longFile, Padded("unfinished", 20_000)[..15_000]);
     var unfinished = smallReader.Read(ProviderId.Claude, longRoot, now);
-    Check("A long line still being written is not counted yet", unfinished.Entries.Count == 2 && unfinished.UsageNote.Contains("1 处记录未能读取"));
+    Check("A long line still being written is not counted yet", unfinished.Entries.Count == 2 && unfinished.UsageNote.Contains("1 record could not be read"));
     File.AppendAllText(longFile, Padded("unfinished", 20_000)[15_000..] + "\n" + Padded("last", 10) + "\n");
     var finished = smallReader.Read(ProviderId.Claude, longRoot, now);
     Check("A long line is counted once it is complete and reading goes on after it",
-        finished.Entries.Count == 3 && finished.Entries.Any(e => e.Key == "claude:last") && finished.UsageNote.Contains("2 处记录未能读取"));
+        finished.Entries.Count == 3 && finished.Entries.Any(e => e.Key == "claude:last") && finished.UsageNote.Contains("2 records could not be read"));
     File.WriteAllLines(Path.Combine(longProjects, "large.jsonl"), [Padded("large", 3_000_000)]);
     Check("A line longer than the first buffer but under the limit is read whole",
         new LogReader().Read(ProviderId.Claude, longRoot, now).Entries.Any(e => e.Key == "claude:large"));
@@ -812,18 +809,18 @@ try
     File.WriteAllLines(Path.Combine(quietRoot, "projects", "session.jsonl"),
         [Padded("q1", 10), JsonSerializer.Serialize(new { type = "user", content = new string('x', 20_000) }), Padded("q2", 10)]);
     var quiet = new LogReader(4096).Read(ProviderId.Claude, quietRoot, now);
-    Check("A long line without usage is dropped quietly", quiet.Entries.Count == 2 && quiet.UsageComplete && !quiet.UsageNote.Contains("未能读取"));
+    Check("A long line without usage is dropped quietly", quiet.Entries.Count == 2 && quiet.UsageComplete && !quiet.UsageNote.Contains("could not be read"));
     // "usage" starts 4 bytes before the end of the first 4096-byte read, so the key is split between two reads.
     File.WriteAllLines(Path.Combine(quietRoot, "projects", "session.jsonl"),
         ["{\"p\":\"" + new string('x', 4084) + "\",\"usage\":1,\"q\":\"" + new string('y', 10_000) + "\"}"]);
     var split = new LogReader(4096).Read(ProviderId.Claude, quietRoot, now);
-    Check("A dropped line whose usage key is split between two reads is still counted", !split.UsageComplete && split.UsageNote.Contains("1 处记录未能读取"));
+    Check("A dropped line whose usage key is split between two reads is still counted", !split.UsageComplete && split.UsageNote.Contains("1 record could not be read"));
     // The limit is the one given, not the size of the array the pool hands out (8192 for 5000).
     string near = Padded("near", 4_700), over = Padded("over", 5_900);
     File.WriteAllLines(Path.Combine(quietRoot, "projects", "session.jsonl"), [near, over]);
     var exact = new LogReader(5000).Read(ProviderId.Claude, quietRoot, now);
     Check("The line limit is exactly the one given",
-        near.Length < 5000 && over.Length is > 5000 and < 8192 && exact.Entries.Select(e => e.Key).SequenceEqual(["claude:near"]) && exact.UsageNote.Contains("1 处记录未能读取"));
+        near.Length < 5000 && over.Length is > 5000 and < 8192 && exact.Entries.Select(e => e.Key).SequenceEqual(["claude:near"]) && exact.UsageNote.Contains("1 record could not be read"));
     // A WSL distribution's file system: a user's .claude and .codex folders, and a user without any.
     var wslRoot = Path.Combine(root, "wsl-distribution");
     var wslClaude = Path.Combine(wslRoot, "home", "dev", ".claude"); Directory.CreateDirectory(Path.Combine(wslClaude, "projects"));

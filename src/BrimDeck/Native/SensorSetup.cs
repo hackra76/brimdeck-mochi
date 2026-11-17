@@ -103,8 +103,7 @@ internal static class SensorSetup
             {
                 // A build without a release's hash (a developer's): the service built beside it.
                 string beside = Path.Combine(AppContext.BaseDirectory, ExeName);
-                if (!File.Exists(beside)) throw new InvalidOperationException(Loc.T("本地编译的版本需要把 BrimDeck.Sensors.exe 放在 BrimDeck.exe 旁边",
-                    "A local build needs BrimDeck.Sensors.exe beside BrimDeck.exe"));
+                if (!File.Exists(beside)) throw new InvalidOperationException("A local build needs BrimDeck.Sensors.exe beside BrimDeck.exe");
                 File.Copy(beside, exe);
             }
             else await DownloadAsync(new Uri($"{Updates.GitHubUpdates.RepositoryUrl}/releases/download/v{ApplicationVersion.Current}/{ExeName}"), exe, ExpectedSha256, cancel);
@@ -126,9 +125,9 @@ internal static class SensorSetup
                 await using var file = File.Create(path);
                 await response.Content.CopyToAsync(file, cancel);
             }
-            if (Sha256(path) != sha256) throw new InvalidOperationException(Loc.T("下载的文件校验不符", "The downloaded file did not check out"));
+            if (Sha256(path) != sha256) throw new InvalidOperationException("The downloaded file did not check out");
         }
-        catch (HttpRequestException ex) { throw new InvalidOperationException(Loc.T("下载失败：", "Download failed: ") + ex.Message, ex); }
+        catch (HttpRequestException ex) { throw new InvalidOperationException("Download failed: " + ex.Message, ex); }
     }
 
     private static async Task RunElevatedAsync(string[] arguments, CancellationToken cancel)
@@ -138,10 +137,10 @@ internal static class SensorSetup
         foreach (var argument in arguments) info.ArgumentList.Add(argument);
         Process? process;
         try { process = Process.Start(info); }
-        catch (Win32Exception ex) when (ex.NativeErrorCode == 1223) { throw new InvalidOperationException(Loc.T("未取得管理员权限", "Administrator rights were not given")); }
+        catch (Win32Exception ex) when (ex.NativeErrorCode == 1223) { throw new InvalidOperationException("Administrator rights were not given"); }
         using (process)
         {
-            if (process is null) throw new InvalidOperationException(Loc.T("无法以管理员身份运行", "Could not run as administrator"));
+            if (process is null) throw new InvalidOperationException("Could not run as administrator");
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancel);
             timeout.CancelAfter(TimeSpan.FromMinutes(2));
             // Looked at again even when the wait ends early: the elevated copy may have registered the service by then.
@@ -152,10 +151,10 @@ internal static class SensorSetup
     }
     private static string ElevatedFailure(int code) => code switch
     {
-        3 => Loc.T("传感器服务校验不符", "The sensor service did not check out"),
-        4 => Loc.T("PawnIO 模块校验不符", "The PawnIO modules did not check out"),
-        5 => Loc.T("无法注册服务", "Could not register the service"),
-        _ => Loc.T("无法完成设置", "Could not finish the setup")
+        3 => "The sensor service did not check out",
+        4 => "The PawnIO modules did not check out",
+        5 => "Could not register the service",
+        _ => "Could not finish the setup"
     };
 
     private static string Sha256(string path)

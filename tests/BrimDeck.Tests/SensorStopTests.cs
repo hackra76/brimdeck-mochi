@@ -31,13 +31,13 @@ static class SensorStopTests
             && !SensorStops.AlwaysMarked(GuardedReading.GpuTemperature) && !SensorStops.AlwaysMarked(GuardedReading.CpuTemperature) && !SensorStops.AlwaysMarked(GuardedReading.PowerMeter));
 
         var language = Loc.Language;
-        Loc.Use(Loc.Chinese);
+        Loc.Use(Loc.English);
         try
         {
-            check("Sensor stops: the notice names the drive", SensorStops.Notice(stops[0]) == "已停止读取“Samsung SSD 980”的温度，上次读取时电脑可能卡住了。");
+            check("Sensor stops: the notice names the drive", SensorStops.Notice(stops[0]) == "Stopped reading the temperature of “Samsung SSD 980”: the PC may have frozen the last time it was read.");
             check("Sensor stops: the processor and the meter are named without a device",
-                SensorStops.Notice(new SensorStop(GuardedReading.CpuTemperature, "board", "CPU", 1, at)) == "已停止读取 CPU 温度，上次读取时电脑可能卡住了。"
-                && SensorStops.Notice(new SensorStop(GuardedReading.PowerMeter, "board", "功率计", 1, at)) == "已停止读取功率计与 CPU 功耗，上次读取时电脑可能卡住了。");
+                SensorStops.Notice(new SensorStop(GuardedReading.CpuTemperature, "board", "CPU", 1, at)) == "Stopped reading the CPU temperature: the PC may have frozen the last time it was read."
+                && SensorStops.Notice(new SensorStop(GuardedReading.PowerMeter, "board", "Power meter", 1, at)) == "Stopped reading the power meter and CPU power: the PC may have frozen the last time they were read.");
         }
         finally { Loc.Use(language); }
     }

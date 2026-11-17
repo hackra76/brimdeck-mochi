@@ -125,8 +125,8 @@ static class ClaudeRateLimitTests
             var limited = await Read();
             var retryAt = clock.AddSeconds(600);
             check("A 429 shows the last reading as old, with the time it was read and the time of the next request", handler.Usage.Count == 2 && limited.IsStale && limited.Quotas.Count == 2 &&
-                limited.Quotas.Single(q => q.Minutes == 300).UsedPercent == 12 && limited.QuotaTime == start && limited.StatusLabel == "稍后重试" &&
-                limited.Status == $"请求频繁，显示 {Hm(start)} 读取的配额，{Hm(retryAt)} 后自动重试");
+                limited.Quotas.Single(q => q.Minutes == 300).UsedPercent == 12 && limited.QuotaTime == start && limited.StatusLabel == "Retrying later" &&
+                limited.Status == $"Too many requests; showing the quota read at {Hm(start)}. Retrying automatically after {Hm(retryAt)}.");
             check("A 429 does not rewrite the kept reading", File.ReadAllBytes(cache).SequenceEqual(kept));
 
             var requests = handler.Usage.Count;
@@ -172,11 +172,11 @@ static class ClaudeRateLimitTests
             cases.Add((14, await Asked(14), "after 8 more minutes"));     // 429 → paused 16 minutes, until minute 30
             check("Without Retry-After each 429 pauses for longer than the one before", cases.Select(c => c.Asked).SequenceEqual([1, 0, 1, 0, 1, 0, 1]));
             var noCache = (await service.RefreshAsync(settings)).Single();
-            check("A 429 with nothing kept says when the next request goes out, in the status the column shows", !noCache.LiveQuota && noCache.Quotas.Count == 0 && noCache.StatusLabel == "暂不可用" &&
-                noCache.Status == $"请求频繁，{Hm(start.AddMinutes(30))} 后自动重试");
+            check("A 429 with nothing kept says when the next request goes out, in the status the column shows", !noCache.LiveQuota && noCache.Quotas.Count == 0 && noCache.StatusLabel == "Unavailable" &&
+                noCache.Status == $"Too many requests. Retrying automatically after {Hm(start.AddMinutes(30))}.");
             Loc.Use(Loc.English);
             try { check("The status is shown in the language of the day", (await service.RefreshAsync(settings)).Single().Status == $"Too many requests. Retrying automatically after {Hm(start.AddMinutes(30))}."); }
-            finally { Loc.Use(Loc.Chinese); }
+            finally { Loc.Use(Loc.English); }
             handler.Answer = _ => new(HttpStatusCode.OK) { Content = new StringContent(Body(12)) };
             var recovered = await Asked(30);
             handler.Answer = _ => Limited(null);
@@ -202,7 +202,7 @@ static class ClaudeRateLimitTests
         {
             var shown = (await after.RefreshAsync(settings)).Single();
             check("After a restart a 429 shows the reading kept before it, with its time and the time of the next request", shown.LiveQuota && shown.IsStale && shown.Quotas.Count == 2 &&
-                shown.QuotaTime == start && shown.Status == $"请求频繁，显示 {Hm(start)} 读取的配额，{Hm(clock.AddSeconds(900))} 后自动重试");
+                shown.QuotaTime == start && shown.Status == $"Too many requests; showing the quota read at {Hm(start)}. Retrying automatically after {Hm(clock.AddSeconds(900))}.");
         }
         // Signed in to another account: the other account's reading is never shown, and its requests are not held by the first's pause.
         SignIn("token-b", "account-b");
@@ -330,7 +330,7 @@ static class ClaudeRateLimitTests
             clock = start.AddDays(4);
             handler.Answer = _ => Limited(null);
             var shown = (await service.RefreshAsync(settings)).Single();
-            check("A damaged kept reading shows nothing and the 429 still reads as a pause", !shown.LiveQuota && shown.Quotas.Count == 0 && shown.Status.Contains("后自动重试"));
+            check("A damaged kept reading shows nothing and the 429 still reads as a pause", !shown.LiveQuota && shown.Quotas.Count == 0 && shown.Status.Contains("Retrying automatically after"));
         }
         var aged = ClaudeQuotaCache.Serialize(new ClaudeQuotaSnapshot(start, "Max 5x", "", "", [new("5 小时额度", 12, start.AddHours(4), 300), new("每周额度", 40, start.AddDays(5), 10080)]),
             "account-a", ClaudeSignIn.Code, ClaudePlanOrigin.Account);

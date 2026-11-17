@@ -52,7 +52,7 @@ public static class PowerResolver
     public const double Ceiling = 2000;
 
     // Where a graphics adapter's power is read: the graphics driver's own tool.
-    public static string GpuSource => Loc.T("NVIDIA 驱动", "NVIDIA driver");
+    public static string GpuSource => "NVIDIA driver";
 
     // A helper process that has ended (a driver update, a reset, ended from outside) is started again while its adapter still works, but
     // not before this many seconds after it was started, so one that dies at once is not started every second.
@@ -67,13 +67,13 @@ public static class PowerResolver
         var parts = new List<PowerPart>();
         var missing = new List<string>();
         if (Value(inputs.Cpu) is { } cpu) parts.Add(new PowerPart("cpu", "CPU", cpu, "RAPL"));
-        if (Value(inputs.Memory) is { } memory && memory > 0) parts.Add(new PowerPart("memory", Loc.T("内存", "Memory"), memory, "RAPL"));
+        if (Value(inputs.Memory) is { } memory && memory > 0) parts.Add(new PowerPart("memory", "Memory", memory, "RAPL"));
         foreach (var gpu in inputs.Gpus)
         {
             // One adapter is "GPU"; several are told apart by their names.
             string name = inputs.Gpus.Count > 1 && gpu.Name.Length > 0 ? gpu.Name : "GPU";
             if (Value(gpu.Watts) is { } watts) parts.Add(new PowerPart("gpu", name, watts, gpu.Source ?? GpuSource));
-            else if (!gpu.Watts.HasValue && gpu.Watts.Reason.Length > 0) missing.Add(name + Loc.T("（", " (") + gpu.Watts.Reason + Loc.T("）", ")"));
+            else if (!gpu.Watts.HasValue && gpu.Watts.Reason.Length > 0) missing.Add(name + " (" + gpu.Watts.Reason + ")");
         }
         PowerSample Make(double watts, PowerOrigin origin, PowerSource source) => new(watts, origin, source, parts) { Missing = missing };
 
@@ -81,7 +81,7 @@ public static class PowerResolver
         if (Value(inputs.BatteryDischarge) is { } battery && battery >= BatteryFloor) return Make(battery, PowerOrigin.Measured, PowerSource.Battery);
         if (parts.Count > 0) return Make(parts.Sum(part => part.Watts), PowerOrigin.Estimated, PowerSource.Components);
         string reason = inputs.NoSourceReason.Length > 0 ? inputs.NoSourceReason
-            : Loc.T("无可读的功率来源（功率计、电池放电、CPU / GPU）", "No readable power source (meter, battery discharge, CPU / GPU)");
+            : "No readable power source (meter, battery discharge, CPU / GPU)";
         return Reading<PowerSample>.Unavailable(reason);
     }
 
@@ -92,12 +92,12 @@ public static class PowerResolver
         var found = lines.Where(line => line.Name.Equals(adapter, StringComparison.OrdinalIgnoreCase) || adapter.Contains(line.Name, StringComparison.OrdinalIgnoreCase)
             || line.Name.Contains(adapter, StringComparison.OrdinalIgnoreCase)).ToList();
         if (found.Count == 0 && lines.Count == 1) found = [.. lines];
-        if (found.Count == 0) return Reading<double>.Unavailable(Loc.T("未列出", "not listed"));
+        if (found.Count == 0) return Reading<double>.Unavailable("not listed");
         // An adapter beyond the lines (one the driver does not list twice, or not yet) has none of its own: a single line is the first
         // adapter's, never the second's as well.
-        if (ordinal < 0 || ordinal >= found.Count) return Reading<double>.Unavailable(Loc.T("驱动没有列出这块显卡", "the driver does not list this adapter"));
+        if (ordinal < 0 || ordinal >= found.Count) return Reading<double>.Unavailable("the driver does not list this adapter");
         var line = found[ordinal];
-        return line.Watts is { } watts && Plausible(watts) ? watts : Reading<double>.Unavailable(Loc.T("无功率数据", "no power data"));
+        return line.Watts is { } watts && Plausible(watts) ? watts : Reading<double>.Unavailable("no power data");
     }
 
     // One kind of part's own power in a reading ("cpu", "gpu"; several adapters together), or none where the reading has no such part.
@@ -138,8 +138,8 @@ public static class PowerResolver
         foreach (var (instance, milliwatts) in meter)
             if (double.IsFinite(milliwatts) && milliwatts >= 0 && !instance.Equals("_Total", StringComparison.OrdinalIgnoreCase)) meterSum = (meterSum ?? 0) + milliwatts / 1000;
         if (meterSum is { } acpi) system = acpi;
-        string none = Loc.T("无此类功率计", "no such meter");
-        return (system is { } s ? s : Reading<double>.Unavailable(none), package is { } p ? p : Reading<double>.Unavailable(rapl ? Loc.T("无封装功率", "no package power") : none),
+        string none = "no such meter";
+        return (system is { } s ? s : Reading<double>.Unavailable(none), package is { } p ? p : Reading<double>.Unavailable(rapl ? "no package power" : none),
             dram is { } d ? d : Reading<double>.Unavailable(none));
     }
 }
@@ -219,16 +219,16 @@ public static class PowerFormat
     public static string Span(double seconds)
     {
         int whole = Math.Max(1, (int)Math.Round(double.IsFinite(seconds) ? seconds : 0));
-        return whole < 60 ? Loc.T($"{whole} 秒", $"{whole} s") : Duration(TimeSpan.FromMinutes(Math.Round(whole / 60.0, MidpointRounding.AwayFromZero)));
+        return whole < 60 ? $"{whole} s" : Duration(TimeSpan.FromMinutes(Math.Round(whole / 60.0, MidpointRounding.AwayFromZero)));
     }
 
     // A time in the two largest units that apply: "3  12 ", "12 ", " 1 ".
     public static string Duration(TimeSpan time)
     {
         int minutes = (int)Math.Round(time.TotalMinutes);
-        if (minutes < 1) return Loc.T("不到 1 分钟", "under a minute");
-        if (minutes < 60) return Loc.T($"{minutes} 分钟", $"{minutes} min");
+        if (minutes < 1) return "under a minute";
+        if (minutes < 60) return $"{minutes} min";
         int hours = minutes / 60, rest = minutes % 60;
-        return rest == 0 ? Loc.T($"{hours} 小时", $"{hours} h") : Loc.T($"{hours} 小时 {rest} 分", $"{hours} h {rest} min");
+        return rest == 0 ? $"{hours} h" : $"{hours} h {rest} min";
     }
 }

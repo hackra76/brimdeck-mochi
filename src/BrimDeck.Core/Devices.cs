@@ -177,20 +177,20 @@ public static class Devices
 
     public static string KindName(DeviceKind kind) => kind switch
     {
-        DeviceKind.Mouse => Loc.T("鼠标", "Mouse"), DeviceKind.Keyboard => Loc.T("键盘", "Keyboard"), DeviceKind.Headphones => Loc.T("头戴耳机", "Headphones"),
-        DeviceKind.Earbuds => Loc.T("入耳耳机", "Earbuds"), DeviceKind.Controller => Loc.T("手柄", "Controller"), DeviceKind.Pen => Loc.T("笔", "Pen"),
-        DeviceKind.Speaker => Loc.T("音箱", "Speaker"), _ => Loc.T("设备", "Device")
+        DeviceKind.Mouse => "Mouse", DeviceKind.Keyboard => "Keyboard", DeviceKind.Headphones => "Headphones",
+        DeviceKind.Earbuds => "Earbuds", DeviceKind.Controller => "Controller", DeviceKind.Pen => "Pen",
+        DeviceKind.Speaker => "Speaker", _ => "Device"
     };
 
     public static string SourceName(DeviceSource source) => source switch
     {
-        DeviceSource.Logitech => Loc.T("罗技接收器", "Logitech receiver"), DeviceSource.Razer => "Razer", DeviceSource.SteelSeries => "SteelSeries",
-        DeviceSource.HyperX => "HyperX", DeviceSource.Sony => "PlayStation", DeviceSource.Gatt => Loc.T("蓝牙电池服务", "Bluetooth battery service"),
-        DeviceSource.Gaming => Loc.T("游戏控制器", "Game controller"), DeviceSource.Hid => Loc.T("HID 电量", "HID battery"), DeviceSource.Apple => Loc.T("Apple 广播", "Apple broadcast"),
-        _ => Loc.T("蓝牙", "Bluetooth")
+        DeviceSource.Logitech => "Logitech receiver", DeviceSource.Razer => "Razer", DeviceSource.SteelSeries => "SteelSeries",
+        DeviceSource.HyperX => "HyperX", DeviceSource.Sony => "PlayStation", DeviceSource.Gatt => "Bluetooth battery service",
+        DeviceSource.Gaming => "Game controller", DeviceSource.Hid => "HID battery", DeviceSource.Apple => "Apple broadcast",
+        _ => "Bluetooth"
     };
 
-    public static string PartName(BatteryPart part) => part switch { BatteryPart.Left => Loc.T("左", "L"), BatteryPart.Right => Loc.T("右", "R"), _ => Loc.T("盒", "Case") };
+    public static string PartName(BatteryPart part) => part switch { BatteryPart.Left => "L", BatteryPart.Right => "R", _ => "Case" };
 
     // The figure as shown: "85%", or "—" for a device that reports no battery.
     public static string Figure(int? percent) => percent is { } p ? Clamp(p).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%" : "—";
@@ -199,10 +199,10 @@ public static class Devices
     public static string Describe(DeviceBattery device)
     {
         var parts = new List<string>();
-        if (device.Parts.Count > 0) parts.AddRange(device.Parts.Select(part => PartName(part.Part) + " " + Figure(part.Percent) + (part.Charging ? Loc.T("（充电）", " (charging)") : "")));
-        else parts.Add(device.Percent is null ? Loc.T("未报告电量", "No battery reported") : Figure(device.Percent) + (device.Coarse ? Loc.T("（约）", " (approx.)") : ""));
-        if (device.Asleep) parts.Add(Loc.T("休眠", "Sleeping"));
-        if (device.Charging) parts.Add(Loc.T("充电中", "Charging"));
+        if (device.Parts.Count > 0) parts.AddRange(device.Parts.Select(part => PartName(part.Part) + " " + Figure(part.Percent) + (part.Charging ? " (charging)" : "")));
+        else parts.Add(device.Percent is null ? "No battery reported" : Figure(device.Percent) + (device.Coarse ? " (approx.)" : ""));
+        if (device.Asleep) parts.Add("Sleeping");
+        if (device.Charging) parts.Add("Charging");
         parts.Add(SourceName(device.Source));
         return device.Name + "\n" + string.Join(" · ", parts);
     }

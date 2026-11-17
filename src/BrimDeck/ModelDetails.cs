@@ -62,7 +62,7 @@ public partial class MainWindow
     }
     internal void SelectModelRange(UsageDateRange range)
     {
-        if (range.End > DateTime.Today) throw new ArgumentException(Loc.T("结束日期不能晚于今天。", "The end date cannot be later than today."));
+        if (range.End > DateTime.Today) throw new ArgumentException("The end date cannot be later than today.");
         _customRange = range; _usageHandover = Handover.Dissolve; ResetModelScroll();
         // The logs are read back only as far as the range shown needs: a later range lets the next refresh drop what is before it.
         var earliest = _historyStart ?? DateTime.Today.AddDays(-29);
@@ -72,7 +72,7 @@ public partial class MainWindow
     }
 
     private string ModelPeriodLabel => _customRange is { } range ? $"{range.Start:MM-dd}–{range.End:MM-dd}" : PeriodName(_days);
-    private static string PeriodName(int days) => days == 1 ? Loc.T("今日", "Today") : Loc.T($"{days} 天", $"{days} days");
+    private static string PeriodName(int days) => days == 1 ? "Today" : $"{days} days";
 
     private System.Windows.Controls.ToolTip? _backToolTip;
     // content wraps the label when the button shows more than its text; toolTip false leaves only the accessible name.
@@ -93,7 +93,7 @@ public partial class MainWindow
     private FrameworkElement ModelApplicationFilter(IReadOnlyList<ProviderId> apps, int stage)
     {
         if (stage == 4)
-            return ModelAction(Loc.T($"应用 · {_modelApps.Count} ▾", $"Apps · {_modelApps.Count} ▾"), Loc.T("筛选应用", "Filter apps"), () => OpenModelApplications(apps), toolTip: false);
+            return ModelAction($"Apps · {_modelApps.Count} ▾", "Filter apps", () => OpenModelApplications(apps), toolTip: false);
         var strip = new StackPanel { Orientation = Orientation.Horizontal };
         foreach (var app in apps)
         {
@@ -108,7 +108,7 @@ public partial class MainWindow
                 var dot = new Ellipse { Width = 6, Height = 6, Fill = UI.Brush(StatisticsTheme(app)), Margin = new Thickness(0, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center };
                 return new StackPanel { Orientation = Orientation.Horizontal, Children = { dot, text } };
             }
-            var button = ModelAction(label, Loc.T("筛选 ", "Filter ") + name, () => ToggleModelApp(app), _modelApps.Contains(app),
+            var button = ModelAction(label, "Filter " + name, () => ToggleModelApp(app), _modelApps.Contains(app),
                 style: "SegmentButton", height: 22, toolTip: false, content: Tab);
             button.Padding = new Thickness(stage >= 2 ? 5 : 8, 0, stage >= 2 ? 5 : 8, 0);
             strip.Children.Add(button);
@@ -119,7 +119,7 @@ public partial class MainWindow
     private Button ModelDateButton(bool iconOnly)
     {
         Button button = null!;
-        button = ModelAction(iconOnly ? "\uE787" : ModelPeriodLabel, Loc.T("按时间", "By date"), () => OpenModelDates(button), _customRange is not null, iconOnly, toolTip: false);
+        button = ModelAction(iconOnly ? "\uE787" : ModelPeriodLabel, "By date", () => OpenModelDates(button), _customRange is not null, iconOnly, toolTip: false);
         if (!iconOnly)
         {
             var content = new StackPanel { Orientation = Orientation.Horizontal };
@@ -127,7 +127,7 @@ public partial class MainWindow
             // The calendar glyph sits slightly above the label; move the glyph, not the label. The top margin centers it
             // 2/3 DIP lower (one device pixel at 150%), and layout rounding keeps it on whole pixels at every scale.
             icon.Margin = new Thickness(0, 4.0 / 3, 0, 0); content.Children.Add(icon);
-            var label = UI.Centered(_customRange is null ? Loc.T("按时间", "By date") : ModelPeriodLabel, 12, _customRange is null ? UI.Secondary : UI.Primary);
+            var label = UI.Centered(_customRange is null ? "By date" : ModelPeriodLabel, 12, _customRange is null ? UI.Secondary : UI.Primary);
             label.Margin = new Thickness(6, 0, 0, 0); content.Children.Add(label); button.Content = content;
         }
         return button;
@@ -139,7 +139,7 @@ public partial class MainWindow
         ModelToolbar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
         ModelToolbar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
         ModelToolbar.ColumnDefinitions.Add(new ColumnDefinition());
-        var back = ModelAction("\uE76B", Loc.T("返回用量", "Back to usage"), () => ShowModelDetails(false), icon: true);
+        var back = ModelAction("\uE76B", "Back to usage", () => ShowModelDetails(false), icon: true);
         _backToolTip ??= UI.LeftwardToolTip(null!);
         _backToolTip.Content = back.ToolTip; back.ToolTip = _backToolTip;
         ModelToolbar.Children.Add(back);
@@ -160,7 +160,7 @@ public partial class MainWindow
             foreach (var element in new[] { applications, periods, dates }) element.Measure(new Size(double.PositiveInfinity, 28));
             if (applications.DesiredSize.Width + periods.DesiredSize.Width + dates.DesiredSize.Width + 16 <= available) break;
             if (stage == 4)
-                applications = ModelAction(Loc.T("应用 ▾", "Apps ▾"), Loc.T("筛选应用", "Filter apps"), () => OpenModelApplications(apps), toolTip: false);
+                applications = ModelAction("Apps ▾", "Filter apps", () => OpenModelApplications(apps), toolTip: false);
         }
         Grid.SetColumn(periods, 2); Grid.SetColumn(dates, 4);
         filters.Children.Add(applications); filters.Children.Add(periods); filters.Children.Add(dates);
@@ -184,12 +184,12 @@ public partial class MainWindow
     private void OpenModelApplications(IReadOnlyList<ProviderId> apps)
     {
         var stack = new StackPanel();
-        var popup = new Window { Title = Loc.T("筛选应用", "Filter apps"), Width = 210, SizeToContent = SizeToContent.Height, WindowStyle = WindowStyle.None,
+        var popup = new Window { Title = "Filter apps", Width = 210, SizeToContent = SizeToContent.Height, WindowStyle = WindowStyle.None,
             ResizeMode = ResizeMode.NoResize, AllowsTransparency = true, Background = Brushes.Transparent, ShowInTaskbar = false, Topmost = true }; PanelTheme.Text(popup);
         foreach (var app in apps)
         {
             Button button = null!;
-            button = ModelAction(AppPresets.Name(app), Loc.T("筛选 ", "Filter ") + AppPresets.Name(app), () =>
+            button = ModelAction(AppPresets.Name(app), "Filter " + AppPresets.Name(app), () =>
             { ToggleModelApp(app); button.Tag = _modelApps.Contains(app) ? "Selected" : null; }, _modelApps.Contains(app), toolTip: false);
             button.Margin = new Thickness(0, 3, 0, 3); stack.Children.Add(button);
         }
@@ -258,8 +258,7 @@ public partial class MainWindow
     private static string TokenBreakdown(IEnumerable<TokenEntry> source)
     {
         var entries = source.ToList();
-        return Loc.T($"输入 {entries.Sum(t => t.Input):N0}\n缓存写入 {entries.Sum(t => t.CacheWrite + t.CacheWriteHour):N0}\n缓存读取 {entries.Sum(t => t.CacheRead):N0}\n输出 {entries.Sum(t => t.Output):N0}\nToken 合计 {entries.Sum(t => t.Total):N0}",
-            $"Input {entries.Sum(t => t.Input):N0}\nCache write {entries.Sum(t => t.CacheWrite + t.CacheWriteHour):N0}\nCache read {entries.Sum(t => t.CacheRead):N0}\nOutput {entries.Sum(t => t.Output):N0}\nTotal tokens {entries.Sum(t => t.Total):N0}");
+        return $"Input {entries.Sum(t => t.Input):N0}\nCache write {entries.Sum(t => t.CacheWrite + t.CacheWriteHour):N0}\nCache read {entries.Sum(t => t.CacheRead):N0}\nOutput {entries.Sum(t => t.Output):N0}\nTotal tokens {entries.Sum(t => t.Total):N0}";
     }
 
     // Every record in a row shares one model name and application, so the first record finds the row's prices.
@@ -296,8 +295,8 @@ public partial class MainWindow
         if (tiers.Length > 0) line++;
         (string Label, Func<TokenPrices, decimal?> Price)[] kinds =
         [
-            (Loc.T("输入", "Input"), p => p.Input), (Loc.T("输出", "Output"), p => p.Output), (Loc.T("缓存写入", "Cache write"), p => p.CacheWrite),
-            (Loc.T("缓存写入（1 小时）", "Cache write (1 hour)"), p => p.CacheWriteHour == p.CacheWrite ? null : p.CacheWriteHour), (Loc.T("缓存读取", "Cache read"), p => p.CacheRead),
+            ("Input", p => p.Input), ("Output", p => p.Output), ("Cache write", p => p.CacheWrite),
+            ("Cache write (1 hour)", p => p.CacheWriteHour == p.CacheWrite ? null : p.CacheWriteHour), ("Cache read", p => p.CacheRead),
         ];
         foreach (var (label, price) in kinds.Where(kind => columns.Any(prices => kind.Price(prices) is not null)))
         {
@@ -307,16 +306,15 @@ public partial class MainWindow
                     line, i + 1, right: true, margin: new Thickness(16, 0, 0, 0));
             line++;
         }
-        string note = shared ? derived is null ? Loc.T("单价尚未推算出来", "The prices have not been worked out yet")
-            : Loc.T("USD / 百万 Token · 根据每周已用金额推算", "USD per million tokens · worked out from the weekly amount used") : recovery switch
+        string note = shared ? derived is null ? "The prices have not been worked out yet"
+            : "USD per million tokens · worked out from the weekly amount used" : recovery switch
         {
-            { Status: RecoveryStatus.Recovered } => Loc.T("USD / 百万 Token · 根据接口金额推算", "USD per million tokens · worked out from the API amounts"),
-            { Status: RecoveryStatus.TooFewRecords, Records: var count } => Loc.T($"所选时段只有 {count} 条记录，不足以推算单价",
-                $"The selected period has only {Loc.Count(count, "record", "records")}, too few to work out the prices"),
-            { Status: RecoveryStatus.Undetermined } => Loc.T("所选时段的记录不足以确定各项单价", "The records in the selected period cannot determine each price"),
-            { Status: RecoveryStatus.Inconsistent } => Loc.T("各条记录的金额不符合固定单价，无法推算单价", "The amounts of the records do not fit fixed prices, so the prices cannot be worked out"),
-            _ => model is null ? Loc.T("未找到该模型的单价", "No unit price was found for this model")
-                : tiers.Length > 0 ? Loc.T("USD / 百万 Token · 按单次请求的输入量分档", "USD per million tokens · tiered by the input of each request") : Loc.T("USD / 百万 Token", "USD per million tokens"),
+            { Status: RecoveryStatus.Recovered } => "USD per million tokens · worked out from the API amounts",
+            { Status: RecoveryStatus.TooFewRecords, Records: var count } => $"The selected period has only {Loc.Count(count, "record", "records")}, too few to work out the prices",
+            { Status: RecoveryStatus.Undetermined } => "The records in the selected period cannot determine each price",
+            { Status: RecoveryStatus.Inconsistent } => "The amounts of the records do not fit fixed prices, so the prices cannot be worked out",
+            _ => model is null ? "No unit price was found for this model"
+                : tiers.Length > 0 ? "USD per million tokens · tiered by the input of each request" : "USD per million tokens",
         };
         Cell(note, line, 0, UI.Secondary, span: span, margin: new Thickness(0, columns.Length == 0 ? 0 : 3, 0, 0));
         return grid;
@@ -352,8 +350,8 @@ public partial class MainWindow
         double[] widths = expanded ? [compact ? 72 : 80, 0, ..Enumerable.Repeat(compact ? 52d : 56d, 4), compact ? 58 : 62, compact ? 64 : 78] : [84, 0, 84, 84];
         var values = result.Rows.Select(row => Values(row.Entries)).ToArray();
         var headings = expanded
-            ? new[] { Loc.T("输入", "Input"), Loc.T("缓存写入", "Cache write"), Loc.T("缓存读取", "Cache read"), Loc.T("输出", "Output"), Loc.T("Token 合计", "Total tokens"), Loc.T("费用 · USD", "Cost · USD") }
-            : [Loc.T("Token 合计", "Total tokens"), Loc.T("费用 · USD", "Cost · USD")];
+            ? new[] { "Input", "Cache write", "Cache read", "Output", "Total tokens", "Cost · USD" }
+            : ["Total tokens", "Cost · USD"];
         for (int n = 0; n < totals.Length; n++)
         {
             // English headings are longer than the numbers under them; a column also fits its heading.
@@ -391,7 +389,7 @@ public partial class MainWindow
             }
             return row;
         }
-        panel.Children.Add(new Border { Child = Row(Loc.T("应用", "App"), Loc.T("模型", "Model"), headings, true, false), BorderBrush = UI.Brush(UI.Hairline), BorderThickness = new Thickness(0, 0, 0, 1) });
+        panel.Children.Add(new Border { Child = Row("App", "Model", headings, true, false), BorderBrush = UI.Brush(UI.Hairline), BorderThickness = new Thickness(0, 0, 0, 1) });
         var list = new StackPanel();
         for (int i = 0; i < result.Rows.Count; i++)
         {
@@ -418,14 +416,14 @@ public partial class MainWindow
         Grid.SetRow(scroll, 1); panel.Children.Add(scroll);
         if (result.Rows.Count == 0)
         {
-            var message = UI.Centered(incomplete ? Refreshing ? Loc.T("正在读取所选时段…", "Reading the selected period…") : Loc.T("所选应用的用量明细暂不可用", "Usage details for the selected apps are not available yet")
-                : Loc.T("所选时段暂无用量记录", "No usage records in the selected period"), 12, UI.Tertiary);
+            var message = UI.Centered(incomplete ? Refreshing ? "Reading the selected period…" : "Usage details for the selected apps are not available yet"
+                : "No usage records in the selected period", 12, UI.Tertiary);
             message.HorizontalAlignment = HorizontalAlignment.Center; message.VerticalAlignment = VerticalAlignment.Center; Grid.SetRow(message, 1); panel.Children.Add(message);
         }
-        string selected = _modelApps.SetEquals(Settings.StatisticsProviders) ? Loc.T("全部", "All") : _modelApps.Count == 1 ? AppPresets.Name(_modelApps.Single()) : Loc.T($"{_modelApps.Count} 个应用", Loc.Count(_modelApps.Count, "app", "apps"));
-        string summary = $"{selected} · {ModelPeriodLabel} · " + Loc.T($"{result.Rows.Count} 项", Loc.Count(result.Rows.Count, "item", "items"));
-        var totalRow = Row(incomplete ? Loc.T("已知合计", "Known total") : Loc.T("合计", "Total"), summary, totals, false, true);
-        string missing = incomplete ? Loc.T("部分明细尚未读取完整：", "Some details are not fully read yet: ") + string.Join(Loc.T("、", ", "), result.IncompleteProviders.Select(AppPresets.Name)) : "";
+        string selected = _modelApps.SetEquals(Settings.StatisticsProviders) ? "All" : _modelApps.Count == 1 ? AppPresets.Name(_modelApps.Single()) : Loc.Count(_modelApps.Count, "app", "apps");
+        string summary = $"{selected} · {ModelPeriodLabel} · " + Loc.Count(result.Rows.Count, "item", "items");
+        var totalRow = Row(incomplete ? "Known total" : "Total", summary, totals, false, true);
+        string missing = incomplete ? "Some details are not fully read yet: " + string.Join(", ", result.IncompleteProviders.Select(AppPresets.Name)) : "";
         // The label cells explain only an incomplete total; otherwise the visible summary says it all.
         string? totalTip = incomplete ? missing : null;
         // Figures shown as "—" are not known yet, so their tooltips say why instead of giving a count of zero.

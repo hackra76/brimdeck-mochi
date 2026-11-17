@@ -84,7 +84,7 @@ public partial class MainWindow
         {
             double level = MusicGestures.VolumeLevel(volume.Start, volume.Sign, (volume.Horizontal ? point.X : point.Y) - volume.From);
             volume.Device.Level = (float)level;
-            ShowDragLabel(Loc.T($"音量 {Math.Round(level * 100)}%", $"Volume {Math.Round(level * 100)}%"), true);
+            ShowDragLabel($"Volume {Math.Round(level * 100)}%", true);
         }
         else ShowDragAction(point);
         e.Handled = true;
@@ -157,7 +157,7 @@ public partial class MainWindow
         }
     }
     private string GestureLabel(MusicGestureAction action) => !CanRunGesture(action) ? SettingsWindow.GestureName(MusicGestureAction.None)
-        : action == MusicGestureAction.PlayPause ? _mediaTrack?.State == MediaState.Playing ? Loc.T("暂停", "Pause") : Loc.T("播放", "Play")
+        : action == MusicGestureAction.PlayPause ? _mediaTrack?.State == MediaState.Playing ? "Pause" : "Play"
         : SettingsWindow.GestureName(action);
 
     private void StartTrail(Point start)

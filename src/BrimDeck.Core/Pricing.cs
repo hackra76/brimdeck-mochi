@@ -81,7 +81,7 @@ public sealed class Pricing : IDisposable
             }
         }
         catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException or InvalidDataException)
-        { LastError = Loc.T("价格缓存不可用", "The price cache is unavailable"); }
+        { LastError = "The price cache is unavailable"; }
         try
         {
             if (File.Exists(_manualFile))
@@ -94,7 +94,7 @@ public sealed class Pricing : IDisposable
             }
         }
         catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException or InvalidDataException)
-        { ManualLoadWarning = Loc.T("无法读取手动模型价格，原文件已保留。", "The prices added by hand could not be read; the original file is kept. "); }
+        { ManualLoadWarning = "The prices added by hand could not be read; the original file is kept. "; }
         try
         {
             // Before every model had official prices, only Kimi K3 and K3.1 Pro were kept, in moonshot-prices.json.
@@ -151,11 +151,11 @@ public sealed class Pricing : IDisposable
                 await File.WriteAllTextAsync(temporary, payload, cancellation).ConfigureAwait(false);
                 File.Move(temporary, _cacheFile, true);
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { LastError = Loc.T("价格已更新，缓存保存失败", "Prices were updated, but the cache could not be saved"); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { LastError = "Prices were updated, but the cache could not be saved"; }
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { throw; }
         catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or JsonException or IOException or InvalidDataException)
-        { LastError = ModelCount > 0 ? Loc.T("更新失败，使用缓存价格", "Update failed; cached prices are used") : Loc.T("价格暂不可用", "Prices are not available yet"); }
+        { LastError = ModelCount > 0 ? "Update failed; cached prices are used" : "Prices are not available yet"; }
     }
 
     // A catalog entry carries the price of whichever provider is cheapest, often a quantized third-party host, rather than the
@@ -359,16 +359,16 @@ public sealed class Pricing : IDisposable
     {
         error = null; model = model.Trim();
         if (!Regex.IsMatch(model, @"^[A-Za-z0-9][A-Za-z0-9._:/+\-]{0,199}$"))
-        { error = Loc.T("请输入有效的模型 ID（仅限字母、数字及 . _ : / + -）。", "Enter a valid model ID (letters, digits and . _ : / + - only)."); return false; }
-        if (!ValidPrices(prices)) { error = Loc.T("单价必须为零或正数，且不能超出支持范围。", "Prices must be zero or positive and within the supported range."); return false; }
+        { error = "Enter a valid model ID (letters, digits and . _ : / + - only)."; return false; }
+        if (!ValidPrices(prices)) { error = "Prices must be zero or positive and within the supported range."; return false; }
         lock (_sync)
         {
-            if (ManualLoadWarning is not null) { error = ManualLoadWarning + Loc.T("请先修复该文件。", "Repair that file first."); return false; }
+            if (ManualLoadWarning is not null) { error = ManualLoadWarning + "Repair that file first."; return false; }
             var key = Normalize(model);
             var match = Find(model) ?? _manual.GetValueOrDefault(Normalize(model[(model.IndexOf('/') + 1)..]));
-            if (!replaceExisting && match is not null) { error = Loc.T("该模型已存在，请编辑现有模型。", "This model already exists. Edit the existing model instead."); return false; }
+            if (!replaceExisting && match is not null) { error = "This model already exists. Edit the existing model instead."; return false; }
             if (replaceExisting && (match is null || Normalize(match.Model) != key))
-            { error = Loc.T("模型已发生变化，请重新打开编辑窗口。", "The model has changed. Open the editor again."); return false; }
+            { error = "The model has changed. Open the editor again."; return false; }
             // A manual price is a flat price and is not silently superseded by remote context tiers.
             var next = new Dictionary<string, ModelPrice>(_manual, StringComparer.OrdinalIgnoreCase)
             { [key] = new(model, prices, []) };
@@ -380,7 +380,7 @@ public sealed class Pricing : IDisposable
                 File.Move(temporary, _manualFile, true);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            { error = Loc.T("无法写入手动价格，请检查设置目录权限。", "The prices added by hand could not be written. Check the permissions of the settings folder."); return false; }
+            { error = "The prices added by hand could not be written. Check the permissions of the settings folder."; return false; }
             _manual = next; RebuildLookup(); return true;
         }
     }

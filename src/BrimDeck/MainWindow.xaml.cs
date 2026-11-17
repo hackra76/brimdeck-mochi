@@ -571,12 +571,12 @@ public partial class MainWindow : Window
     // The toolbar's fixed buttons are declared in XAML; their names follow the interface language.
     private void ApplyLanguage()
     {
-        System.Windows.Automation.AutomationProperties.SetName(AIUsageButton, Loc.T("AI 用量", "AI usage"));
-        System.Windows.Automation.AutomationProperties.SetName(MonitorPageButton, Loc.T("系统监控", "System monitor"));
-        System.Windows.Automation.AutomationProperties.SetName(ShelfPageButton, Loc.T("剪贴板与文件中转", "Clipboard and file transfer"));
-        System.Windows.Automation.AutomationProperties.SetName(ShelfSearchButton, Loc.T("搜索剪贴板与文件中转", "Search the clipboard and file transfer"));
-        System.Windows.Automation.AutomationProperties.SetName(MusicPageButton, Loc.T("音乐", "Music"));
-        System.Windows.Automation.AutomationProperties.SetName(SettingsButton, Loc.T("设置", "Settings"));
+        System.Windows.Automation.AutomationProperties.SetName(AIUsageButton, "AI usage");
+        System.Windows.Automation.AutomationProperties.SetName(MonitorPageButton, "System monitor");
+        System.Windows.Automation.AutomationProperties.SetName(ShelfPageButton, "Clipboard and file transfer");
+        System.Windows.Automation.AutomationProperties.SetName(ShelfSearchButton, "Search the clipboard and file transfer");
+        System.Windows.Automation.AutomationProperties.SetName(MusicPageButton, "Music");
+        System.Windows.Automation.AutomationProperties.SetName(SettingsButton, "Settings");
     }
     public void Preview(bool enabled, bool expanded = true)
     { _preview = enabled; _previewExpanded = enabled && expanded; if (enabled) _pageSwitchHold.Stop(); ApplySettings(); SetExpanded(enabled && expanded, true); }

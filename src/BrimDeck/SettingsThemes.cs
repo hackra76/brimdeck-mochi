@@ -40,10 +40,10 @@ public sealed partial class SettingsWindow
         _themesFresh = false;
         var chosen = PanelThemes.NormalizeId(S.PanelTheme);
         var users = PanelTheme.UserThemes;
-        ThemeSection(Loc.T("基础", "Basics"));
-        ThemeCards([(PanelThemes.SystemId, Loc.T("跟随系统", "System"), PanelTheme.Find(PanelThemes.SystemId)),
+        ThemeSection("Basics");
+        ThemeCards([(PanelThemes.SystemId, "System", PanelTheme.Find(PanelThemes.SystemId)),
             .. PanelThemes.BuiltIns.Where(t => t.Kind == PanelThemeKind.Basic).Select(Card)], chosen);
-        ThemeSection(Loc.T("主题扩展", "Theme extensions"));
+        ThemeSection("Theme extensions");
         ThemeCards([.. PanelThemes.BuiltIns.Where(t => t.Kind == PanelThemeKind.Extension).Select(Card)], chosen);
         CustomSection(users, chosen);
         _themeDetails = Collect(() => ThemeDetails(chosen, users)); _content.Children.Add(_themeDetails);
@@ -78,7 +78,7 @@ public sealed partial class SettingsWindow
             if (own && id == chosen && !PanelTheme.KeptLastGood && PanelTheme.DraftOf(id) is not null) { grid.Children.Add(OverwriteCard(theme)); continue; }
             var card = KeepPreview(new RadioButton { Style = (Style)FindResource("SettingsChoice"), Content = ThemePreview(id, theme),
                 Margin = new Thickness(6, 3, 6, 6), Tag = own ? "" : name, GroupName = "PanelTheme", IsChecked = id == chosen });
-            AutomationProperties.SetName(card, Loc.T("面板主题 ", "Panel theme ") + name);
+            AutomationProperties.SetName(card, "Panel theme " + name);
             AutomationProperties.SetAutomationId(card, "panel-theme-" + id);
             card.Checked += (_, _) =>
             {
@@ -126,33 +126,31 @@ public sealed partial class SettingsWindow
         bool kept = PanelTheme.KeptLastGood;
         var theme = kept ? PanelTheme.ShownTheme : PanelTheme.Find(chosen);
         bool missing = !kept && chosen != PanelThemes.SystemId && !PanelThemes.IsBuiltIn(chosen) && users.All(t => !t.Usable || t.Id != chosen);
-        SectionTitle(Loc.T("当前主题", "Current theme"));
+        SectionTitle("Current theme");
         var rows = new List<FrameworkElement>();
-        string title = chosen == PanelThemes.SystemId ? Loc.T("跟随系统（当前：", "System (now: ") + theme.DisplayName + Loc.T("）", ")") : theme.DisplayName;
-        rows.Add(Row(Loc.T("名称", "Name"), TextLine(title, 12, TextSecondary)));
-        string description = chosen == PanelThemes.SystemId ? Loc.T("跟随 Windows 的应用主题，在深色与浅色之间切换。", "Follows the Windows app theme, switching between dark and light.") : theme.DisplayDescription;
-        if (description.Length > 0) rows.Add(Row(Loc.T("说明", "About"), Wrapped(description, false)));
+        string title = chosen == PanelThemes.SystemId ? "System (now: " + theme.DisplayName + ")" : theme.DisplayName;
+        rows.Add(Row("Name", TextLine(title, 12, TextSecondary)));
+        string description = chosen == PanelThemes.SystemId ? "Follows the Windows app theme, switching between dark and light." : theme.DisplayDescription;
+        if (description.Length > 0) rows.Add(Row("About", Wrapped(description, false)));
         if (theme.File.Night is not null) rows.Add(DaylightRow(theme.File));
         // A file that carries the chosen id (or is named after it) but cannot be used is there, with its error listed below.
         bool broken = missing && users.Any(t => !t.Usable && (PanelThemes.NormalizeId(t.File.Id) == chosen || t.Path is { } file && PanelThemes.NormalizeId(PanelThemes.FileName(file)) == chosen));
         if (missing)
-            rows.Add(Row(Loc.T("提示", "Note"), Wrapped(broken
-                ? Loc.T("主题文件有错误（见下方），暂时显示为深色；修正并保存后即可恢复。", "The theme file has an error (see below) and the dark theme is shown meanwhile. Fix and save the file to restore it.")
-                : Loc.T($"找不到主题“{chosen}”，暂时显示为深色。放回主题文件并重新加载后即可恢复。",
-                    $"The theme \"{chosen}\" was not found and the dark theme is shown meanwhile. Put the theme file back and reload to restore it."), true)));
+            rows.Add(Row("Note", Wrapped(broken
+                ? "The theme file has an error (see below) and the dark theme is shown meanwhile. Fix and save the file to restore it."
+                : $"The theme \"{chosen}\" was not found and the dark theme is shown meanwhile. Put the theme file back and reload to restore it.", true)));
         if (kept)
-            rows.Add(Row(Loc.T("提示", "Note"), Wrapped(Loc.T("主题文件现在有错误（见下方），面板暂时保留它上次正确的版本；修正并保存后即恢复同步。",
-                "The theme file has an error now (see below). The panel keeps its last good version until the file is fixed and saved."), true)));
+            rows.Add(Row("Note", Wrapped("The theme file has an error now (see below). The panel keeps its last good version until the file is fixed and saved.", true)));
         // A user's own theme file says who made it and where it comes from; the built-in themes' notices are in ThirdPartyNotices.txt.
         if (!theme.BuiltIn)
         {
-            if (theme.File.Author.Length > 0) rows.Add(Row(Loc.T("作者", "Author"), TextLine(theme.File.Author, 12, TextSecondary)));
-            if (theme.File.Homepage.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) rows.Add(Row(Loc.T("", "Source"), Link(Loc.T(" ↗", "Homepage ↗"), theme.File.Homepage)));
+            if (theme.File.Author.Length > 0) rows.Add(Row("Author", TextLine(theme.File.Author, 12, TextSecondary)));
+            if (theme.File.Homepage.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) rows.Add(Row("Source", Link("Homepage ↗", theme.File.Homepage)));
         }
         if (theme.Path is { } path)
         {
             var open = ActionButton(Path.GetFileName(path) + " ↗", () => OpenThemeFile(path)); open.Style = (Style)FindResource("SettingsLink"); open.ToolTip = path;
-            rows.Add(Row(Loc.T("文件", "File"), open));
+            rows.Add(Row("File", open));
         }
         // The colors moved to stay readable, counted here and listed once opened; with unsaved changes, those of the theme as
         // it would be saved.
@@ -179,8 +177,8 @@ public sealed partial class SettingsWindow
             AutomationProperties.SetName(box, name); PopupMotion.Attach(box);
             return (box, times);
         }
-        var (from, fromTimes) = Pick(day, Loc.T("白天开始", "Day begins"));
-        var (to, toTimes) = Pick(night, Loc.T("夜晚开始", "Night begins"));
+        var (from, fromTimes) = Pick(day, "Day begins");
+        var (to, toTimes) = Pick(night, "Night begins");
         // A day of no length would never end, so it is no choice: the box just changed goes back to what it showed, and the row
         // never shows unsaved hours. Going back changes the selection again, which saves nothing.
         int shownFrom = from.SelectedIndex, shownTo = to.SelectedIndex;
@@ -204,8 +202,7 @@ public sealed partial class SettingsWindow
         dash.Margin = new Thickness(8, 0, 8, 0); dash.VerticalAlignment = VerticalAlignment.Center;
         var pair = new StackPanel { Orientation = Orientation.Horizontal };
         pair.Children.Add(from); pair.Children.Add(dash); pair.Children.Add(to);
-        return Row(Loc.T("白天时段", "Daytime"), pair, help: () => Loc.T("在这段时间内使用白天外观，其余时间使用夜间外观；到点时自动渐变切换。",
-            "The day look is shown between these times and the night look the rest of the day; it changes over by itself, with a slow fade."));
+        return Row("Daytime", pair, help: () => "The day look is shown between these times and the night look the rest of the day; it changes over by itself, with a slow fade.");
     }
 
     // Scrolls an open list so its chosen item stands about a third of the way down, with the times before it in view.
@@ -237,20 +234,20 @@ public sealed partial class SettingsWindow
     private void CustomSection(IReadOnlyList<PanelThemeInfo> users, string chosen)
     {
         var head = new DockPanel { Margin = new Thickness(0, 0, 0, 8) };
-        var guide = Link(Loc.T("主题制作指南 ↗", "Theme guide ↗"), Updates.GitHubUpdates.RepositoryUrl + Loc.T("/blob/main/docs/zh-CN/themes.md", "/blob/main/docs/en-US/themes.md"));
+        var guide = Link("Theme guide ↗", Updates.GitHubUpdates.RepositoryUrl + "/blob/main/docs/en-US/themes.md");
         guide.VerticalAlignment = VerticalAlignment.Center; DockPanel.SetDock(guide, Dock.Right); head.Children.Add(guide);
         // The folder holds the theme files, so it is opened from the section's title row, beside the guide to writing them.
-        var folder = ActionButton(Loc.T("打开主题文件夹", "Open themes folder"), () =>
+        var folder = ActionButton("Open themes folder", () =>
         {
             try { Directory.CreateDirectory(PanelTheme.Folder); Process.Start(new ProcessStartInfo("explorer.exe", "\"" + PanelTheme.Folder + "\"") { UseShellExecute = true }); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or Win32Exception) { SaveStatus(ex.Message, true); }
         });
         folder.Style = (Style)FindResource("SettingsLink");
-        folder.ToolTip = Loc.T("主题文件放在这里：*.json，或子文件夹中的 theme.json。", "Theme files live here: *.json, or theme.json in a subfolder.");
+        folder.ToolTip = "Theme files live here: *.json, or theme.json in a subfolder.";
         folder.VerticalAlignment = VerticalAlignment.Center; folder.Margin = new Thickness(0, 0, 16, 0);
         DockPanel.SetDock(folder, Dock.Right); head.Children.Add(folder);
-        var title = TextLine(Loc.T("自定义", "Custom"), 11, TextSecondary); title.VerticalAlignment = VerticalAlignment.Center; head.Children.Add(title);
-        var reload = GlyphButton("M 12.5,4.5 A 5.5,5.5 0 1 0 13,9 M 12.5,1.5 V 4.5 H 9.5", 14, 14, Loc.T("重新加载主题文件", "Reload theme files"), () => ShowPage(ThemePage));
+        var title = TextLine("Custom", 11, TextSecondary); title.VerticalAlignment = VerticalAlignment.Center; head.Children.Add(title);
+        var reload = GlyphButton("M 12.5,4.5 A 5.5,5.5 0 1 0 13,9 M 12.5,1.5 V 4.5 H 9.5", 14, 14, "Reload theme files", () => ShowPage(ThemePage));
         reload.Width = 22; reload.Height = 22; reload.Margin = new Thickness(4, 0, 0, 0); reload.VerticalAlignment = VerticalAlignment.Center;
         reload.HorizontalAlignment = HorizontalAlignment.Left; // the last child fills the rest of the row; the icon stays beside the title
         // Measured on the rendered row in both settings themes, the arrow's ink centre sat 1 DIP above the title's.
@@ -263,7 +260,7 @@ public sealed partial class SettingsWindow
         ThemeCards([.. own.Select(t => (t.Id, t.DisplayName, t))], chosen, CustomTile());
         var broken = users.Where(t => !t.Usable).ToList();
         if (broken.Count > 0)
-            Group([.. broken.Select(t => (FrameworkElement)Row(t.Path is { } file ? PanelThemes.DisplayFileName(file) : t.Id, Wrapped(Loc.T("无法使用：", "Cannot be used: ") + t.Error, true)))]);
+            Group([.. broken.Select(t => (FrameworkElement)Row(t.Path is { } file ? PanelThemes.DisplayFileName(file) : t.Id, Wrapped("Cannot be used: " + t.Error, true)))]);
     }
 
     // The new-theme card: a theme card's frame with a plus in place of the preview. The new theme starts as a copy of the current
@@ -273,13 +270,12 @@ public sealed partial class SettingsWindow
     {
         if (!PanelTheme.KeptLastGood && PanelTheme.DraftOf(PanelTheme.ShownTheme.Id) is not null)
         {
-            var save = SaveCard(Loc.T("保存当前主题", "Save current theme"), null, SaveThemeDraftAsNew);
-            save.ToolTip = Loc.T("把当前主题连同尚未保存的修改保存为一个新的自定义主题，并切换到它。",
-                "Saves the current theme with its unsaved changes as a new custom theme and switches to it.");
-            AutomationProperties.SetName(save, Loc.T("保存当前主题为新主题", "Save current theme as a new theme"));
+            var save = SaveCard("Save current theme", null, SaveThemeDraftAsNew);
+            save.ToolTip = "Saves the current theme with its unsaved changes as a new custom theme and switches to it.";
+            AutomationProperties.SetName(save, "Save current theme as a new theme");
             return save;
         }
-        var create = ActionButton(Loc.T("以当前主题新建", "New from current theme"), () =>
+        var create = ActionButton("New from current theme", () =>
         {
             try
             {
@@ -291,13 +287,13 @@ public sealed partial class SettingsWindow
                 // The new theme copies the current one, so it starts with what was changed under the current one.
                 ChooseOwnTheme(path);
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { SaveStatus(Loc.T("无法创建主题文件：", "Could not create the theme file: ") + ex.Message, true); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { SaveStatus("Could not create the theme file: " + ex.Message, true); }
             _themesFresh = true; ShowPage(ThemePage);
         });
-        create.ToolTip = Loc.T("把当前主题的全部颜色写入一个新的自定义主题，并切换到它。", "Writes every color of the current theme into a new custom theme and switches to it.");
+        create.ToolTip = "Writes every color of the current theme into a new custom theme and switches to it.";
         create.Style = (Style)FindResource("SettingsAddCard"); create.Content = null;
-        create.Tag = Loc.T("以当前主题新建", "New from current theme"); create.Margin = new Thickness(6, 3, 6, 6);
-        AutomationProperties.SetName(create, Loc.T("以当前主题新建主题", "New theme from current theme"));
+        create.Tag = "New from current theme"; create.Margin = new Thickness(6, 3, 6, 6);
+        AutomationProperties.SetName(create, "New theme from current theme");
         return create;
     }
 
@@ -313,15 +309,15 @@ public sealed partial class SettingsWindow
         // on both sides so it stays centred.
         var row = new Grid { Height = 30, Margin = new Thickness(6 + 8 + 18, 0, 6 + 8 + 18, 6), VerticalAlignment = VerticalAlignment.Bottom };
         var name = new Button { Content = theme.DisplayName, Style = (Style)FindResource("SettingsCardName"), HorizontalAlignment = HorizontalAlignment.Center,
-            ToolTip = Loc.T("单击重命名", "Click to rename") };
+            ToolTip = "Click to rename" };
         // The name looks as the card's own name would: brighter and bolder once chosen or under the pointer.
         name.SetBinding(ForegroundProperty, new System.Windows.Data.Binding(nameof(Foreground)) { Source = card });
         name.SetBinding(FontWeightProperty, new System.Windows.Data.Binding(nameof(FontWeight)) { Source = card });
         name.SetBinding(FontSizeProperty, new System.Windows.Data.Binding(nameof(FontSize)) { Source = card });
-        AutomationProperties.SetName(name, Loc.T("重命名主题 ", "Rename theme ") + theme.DisplayName);
+        AutomationProperties.SetName(name, "Rename theme " + theme.DisplayName);
         var box = new TextBox { Style = (Style)FindResource("SettingsField"), Height = 26, FontSize = 12, Padding = new Thickness(6, 0, 6, 0),
             TextAlignment = TextAlignment.Center, Visibility = Visibility.Collapsed, MaxLength = 60 };
-        AutomationProperties.SetName(box, Loc.T("主题名称", "Theme name"));
+        AutomationProperties.SetName(box, "Theme name");
         bool editing = false;
         void Finish(bool keep)
         {
@@ -331,7 +327,7 @@ public sealed partial class SettingsWindow
             box.Visibility = Visibility.Collapsed; name.Visibility = Visibility.Visible;
             if (!keep || text.Length == 0 || text == theme.DisplayName) return;
             try { PanelThemes.RenameFile(path, text); }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { SaveStatus(Loc.T("无法重命名主题：", "Could not rename the theme: ") + ex.Message, true); return; }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { SaveStatus("Could not rename the theme: " + ex.Message, true); return; }
             name.Content = text;
             // The page is read again once the click that ended the edit (on another card, say) has been handled, not under it.
             Dispatcher.BeginInvoke(DispatcherPriority.Background, () => { if (IsLoaded && _page == ThemePage) { _themesFresh = false; ShowPage(ThemePage); } });
@@ -352,17 +348,16 @@ public sealed partial class SettingsWindow
         cell.Children.Add(row);
 
         var delete = new Button { Style = (Style)FindResource("SettingsCardDelete"), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
-            Margin = new Thickness(0, 3 + 8, 6 + 8, 0), Opacity = 0, ToolTip = Loc.T("删除主题", "Delete theme") };
-        AutomationProperties.SetName(delete, Loc.T("删除主题 ", "Delete theme ") + theme.DisplayName);
+            Margin = new Thickness(0, 3 + 8, 6 + 8, 0), Opacity = 0, ToolTip = "Delete theme" };
+        AutomationProperties.SetName(delete, "Delete theme " + theme.DisplayName);
         void Show() => delete.Opacity = cell.IsMouseOver || delete.IsKeyboardFocused ? 1 : 0;
         cell.MouseEnter += (_, _) => Show(); cell.MouseLeave += (_, _) => Show();
         delete.GotKeyboardFocus += (_, _) => Show(); delete.LostKeyboardFocus += (_, _) => Show();
         delete.Click += (_, _) =>
         {
-            if (Confirm(Loc.T("删除主题", "Delete theme"),
-                Loc.T($"确定删除“{theme.DisplayName}”吗？主题文件会移到回收站，为它记住的配色也会一并清除。",
-                    $"Delete \"{theme.DisplayName}\"? The theme file goes to the Recycle Bin, and the colors remembered for it are cleared."),
-                Loc.T("删除", "Delete")))
+            if (Confirm("Delete theme",
+                $"Delete \"{theme.DisplayName}\"? The theme file goes to the Recycle Bin, and the colors remembered for it are cleared.",
+                "Delete"))
                 DeleteOwnTheme(theme);
         };
         cell.Children.Add(delete);
@@ -375,7 +370,7 @@ public sealed partial class SettingsWindow
     {
         var path = theme.Path!;
         var target = string.Equals(Path.GetFileName(path), "theme.json", StringComparison.OrdinalIgnoreCase) ? Path.GetDirectoryName(path)! : path;
-        if (!Native.RecycleBin.Send(target)) { SaveStatus(Loc.T("无法删除主题文件：", "Could not delete the theme file: ") + target, true); return; }
+        if (!Native.RecycleBin.Send(target)) { SaveStatus("Could not delete the theme file: " + target, true); return; }
         string id = theme.Id;
         PanelTheme.Discard(id);
         Change(s =>
@@ -388,7 +383,7 @@ public sealed partial class SettingsWindow
 
     private void OpenThemeFile(string path)
     {
-        if (!File.Exists(path)) { SaveStatus(Loc.T("主题文件不存在：", "The theme file does not exist: ") + path, true); return; }
+        if (!File.Exists(path)) { SaveStatus("The theme file does not exist: " + path, true); return; }
         try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
         catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
         {

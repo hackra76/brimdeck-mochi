@@ -27,8 +27,7 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
 {
     // Every provider uses the panel's shared refresh cycle. Claude may display local history
     // after an unsuccessful request, but it does not delay the next scheduled refresh.
-    private static string ClaudeUsageNote => Loc.T(" Token 统计来自本机 Claude Code 会话，不包含桌面版普通聊天。",
-        " Token statistics come from local Claude Code sessions and do not include regular chats in the desktop app.");
+    private static string ClaudeUsageNote => " Token statistics come from local Claude Code sessions and do not include regular chats in the desktop app.";
     private readonly HttpClient _http = http ?? new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(12) };
     // ZCode's own service (Start Plan and MCP allowances) can take tens of seconds; those requests finish in the background.
     private readonly HttpClient _zcodeHttp = http ?? new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(45) };
@@ -137,7 +136,7 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
     public Task<ProviderTestResult> TestProviderAsync(AppEntry entry, CancellationToken ct = default)
     {
         _ = secrets;
-        return Task.FromResult(new ProviderTestResult(new ProviderSnapshot(entry.QuotaSource) { StatusLabel = Loc.T("未启用", "Disabled") }, 0, []));
+        return Task.FromResult(new ProviderTestResult(new ProviderSnapshot(entry.QuotaSource) { StatusLabel = "Disabled" }, 0, []));
     }
 
     public async Task<List<ProviderSnapshot>> RefreshAsync(DeckSettings settings, CancellationToken cancellation = default, DateTime? usageStart = null)
@@ -177,8 +176,8 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
             return new ProviderSnapshot(id)
             {
                 UsageStart = usageStart?.Date ?? _clock().LocalDateTime.Date.AddDays(-29),
-                StatusLabel = timedOut ? Loc.T("读取超时", "Timed out") : Loc.T("读取失败", "Read failed"),
-                Status = timedOut ? Loc.T("读取超时，稍后重试", "Reading timed out. Retrying later.") : Loc.T("暂时无法读取数据，稍后重试", "The data cannot be read right now. Retrying later.")
+                StatusLabel = timedOut ? "Timed out" : "Read failed",
+                Status = timedOut ? "Reading timed out. Retrying later." : "The data cannot be read right now. Retrying later."
             };
         }
     }
@@ -221,7 +220,7 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
     // Only the time the read has not yet had is waited for; after that the round shows this PC only.
     private async Task MergeWslAsync(ProviderSnapshot snapshot, WslRead read, CancellationToken ct)
     {
-        void Skipped() { snapshot.UsageNote += Loc.T(" · WSL 读取超时，本轮仅显示本机数据", " · Reading WSL timed out; this round shows this PC only"); snapshot.UsageComplete = false; }
+        void Skipped() { snapshot.UsageNote += " · Reading WSL timed out; this round shows this PC only"; snapshot.UsageComplete = false; }
         if (read.TimedOut && !read.Task.IsCompleted) { Skipped(); return; }
         using var wait = CancellationTokenSource.CreateLinkedTokenSource(ct);
         var remaining = (wslTimeout ?? TimeSpan.FromSeconds(8)) - read.Elapsed.Elapsed;
@@ -263,16 +262,16 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
             switch (id)
             {
                 case ProviderId.Pi:
-                    snapshot.UsageNote += Loc.T(" · 费用取自 Pi 记录，非订阅账单", " · Costs recorded by Pi, not subscription charges");
-                    snapshot.StatusLabel = Loc.T("仅本地统计", "Local usage only");
-                    snapshot.Status = Loc.T("Pi 仅统计本机会话的 Token 与费用，无在线额度", "Pi tracks local session tokens and costs; no online quota.");
+                    snapshot.UsageNote += " · Costs recorded by Pi, not subscription charges";
+                    snapshot.StatusLabel = "Local usage only";
+                    snapshot.Status = "Pi tracks local session tokens and costs; no online quota.";
                     break;
                 case ProviderId.Codex:
                 {
                     using var auth = ReadJson(Path.Combine(_locations.CodexHome, "auth.json"));
                     var tokens = auth?.RootElement.Get("tokens") ?? default;
                     var token = tokens.Get("access_token").Text();
-                    if (token.Length == 0) { snapshot.StatusLabel = Loc.T("未连接", "Not connected"); snapshot.Status = Loc.T("请先登录 Codex", "Sign in to Codex first"); break; }
+                    if (token.Length == 0) { snapshot.StatusLabel = "Not connected"; snapshot.Status = "Sign in to Codex first"; break; }
                     using var request = Bearer(HttpMethod.Get, "https://chatgpt.com/backend-api/wham/usage", token);
                     var account = tokens.Get("account_id").Text();
                     if (account.Length > 0) request.Headers.TryAddWithoutValidation("ChatGPT-Account-Id", account);
@@ -281,8 +280,8 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
                     if (quotas.Count == 0) throw new InvalidDataException();
                     snapshot.Quotas = quotas;
                     snapshot.Plan = doc.RootElement.Get("plan_type").Text();
-                    snapshot.PlanSource = Loc.T("Codex 账户", "Codex account");
-                    Connected(snapshot, Loc.T("Codex 账户", "Codex account"), now);
+                    snapshot.PlanSource = "Codex account";
+                    Connected(snapshot, "Codex account", now);
                     break;
                 }
                 case ProviderId.Claude:
@@ -317,27 +316,26 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         catch (HttpRequestException ex)
         {
             snapshot.StatusLabel = ex.StatusCode switch
-            { HttpStatusCode.Unauthorized => Loc.T("登录已失效", "Sign-in expired"), HttpStatusCode.Forbidden => Loc.T("访问受限", "Access denied"), _ => Loc.T("暂不可用", "Unavailable") };
+            { HttpStatusCode.Unauthorized => "Sign-in expired", HttpStatusCode.Forbidden => "Access denied", _ => "Unavailable" };
             snapshot.Status = ex.StatusCode switch
             {
-                HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => Loc.T("登录已失效或账户接口拒绝访问，请在原应用重新登录",
-                    "The sign-in has expired or the account API refused access. Sign in again in the original app."),
+                HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => "The sign-in has expired or the account API refused access. Sign in again in the original app.",
                 HttpStatusCode.TooManyRequests => ex is RateLimitedException { RetryAt: { } at }
-                    ? Loc.T($"请求频繁，{Clock(at, now)} 后自动重试", $"Too many requests. Retrying automatically after {Clock(at, now)}.")
-                    : Loc.T("请求频繁，稍后自动重试", "Too many requests. Retrying automatically later."),
-                _ => Loc.T("账户接口暂时不可用", "The account API is temporarily unavailable.")
+                    ? $"Too many requests. Retrying automatically after {Clock(at, now)}."
+                    : "Too many requests. Retrying automatically later.",
+                _ => "The account API is temporarily unavailable."
             };
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-        { snapshot.StatusLabel = Loc.T("读取超时", "Timed out"); snapshot.Status = Loc.T("读取超时，稍后重试", "Reading timed out. Retrying later."); }
+        { snapshot.StatusLabel = "Timed out"; snapshot.Status = "Reading timed out. Retrying later."; }
         catch (InvalidDataException)
-        { snapshot.StatusLabel = Loc.T("数据不可用", "Data unavailable"); snapshot.Status = Loc.T("数据格式发生变化，暂时无法读取配额", "The data format has changed, so the quota cannot be read for now."); }
+        { snapshot.StatusLabel = "Data unavailable"; snapshot.Status = "The data format has changed, so the quota cannot be read for now."; }
         catch (System.Runtime.InteropServices.COMException)
-        { snapshot.StatusLabel = Loc.T("检测失败", "Detection failed"); snapshot.Status = Loc.T("本地服务检测失败，稍后重试", "Detecting the local service failed. Retrying later."); }
+        { snapshot.StatusLabel = "Detection failed"; snapshot.Status = "Detecting the local service failed. Retrying later."; }
         catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException or FormatException)
-        { snapshot.StatusLabel = Loc.T("读取失败", "Read failed"); snapshot.Status = Loc.T("暂时无法读取数据，稍后重试", "The data cannot be read right now. Retrying later."); }
+        { snapshot.StatusLabel = "Read failed"; snapshot.Status = "The data cannot be read right now. Retrying later."; }
         if (wslRead is not null) await MergeWslAsync(snapshot, wslRead, ct);
-        if (!snapshot.LiveQuota && snapshot.Quotas.Count > 0) snapshot.Source = Loc.T("本地配额快照 · 可能已过时", "Local quota snapshot · may be outdated");
+        if (!snapshot.LiveQuota && snapshot.Quotas.Count > 0) snapshot.Source = "Local quota snapshot · may be outdated";
         return snapshot;
     }
 
@@ -447,11 +445,11 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         if (first.Attempted) return;
         var desktopRead = Desktop();
         ForgetClaude(null, signedOut: !desktopRead.ReadFailed && !codeReadFailed);
-        snapshot.StatusLabel = desktopRead.ReadFailed || codeReadFailed ? Loc.T("读取失败", "Read failed")
-            : desktopRead.Detected ? Loc.T("等待登录", "Waiting for sign-in") : Loc.T("未连接", "Not connected");
-        snapshot.Status = desktopRead.ReadFailed ? Loc.T("已发现 Claude 桌面版，暂时无法读取登录信息", "The Claude desktop app was found, but its sign-in cannot be read right now.")
-            : codeReadFailed ? Loc.T("暂时无法读取 Claude Code 登录信息", "The Claude Code sign-in cannot be read right now.")
-            : Loc.T("请先登录 Claude Code 或 Claude 桌面版，然后刷新配额", "Sign in to Claude Code or the Claude desktop app, then refresh the quota.");
+        snapshot.StatusLabel = desktopRead.ReadFailed || codeReadFailed ? "Read failed"
+            : desktopRead.Detected ? "Waiting for sign-in" : "Not connected";
+        snapshot.Status = desktopRead.ReadFailed ? "The Claude desktop app was found, but its sign-in cannot be read right now."
+            : codeReadFailed ? "The Claude Code sign-in cannot be read right now."
+            : "Sign in to Claude Code or the Claude desktop app, then refresh the quota.";
     }
 
     // Reads one organization into snapshot with the first of candidates that works. key is the organization the readings are
@@ -571,7 +569,7 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
             return;
         }
         // The first organization's part is the row's own snapshot, so the ones without quotas are named before it takes them all.
-        var missing = string.Join(Loc.T("、", ", "), ordered.Where(item => item.Unit.Snapshot.Quotas.Count == 0).Select(item => item.Name));
+        var missing = string.Join(", ", ordered.Where(item => item.Unit.Snapshot.Quotas.Count == 0).Select(item => item.Name));
         var lead = units[0].Snapshot.Quotas.Count > 0 ? units[0].Snapshot : shown[0].Unit.Snapshot;
         if (lead != snapshot)
         {
@@ -582,7 +580,7 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         // The quotas are grouped under the short names; the plan names each organization's plan whole ("Pro + Team Premium").
         snapshot.Plan = string.Join(" + ", shown.Select(item => item.Plan));
         snapshot.IsStale = shown.Any(item => item.Unit.Snapshot.IsStale);
-        if (missing.Length > 0) snapshot.Status += Loc.T($"；{missing} 暂时无法读取", $"; {missing} cannot be read right now");
+        if (missing.Length > 0) snapshot.Status += $"; {missing} cannot be read right now";
     }
 
     // Claude rows that do not read online share this snapshot. No sign-in is read and no request is sent: the quota is the
@@ -595,18 +593,18 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         ReadClaudeProfile(snapshot);
         if (ClaudeUsageHistory.Latest(_locations) is not { } sample || sample.Time > now.AddMinutes(5))
         {
-            snapshot.StatusLabel = Loc.T("无本地记录", "No local record");
-            snapshot.Status = Loc.T("Claude 桌面版尚未在本机记录额度", "The Claude desktop app has not recorded a quota on this PC yet.");
+            snapshot.StatusLabel = "No local record";
+            snapshot.Status = "The Claude desktop app has not recorded a quota on this PC yet.";
             return snapshot;
         }
         snapshot.Quotas = [new Quota("5 小时额度", sample.FiveHour, null, 300), new Quota("每周额度", sample.SevenDay, null, 10080)];
         snapshot.IsStale = true;
         // The update time is when BrimDeck read the history; the status gives the time of the newest sample in it.
         snapshot.LiveQuota = true; snapshot.QuotaTime = now;
-        snapshot.Source = Loc.T("Claude 桌面版 · 本地用量记录", "Claude desktop app · local usage records");
+        snapshot.Source = "Claude desktop app · local usage records";
         var time = sample.Time.LocalDateTime.ToString(sample.Time.LocalDateTime.Date == now.LocalDateTime.Date ? "HH:mm" : "MM-dd HH:mm");
-        snapshot.StatusLabel = Loc.T("本地记录", "Local record");
-        snapshot.Status = Loc.T($"来自 Claude 桌面版，最新记录于 {time}", $"From the Claude desktop app, latest record at {time}.");
+        snapshot.StatusLabel = "Local record";
+        snapshot.Status = $"From the Claude desktop app, latest record at {time}.";
         return snapshot;
     }
 
@@ -622,7 +620,7 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
             DateTimeOffset? Reset(int minutes) => kept?.Quotas.FirstOrDefault(quota => quota.Minutes == minutes)?.ResetAt is { } reset && reset > sample.Time ? reset : null;
             var scoped = kept?.Quotas.Where(q => q.Label is not ("5 小时额度" or "每周额度")).ToList() ?? [];
             var scopedTime = scoped.Count == 0 ? null : kept!.Local ? kept.ScopedTime : kept.Time;
-            kept = new(sample.Time, kept?.Plan ?? "", kept?.PlanSource ?? "", Loc.T("Claude 桌面版 · 本地用量记录", "Claude desktop app · local usage records"),
+            kept = new(sample.Time, kept?.Plan ?? "", kept?.PlanSource ?? "", "Claude desktop app · local usage records",
                 [new Quota("5 小时额度", sample.FiveHour, Reset(300), 300), new Quota("每周额度", sample.SevenDay, Reset(10080), 10080), .. scoped], true, scopedTime);
             Kept(organization).Retained = kept;
         }
@@ -636,23 +634,23 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         if (kept.Plan.Length > 0) { snapshot.Plan = kept.Plan; snapshot.PlanSource = kept.PlanSource; }
         snapshot.LiveQuota = true; snapshot.QuotaTime = kept.Time; snapshot.Source = kept.Source;
         var time = Clock(kept.Time, now);
-        var shown = kept.Local ? Loc.T($"显示 Claude 桌面版 {time} 记录的配额", $"showing the quota the Claude desktop app recorded at {time}")
-            : Loc.T($"显示 {time} 读取的配额", $"showing the quota read at {time}");
+        var shown = kept.Local ? $"showing the quota the Claude desktop app recorded at {time}"
+            : $"showing the quota read at {time}";
         // Per-model quotas carried over from an earlier online reading say when they were read.
         if (kept.Local && kept.ScopedTime is { } scoped && kept.Time - scoped > TimeSpan.FromMinutes(1))
         {
             var at = Clock(scoped, now);
-            shown += Loc.T($"（按模型的额度为 {at} 读取）", $" (per-model quotas read at {at})");
+            shown += $" (per-model quotas read at {at})";
         }
         snapshot.Status = failure switch
         {
-            null => kept.Local ? Loc.T($"已连接，{shown}", $"Connected, {shown}") : Loc.T("已连接", "Connected"),
-            RateLimitedException { RetryAt: { } retry } => Loc.T($"请求频繁，{shown}，{Clock(retry, now)} 后自动重试", $"Too many requests; {shown}. Retrying automatically after {Clock(retry, now)}."),
-            HttpRequestException { StatusCode: HttpStatusCode.TooManyRequests } => Loc.T($"请求频繁，{shown}，稍后自动重试", $"Too many requests; {shown}. Retrying automatically later."),
-            OperationCanceledException => Loc.T($"读取超时，{shown}，稍后自动重试", $"Reading timed out; {shown}. Retrying automatically later."),
-            _ => Loc.T($"账户接口暂时不可用，{shown}，稍后自动重试", $"The account API is temporarily unavailable; {shown}. Retrying automatically later.")
+            null => kept.Local ? $"Connected, {shown}" : "Connected",
+            RateLimitedException { RetryAt: { } retry } => $"Too many requests; {shown}. Retrying automatically after {Clock(retry, now)}.",
+            HttpRequestException { StatusCode: HttpStatusCode.TooManyRequests } => $"Too many requests; {shown}. Retrying automatically later.",
+            OperationCanceledException => $"Reading timed out; {shown}. Retrying automatically later.",
+            _ => $"The account API is temporarily unavailable; {shown}. Retrying automatically later."
         };
-        snapshot.StatusLabel = failure is null ? Loc.T("已连接", "Connected") : Loc.T("稍后重试", "Retrying later");
+        snapshot.StatusLabel = failure is null ? "Connected" : "Retrying later";
         snapshot.UsageNote += ClaudeUsageNote;
     }
 
@@ -677,8 +675,8 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
                 var reading = GrokBotUsage.Status(doc.RootElement) ?? throw new InvalidDataException();
                 snapshot.Quotas = reading.Quotas;
                 snapshot.Plan = reading.Plan;
-                snapshot.PlanSource = reading.Plan.Length > 0 ? Loc.T("Grok Bot 账户", "Grok Bot account") : "";
-                Connected(snapshot, Loc.T("Grok Bot 账户 · 每周额度", "Grok Bot account · weekly allowance"), now);
+                snapshot.PlanSource = reading.Plan.Length > 0 ? "Grok Bot account" : "";
+                Connected(snapshot, "Grok Bot account · weekly allowance", now);
                 if (reading.UsedPercent is null) snapshot.Status += PooledNote;
                 _grokBotRetained = new(now, snapshot.Plan, snapshot.PlanSource, snapshot.Source, reading.Quotas);
                 return;
@@ -691,22 +689,22 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         else if (!signIn.ReadFailed)
         {
             _grokBotRetained = null;
-            snapshot.StatusLabel = signIn.Detected ? Loc.T("等待登录", "Waiting for sign-in") : Loc.T("未连接", "Not connected");
-            snapshot.Status = Loc.T("请先登录 Grok Bot 桌面版，然后刷新配额", "Sign in to the Grok Bot desktop app, then refresh the quota.");
+            snapshot.StatusLabel = signIn.Detected ? "Waiting for sign-in" : "Not connected";
+            snapshot.Status = "Sign in to the Grok Bot desktop app, then refresh the quota.";
             return;
         }
         if (GrokBotFreshest(now) is { } kept) { RetainGrokBot(snapshot, kept, failure, now); return; }
         if (failure is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
-        snapshot.StatusLabel = Loc.T("读取失败", "Read failed");
-        snapshot.Status = Loc.T("已发现 Grok Bot 桌面版，暂时无法读取登录信息", "The Grok Bot desktop app was found, but its sign-in cannot be read right now.");
+        snapshot.StatusLabel = "Read failed";
+        snapshot.Status = "The Grok Bot desktop app was found, but its sign-in cannot be read right now.";
     }
 
     // The desktop app's cached reading, ignored when it claims a time well in the future.
     private GrokBotReading? ReadGrokBotCache(DateTimeOffset now)
         => GrokBotUsage.ReadCache(GrokBotUsage.Folder(_locations.Roaming)) is { } reading && reading.ReadAt <= now.AddMinutes(5) ? reading : null;
-    private static string PooledNote => Loc.T("；账户使用企业共享额度，没有单独的使用比例", "; the account uses a pooled enterprise allowance, which has no share of its own");
-    private static string GrokBotCacheSource => Loc.T("Grok Bot 桌面版 · 本地缓存", "Grok Bot desktop app · local cache");
-    private static string GrokBotCachePlanSource => Loc.T("Grok Bot 桌面版本地缓存", "Grok Bot desktop app local cache");
+    private static string PooledNote => "; the account uses a pooled enterprise allowance, which has no share of its own";
+    private static string GrokBotCacheSource => "Grok Bot desktop app · local cache";
+    private static string GrokBotCachePlanSource => "Grok Bot desktop app local cache";
 
     // A cached reading newer than the last interface reading replaces it; the cache carries its own reset time.
     private ClaudeQuotaSnapshot? GrokBotFreshest(DateTimeOffset now)
@@ -724,17 +722,17 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         if (kept.Plan.Length > 0) { snapshot.Plan = kept.Plan; snapshot.PlanSource = kept.PlanSource; }
         snapshot.LiveQuota = true; snapshot.QuotaTime = kept.Time; snapshot.Source = kept.Source;
         var time = kept.Time.LocalDateTime.ToString(kept.Time.LocalDateTime.Date == now.LocalDateTime.Date ? "HH:mm" : "MM-dd HH:mm");
-        var shown = kept.Local ? Loc.T($"显示 Grok Bot 桌面版 {time} 缓存的额度", $"showing the allowance the Grok Bot desktop app cached at {time}")
-            : Loc.T($"显示 {time} 读取的额度", $"showing the allowance read at {time}");
+        var shown = kept.Local ? $"showing the allowance the Grok Bot desktop app cached at {time}"
+            : $"showing the allowance read at {time}";
         (snapshot.StatusLabel, snapshot.Status) = failure switch
         {
-            null => (Loc.T("读取失败", "Read failed"), Loc.T($"暂时无法读取 Grok Bot 桌面版的登录信息，{shown}", $"The Grok Bot desktop app sign-in cannot be read right now; {shown}.")),
-            HttpRequestException { StatusCode: HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden } => (Loc.T("登录已失效", "Sign-in expired"),
-                Loc.T($"Grok Bot 桌面版的登录已失效，请打开 Grok Bot 桌面版；{shown}", $"The Grok Bot desktop app sign-in has expired. Open the Grok Bot desktop app; {shown}.")),
-            HttpRequestException { StatusCode: HttpStatusCode.TooManyRequests } => (Loc.T("稍后重试", "Retrying later"), Loc.T($"请求频繁，{shown}，稍后自动重试", $"Too many requests; {shown}. Retrying automatically later.")),
-            OperationCanceledException => (Loc.T("稍后重试", "Retrying later"), Loc.T($"读取超时，{shown}，稍后自动重试", $"Reading timed out; {shown}. Retrying automatically later.")),
-            InvalidDataException or JsonException or FormatException => (Loc.T("稍后重试", "Retrying later"), Loc.T($"数据格式发生变化，{shown}", $"The data format has changed; {shown}.")),
-            _ => (Loc.T("稍后重试", "Retrying later"), Loc.T($"账户接口暂时不可用，{shown}，稍后自动重试", $"The account API is temporarily unavailable; {shown}. Retrying automatically later."))
+            null => ("Read failed", $"The Grok Bot desktop app sign-in cannot be read right now; {shown}."),
+            HttpRequestException { StatusCode: HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden } => ("Sign-in expired",
+                $"The Grok Bot desktop app sign-in has expired. Open the Grok Bot desktop app; {shown}."),
+            HttpRequestException { StatusCode: HttpStatusCode.TooManyRequests } => ("Retrying later", $"Too many requests; {shown}. Retrying automatically later."),
+            OperationCanceledException => ("Retrying later", $"Reading timed out; {shown}. Retrying automatically later."),
+            InvalidDataException or JsonException or FormatException => ("Retrying later", $"The data format has changed; {shown}."),
+            _ => ("Retrying later", $"The account API is temporarily unavailable; {shown}. Retrying automatically later.")
         };
     }
 
@@ -746,8 +744,8 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         var snapshot = new ProviderSnapshot(ProviderId.GrokBot) { Configurations = [ProviderCatalog.LocalQuota], UsageStart = usageStart?.Date ?? now.LocalDateTime.Date.AddDays(-29) };
         if (ReadGrokBotCache(now) is not { ReadAt: { } readAt } reading)
         {
-            snapshot.StatusLabel = Loc.T("无本地记录", "No local record");
-            snapshot.Status = Loc.T("Grok Bot 桌面版尚未在本机记录每周额度", "The Grok Bot desktop app has not recorded a weekly allowance on this PC yet.");
+            snapshot.StatusLabel = "No local record";
+            snapshot.Status = "The Grok Bot desktop app has not recorded a weekly allowance on this PC yet.";
             return snapshot;
         }
         snapshot.Quotas = reading.Quotas;
@@ -758,18 +756,18 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         snapshot.LiveQuota = true; snapshot.QuotaTime = now;
         snapshot.Source = GrokBotCacheSource;
         var time = readAt.LocalDateTime.ToString(readAt.LocalDateTime.Date == now.LocalDateTime.Date ? "HH:mm" : "MM-dd HH:mm");
-        snapshot.StatusLabel = Loc.T("本地记录", "Local record");
-        snapshot.Status = reading.UsedPercent is null ? Loc.T($"来自 Grok Bot 桌面版，最新记录于 {time}", $"From the Grok Bot desktop app, latest record at {time}") + PooledNote
-            : Loc.T($"来自 Grok Bot 桌面版，最新记录于 {time}", $"From the Grok Bot desktop app, latest record at {time}.");
+        snapshot.StatusLabel = "Local record";
+        snapshot.Status = reading.UsedPercent is null ? $"From the Grok Bot desktop app, latest record at {time}" + PooledNote
+            : $"From the Grok Bot desktop app, latest record at {time}.";
         return snapshot;
     }
 
     private async Task ReadCursorAsync(ProviderSnapshot snapshot, DateTimeOffset now, DateTimeOffset start, CancellationToken ct)
     {
         var token = desktop.ReadCursorToken(_locations.CursorDatabase);
-        snapshot.UsageNote = Loc.T("Cursor Token 明细来自账户用量接口，包含其他设备上的用量。", "Cursor token details come from the account usage API and include usage on other devices.");
+        snapshot.UsageNote = "Cursor token details come from the account usage API and include usage on other devices.";
         if (string.IsNullOrWhiteSpace(token))
-        { snapshot.StatusLabel = Loc.T("未连接", "Not connected"); snapshot.Status = Loc.T("请打开 Cursor 并确认已登录", "Open Cursor and make sure you are signed in."); return; }
+        { snapshot.StatusLabel = "Not connected"; snapshot.Status = "Open Cursor and make sure you are signed in."; return; }
         // The Grok Bot weekly allowance tells a plan merged with Grok from an older Cursor plan. On a merged plan it is the
         // same allowance as the Cursor quota; on an older plan it is a separate figure, added below as one more row. A
         // failure here must not drop the Cursor quota.
@@ -811,11 +809,11 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
             catch (Exception ex) when (snapshot.Quotas.Count > 0 && !ct.IsCancellationRequested &&
                 ex is HttpRequestException or JsonException or InvalidDataException or FormatException or TaskCanceledException) { }
         }
-        if (snapshot.Plan.Length > 0) snapshot.PlanSource = Loc.T("Cursor 账户", "Cursor account");
+        if (snapshot.Plan.Length > 0) snapshot.PlanSource = "Cursor account";
         if (snapshot.Quotas.Count == 0) throw new InvalidDataException();
         if (!unified && grokBot is not null) snapshot.Quotas.Add(grokBot);
-        if (unified) snapshot.UsageNote = Loc.T("Cursor Token 明细来自账户账单记录，包含 Grok Bot 与其他设备上的用量。", "Cursor token details come from the account billing records and include Grok Bot usage and usage on other devices.");
-        Connected(snapshot, unified ? Loc.T("Cursor 账户 · 每周额度", "Cursor account · weekly allowance") : Loc.T("Cursor 当前账期", "Cursor current billing period"), now);
+        if (unified) snapshot.UsageNote = "Cursor token details come from the account billing records and include Grok Bot usage and usage on other devices.";
+        Connected(snapshot, unified ? "Cursor account · weekly allowance" : "Cursor current billing period", now);
         // The week's included usage in whole cents, which prices a merged plan's records (CursorPrices).
         (DateTimeOffset Start, long Cents)? spend = null;
         if (unified)
@@ -888,14 +886,13 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         }
         int days = (int)(last - shown).TotalDays + 1, missing = Enumerable.Range(0, days).Count(i => !_cursorDays.ContainsKey(shown.AddDays(i)));
         if (missing == days)
-        { snapshot.UsageAvailable = false; snapshot.UsageNote = Loc.T("配额已读取，账户 Token 明细暂时不可用或尚未读取完整。", "The quota was read, but the account's token details are unavailable or not fully read yet."); return; }
+        { snapshot.UsageAvailable = false; snapshot.UsageNote = "The quota was read, but the account's token details are unavailable or not fully read yet."; return; }
         snapshot.Entries = _cursorDays.Values.SelectMany(read => read.Entries).Where(entry => entry.Time >= start && entry.Time <= now).OrderBy(entry => entry.Time)
             .Select(entry => costs is not null && entry.ReportedCostUsd is null && costs.TryGetValue(entry.Key, out var cost) ? entry with { ReportedCostUsd = cost, FittedCost = true } : entry).ToList();
-        if (unified) snapshot.UsageNote += Loc.T("费用按每周已用金额分摊到各条记录；最新的用量在下次读到金额后计入。",
-            " Costs share out the weekly amount used among the records; the latest usage counts once the next amount is read.");
+        if (unified) snapshot.UsageNote += " Costs share out the weekly amount used among the records; the latest usage counts once the next amount is read.";
         snapshot.UsageAvailable = true;
         snapshot.UsageComplete = missing == 0;
-        if (missing > 0) snapshot.UsageNote += Loc.T($"其中 {missing} 天的明细尚未读取，将在之后的刷新中补全。", " " + Loc.Count(missing, "day", "days") + " not read yet; later refreshes fill them in.");
+        if (missing > 0) snapshot.UsageNote += " " + Loc.Count(missing, "day", "days") + " not read yet; later refreshes fill them in.";
     }
 
     // One local day's records, [from, to). An empty day, or a page past the last, comes back without the list.
@@ -1009,12 +1006,12 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         var endpoints = await desktop.FindAntigravityAsync(ct);
         if (endpoints.Count == 0 && desktop.AntigravityUnreadable)
         {
-            snapshot.StatusLabel = Loc.T("无法读取", "Cannot read");
-            snapshot.Status = Loc.T("Antigravity 以管理员身份运行，BrimDeck 无法读取。请以普通权限启动 Antigravity", "Antigravity runs as administrator, so BrimDeck cannot read it. Start Antigravity without administrator rights.");
+            snapshot.StatusLabel = "Cannot read";
+            snapshot.Status = "Antigravity runs as administrator, so BrimDeck cannot read it. Start Antigravity without administrator rights.";
             return;
         }
         if (endpoints.Count == 0)
-        { snapshot.StatusLabel = Loc.T("服务未就绪", "Service not ready"); snapshot.Status = Loc.T("未检测到 Antigravity 本地用量服务", "The Antigravity local usage service was not found."); return; }
+        { snapshot.StatusLabel = "Service not ready"; snapshot.Status = "The Antigravity local usage service was not found."; return; }
         foreach (var endpoint in endpoints)
         {
             ct.ThrowIfCancellationRequested();
@@ -1029,7 +1026,7 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
             {
                 using var status = await LocalCall(local, endpoint, "GetUserStatus", new { }, ct);
                 snapshot.Plan = PlanParser.Antigravity(status.RootElement);
-                if (snapshot.Plan.Length > 0) snapshot.PlanSource = Loc.T("Antigravity 本地账户服务", "Antigravity local account service");
+                if (snapshot.Plan.Length > 0) snapshot.PlanSource = "Antigravity local account service";
                 snapshot.Quotas = QuotaParser.Antigravity(status.RootElement);
                 try
                 {
@@ -1039,12 +1036,12 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
                 }
                 catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException) { }
                 if (snapshot.Quotas.Count == 0) continue;
-                Connected(snapshot, Loc.T("Antigravity 本地服务", "Antigravity local service"), now);
+                Connected(snapshot, "Antigravity local service", now);
                 return;
             }
             catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException) { }
         }
-        snapshot.StatusLabel = Loc.T("服务暂不可用", "Service unavailable"); snapshot.Status = Loc.T("检测到 Antigravity，但本地用量服务暂不可用", "Antigravity was found, but its local usage service is unavailable.");
+        snapshot.StatusLabel = "Service unavailable"; snapshot.Status = "Antigravity was found, but its local usage service is unavailable.";
     }
 
     // A ZCode column combines the signed-in account's Coding Plan (the same template as the Z.ai GLM
@@ -1052,7 +1049,7 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
     private async Task ReadZCodeAsync(ProviderSnapshot snapshot, DateTimeOffset now, CancellationToken ct)
     {
         var account = ZCodeUsage.ReadAccount(_locations.ZCodeHome);
-        if (account is null || account.ApiKey.Length == 0 && account.Jwt.Length == 0) { snapshot.StatusLabel = Loc.T("未连接", "Not connected"); snapshot.Status = Loc.T("请先登录 ZCode", "Sign in to ZCode first."); return; }
+        if (account is null || account.ApiKey.Length == 0 && account.Jwt.Length == 0) { snapshot.StatusLabel = "Not connected"; snapshot.Status = "Sign in to ZCode first."; return; }
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct); deadline.CancelAfter(TimeSpan.FromSeconds(10));
         // Each part keeps its last good result for the same account, so a failed or slow read never hides it.
         static string Owner(string value) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(value)));
@@ -1085,8 +1082,8 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         if (coding is null && start.Metrics.Count == 0 && mcp is null)
         {
             (snapshot.StatusLabel, snapshot.Status) = codingFailure ?? (startRequested && startRoot is null
-                ? (Loc.T("读取超时", "Timed out"), Loc.T("ZCode 服务响应较慢，稍后自动重试", "The ZCode service is responding slowly. Retrying automatically later."))
-                : (Loc.T("未连接", "Not connected"), Loc.T("ZCode 账户没有可用的 Coding Plan 或 Start Plan", "The ZCode account has no active Coding Plan or Start Plan.")));
+                ? ("Timed out", "The ZCode service is responding slowly. Retrying automatically later.")
+                : ("Not connected", "The ZCode account has no active Coding Plan or Start Plan."));
             return;
         }
         // Rolling windows sort first by window length; the Start Plan grants precede the tool-call allowances.
@@ -1096,14 +1093,14 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         if (mcp is not null) metrics.Add(mcp);
         snapshot.Metrics = metrics;
         snapshot.Plan = coding?.Plan is { Length: > 0 } plan ? plan : start.Plan; snapshot.Scope = "plan";
-        snapshot.PlanSource = Loc.T("ZCode 账户", "ZCode account");
+        snapshot.PlanSource = "ZCode account";
         if (start.Plan.Length > 0) snapshot.Details["Start Plan"] = start.Plan;
-        Connected(snapshot, account.Family == "zai" ? Loc.T("ZCode · Z.ai 账户", "ZCode · Z.ai account") : Loc.T("ZCode · 智谱账户", "ZCode · Zhipu account"), now);
+        Connected(snapshot, account.Family == "zai" ? "ZCode · Z.ai account" : "ZCode · Zhipu account", now);
         if (codingFailure is { } partial)
         {
             snapshot.IsStale = codingTime is not null;
             snapshot.Status = "Coding Plan " + partial.Status + (codingTime is { } time
-                ? Loc.T($"，显示 {time.LocalDateTime:MM-dd HH:mm} 读取的数据", $" Showing the data read at {time.LocalDateTime:MM-dd HH:mm}.") : "");
+                ? $" Showing the data read at {time.LocalDateTime:MM-dd HH:mm}." : "");
         }
     }
 
@@ -1114,14 +1111,14 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         var account = DshUsage.ReadAccount(_locations.DshHome);
         if (account is null || account.Token.Length == 0 && account.ApiKey.Length == 0)
         {
-            snapshot.StatusLabel = Loc.T("未连接", "Not connected");
-            snapshot.Status = Loc.T("请先在 DeepSeek Harness 中登录 DeepSeek 账户，或在其中保存 DeepSeek API 密钥", "Sign in to a DeepSeek account in DeepSeek Harness, or save a DeepSeek API key there.");
+            snapshot.StatusLabel = "Not connected";
+            snapshot.Status = "Sign in to a DeepSeek account in DeepSeek Harness, or save a DeepSeek API key there.";
             return;
         }
         snapshot.Scope = "account";
         if (account.Token.Length == 0)
         {
-            snapshot.StatusLabel = Loc.T("未启用", "Disabled");
+            snapshot.StatusLabel = "Disabled";
             return;
         }
         using var request = new HttpRequestMessage(HttpMethod.Get, DshUsage.Platform + "/api/v0/users/get_user_summary");
@@ -1132,15 +1129,15 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         // As in DeepSeek Harness, HTTP 401 or code 40003 means the stored sign-in is no longer accepted.
         void Expired()
         {
-            snapshot.StatusLabel = Loc.T("登录已失效", "Sign-in expired");
-            snapshot.Status = Loc.T("DeepSeek Harness 的登录已失效，请在 DeepSeek Harness 中重新登录", "The DeepSeek Harness sign-in has expired. Sign in again in DeepSeek Harness.");
+            snapshot.StatusLabel = "Sign-in expired";
+            snapshot.Status = "The DeepSeek Harness sign-in has expired. Sign in again in DeepSeek Harness.";
         }
         if (response.StatusCode == HttpStatusCode.Unauthorized) { Expired(); return; }
         response.EnsureSuccessStatusCode();
         using var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
         if (doc.RootElement.Get("code").Number() == 40003) { Expired(); return; }
         snapshot.Metrics = DshUsage.Summary(doc.RootElement) ?? throw new InvalidDataException();
-        Connected(snapshot, Loc.T("DeepSeek Harness · DeepSeek 账户", "DeepSeek Harness · DeepSeek account"), now);
+        Connected(snapshot, "DeepSeek Harness · DeepSeek account", now);
     }
 
     // OpenCode's own sign-in to OpenCode Console reads the Go allowance of its workspace (OpenCodeUsage). The token is used as
@@ -1150,14 +1147,14 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         var credential = OpenCodeUsage.ReadCredential(desktop, _locations.OpenCodeDatabase, _locations.OpenCodeData);
         if (credential is null)
         {
-            snapshot.StatusLabel = Loc.T("未连接", "Not connected");
-            snapshot.Status = Loc.T("请先在 OpenCode 中登录 OpenCode Console", "Sign in to OpenCode Console in OpenCode first.");
+            snapshot.StatusLabel = "Not connected";
+            snapshot.Status = "Sign in to OpenCode Console in OpenCode first.";
             return;
         }
         if (credential.Expired(now))
         {
-            snapshot.StatusLabel = Loc.T("登录已过期", "Sign-in expired");
-            snapshot.Status = Loc.T("OpenCode 的登录已过期，在 OpenCode 中使用一次即可续期", "The OpenCode sign-in has expired. Using OpenCode once renews it.");
+            snapshot.StatusLabel = "Sign-in expired";
+            snapshot.Status = "The OpenCode sign-in has expired. Using OpenCode once renews it.";
             return;
         }
         if (OpenCodeUsage.UsageAddress(credential.Server) is not { } address) throw new InvalidDataException();
@@ -1169,8 +1166,8 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         {
             // Cloudflare in front of opencode.ai answers 403 as well when it blocks a request; only OpenCode's own 403 means no Go.
             if ((await response.Content.ReadAsStringAsync(ct)).Contains("\"cloudflare_error\"", StringComparison.Ordinal)) throw new HttpRequestException(null, null, HttpStatusCode.ServiceUnavailable);
-            snapshot.StatusLabel = Loc.T("未订阅 Go", "No Go plan");
-            snapshot.Status = Loc.T("OpenCode 登录的工作区没有订阅 OpenCode Go", "The workspace OpenCode signed in to has no OpenCode Go plan.");
+            snapshot.StatusLabel = "No Go plan";
+            snapshot.Status = "The workspace OpenCode signed in to has no OpenCode Go plan.";
             return;
         }
         response.EnsureSuccessStatusCode();
@@ -1179,7 +1176,7 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         if (quotas.Count == 0) throw new InvalidDataException();
         snapshot.Quotas = quotas;
         Connected(snapshot, "OpenCode Go", now);
-        if (limited) snapshot.Status = Loc.T("已达到 OpenCode Go 的用量上限，重置前请求会被拒绝", "The OpenCode Go limit is reached; requests are refused until it resets.");
+        if (limited) snapshot.Status = "The OpenCode Go limit is reached; requests are refused until it resets.";
     }
 
     // Kimi Code's own sign-in reads the plan quota. The token is used as it is: an expired one is not sent and never renewed,
@@ -1194,7 +1191,7 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         if (credential is null)
         {
             ForgetKimi();
-            snapshot.StatusLabel = Loc.T("未连接", "Not connected"); snapshot.Status = Loc.T("请先登录 Kimi Code", "Sign in to Kimi Code first");
+            snapshot.StatusLabel = "Not connected"; snapshot.Status = "Sign in to Kimi Code first";
             return;
         }
         snapshot.Scope = "account";
@@ -1226,8 +1223,8 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
             if (ex is HttpRequestException { StatusCode: HttpStatusCode.Unauthorized }) return;
             if (ex is HttpRequestException { StatusCode: HttpStatusCode.NotFound })
             {
-                snapshot.StatusLabel = Loc.T("暂不可用", "Unavailable");
-                snapshot.Status = Loc.T("未找到 Kimi Code 用量接口，请检查 Kimi Code 的服务地址", "The Kimi Code usage API was not found. Check the service address Kimi Code uses.");
+                snapshot.StatusLabel = "Unavailable";
+                snapshot.Status = "The Kimi Code usage API was not found. Check the service address Kimi Code uses.";
                 return;
             }
             throw;
@@ -1249,8 +1246,8 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
     private void NoKimiPlan(ProviderSnapshot snapshot)
     {
         ForgetKimi();
-        snapshot.StatusLabel = Loc.T("未订阅", "No plan");
-        snapshot.Status = Loc.T("未订阅 Kimi Code 套餐", "No Kimi Code plan");
+        snapshot.StatusLabel = "No plan";
+        snapshot.Status = "No Kimi Code plan";
     }
 
     // The last reading, for the account signed in now: read from the file once that account is known. A reading of another
@@ -1295,8 +1292,8 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         if (KimiRetained(accountHash, now) is not { } kept)
         {
             if (!renew) return false;
-            snapshot.StatusLabel = Loc.T("等待更新", "Waiting for update");
-            snapshot.Status = Loc.T("使用 Kimi Code 后自动更新", "Updates automatically after Kimi Code is used");
+            snapshot.StatusLabel = "Waiting for update";
+            snapshot.Status = "Updates automatically after Kimi Code is used";
             return true;
         }
         snapshot.IsStale = true;
@@ -1304,15 +1301,15 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         if (kept.Plan.Length > 0) { snapshot.Plan = kept.Plan; snapshot.PlanSource = source; }
         snapshot.LiveQuota = true; snapshot.QuotaTime = kept.Time; snapshot.Source = source;
         var time = kept.Time.LocalDateTime.ToString(kept.Time.LocalDateTime.Date == now.LocalDateTime.Date ? "HH:mm" : "MM-dd HH:mm");
-        var shown = Loc.T($"显示 {time} 读取的额度", $"showing the allowance read at {time}");
+        var shown = $"showing the allowance read at {time}";
         (snapshot.StatusLabel, snapshot.Status) = failure switch
         {
-            _ when renew => (Loc.T("等待更新", "Waiting for update"), Loc.T($"使用 Kimi Code 后自动更新；{shown}", $"Updates automatically after Kimi Code is used; {shown}")),
-            HttpRequestException { StatusCode: HttpStatusCode.TooManyRequests } => (Loc.T("稍后重试", "Retrying later"), Loc.T($"请求频繁，{shown}，稍后自动重试", $"Too many requests; {shown}. Retrying automatically later.")),
-            OperationCanceledException => (Loc.T("稍后重试", "Retrying later"), Loc.T($"读取超时，{shown}，稍后自动重试", $"Reading timed out; {shown}. Retrying automatically later.")),
-            InvalidDataException or JsonException or FormatException => (Loc.T("稍后重试", "Retrying later"), Loc.T($"数据格式发生变化，{shown}", $"The data format has changed; {shown}.")),
-            IOException => (Loc.T("稍后重试", "Retrying later"), Loc.T($"暂时无法读取数据，{shown}，稍后自动重试", $"The data cannot be read right now; {shown}. Retrying automatically later.")),
-            _ => (Loc.T("稍后重试", "Retrying later"), Loc.T($"账户接口暂时不可用，{shown}，稍后自动重试", $"The account API is temporarily unavailable; {shown}. Retrying automatically later."))
+            _ when renew => ("Waiting for update", $"Updates automatically after Kimi Code is used; {shown}"),
+            HttpRequestException { StatusCode: HttpStatusCode.TooManyRequests } => ("Retrying later", $"Too many requests; {shown}. Retrying automatically later."),
+            OperationCanceledException => ("Retrying later", $"Reading timed out; {shown}. Retrying automatically later."),
+            InvalidDataException or JsonException or FormatException => ("Retrying later", $"The data format has changed; {shown}."),
+            IOException => ("Retrying later", $"The data cannot be read right now; {shown}. Retrying automatically later."),
+            _ => ("Retrying later", $"The account API is temporarily unavailable; {shown}. Retrying automatically later.")
         };
         return true;
     }
@@ -1357,6 +1354,6 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
     }
     private static JsonDocument? ReadJson(string path) => SharedFile.ReadJson(path);
     private static void Connected(ProviderSnapshot snapshot, string source, DateTimeOffset now)
-    { snapshot.LiveQuota = true; snapshot.QuotaTime = now; snapshot.Source = source; snapshot.Status = Loc.T("已连接", "Connected"); snapshot.StatusLabel = Loc.T("已连接", "Connected"); }
+    { snapshot.LiveQuota = true; snapshot.QuotaTime = now; snapshot.Source = source; snapshot.Status = "Connected"; snapshot.StatusLabel = "Connected"; }
     public void Dispose() { if (http is null) { _http.Dispose(); _zcodeHttp.Dispose(); } _gate.Dispose(); }
 }

@@ -126,7 +126,7 @@ internal sealed class FrameRates : IDisposable
         lock (_lock)
         {
             if (!_wanted) return Reading<FrameSample>.Unavailable(Why.Waiting);
-            if (_refused) return Reading<FrameSample>.Unavailable(Loc.T("无权读取帧事件", "Not allowed to read frame events"));
+            if (_refused) return Reading<FrameSample>.Unavailable("Not allowed to read frame events");
             // The session ended without being asked (stopped from outside): it is started again, at most every five seconds.
             if (_reader is { IsAlive: false } && now - _restarted >= 5)
             {
@@ -220,7 +220,7 @@ internal sealed class FrameRates : IDisposable
         double rate = busiest.GetValueOrDefault(wallpaper != 0 ? wallpaper : explorerPid) / seconds;
         if (_history.Count == HistoryLength) _history.Dequeue();
         _history.Enqueue(rate);
-        var (name, path) = wallpaper != 0 ? Describe(wallpaper) : (Loc.T("桌面", "Desktop"), null);
+        var (name, path) = wallpaper != 0 ? Describe(wallpaper) : ("Desktop", null);
         return new FrameSample(rate, name) { Path = path, Refresh = display?.Refresh, History = _history.ToArray() };
     }
 

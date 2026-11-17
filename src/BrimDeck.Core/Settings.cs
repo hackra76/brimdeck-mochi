@@ -92,11 +92,11 @@ public static class ClockColors
     public static readonly string[] Sunset = ["#FFB38A", "#FF7EB3", "#B69CFF"];
     public static IReadOnlyList<(string Name, string[] Stops)> Gradients =>
     [
-        (Loc.T("日落", "Sunset"), Sunset),
-        (Loc.T("海洋", "Ocean"), ["#7CF3FF", "#4FA8FF", "#6A6CFF"]),
-        (Loc.T("极光", "Aurora"), ["#8BFFB0", "#5CE1E6", "#B69CFF"]),
-        (Loc.T("火焰", "Ember"), ["#FFE27A", "#FF9F43", "#FF5E5E"]),
-        (Loc.T("霓虹", "Neon"), ["#FF5CF0", "#A66BFF", "#5CE1E6"])
+        ("Sunset", Sunset),
+        ("Ocean", ["#7CF3FF", "#4FA8FF", "#6A6CFF"]),
+        ("Aurora", ["#8BFFB0", "#5CE1E6", "#B69CFF"]),
+        ("Ember", ["#FFE27A", "#FF9F43", "#FF5E5E"]),
+        ("Neon", ["#FF5CF0", "#A66BFF", "#5CE1E6"])
     ];
     // Under Windows' high contrast the clock is the system's window text (the high contrast palette's clock color, which "white"
     // stands for) whatever color, gradient or cover was chosen, at full strength and with no glow. The choice itself is kept,
@@ -290,7 +290,7 @@ public static class PanelSizes
         };
         return (Math.Clamp(width, 440, 1200), Math.Clamp(height, 140, 400));
     }
-    public static string Name(PanelSize size) => size switch { PanelSize.Compact => Loc.T("紧凑", "Compact"), PanelSize.Spacious => Loc.T("宽敞", "Spacious"), _ => Loc.T("标准", "Standard") };
+    public static string Name(PanelSize size) => size switch { PanelSize.Compact => "Compact", PanelSize.Spacious => "Spacious", _ => "Standard" };
 }
 
 // The system monitor page's quick sizes. Unlike the usage page's they do not depend on the applications.
@@ -975,10 +975,8 @@ public sealed class SettingsStore(string directory, string? appVersion = null)
                 var own = snapshots.Where(pair => pair.Value is JsonObject && ApplicationVersion.Parse(pair.Key) <= running)
                     .OrderByDescending(pair => ApplicationVersion.Parse(pair.Key)).Select(pair => (JsonObject)pair.Value!.DeepClone()).FirstOrDefault();
                 _loadWarning = own is null
-                    ? () => Loc.T($"设置文件由 BrimDeck {saved.ToString(3)} 保存。当前版本 {_appVersion} 读取其中能识别的设置，之后的修改只保存给 {_appVersion}，不影响 {saved.ToString(3)} 的设置。",
-                        $"The settings file was saved by BrimDeck {saved.ToString(3)}. Version {_appVersion} reads the settings it recognizes; later changes are saved for {_appVersion} only and leave the settings of {saved.ToString(3)} unchanged.")
-                    : () => Loc.T($"设置文件由 BrimDeck {saved.ToString(3)} 保存。当前版本 {_appVersion} 使用自己上次保存的设置，修改不影响 {saved.ToString(3)} 的设置。",
-                        $"The settings file was saved by BrimDeck {saved.ToString(3)}. Version {_appVersion} uses the settings it saved last; changes leave the settings of {saved.ToString(3)} unchanged.");
+                    ? () => $"The settings file was saved by BrimDeck {saved.ToString(3)}. Version {_appVersion} reads the settings it recognizes; later changes are saved for {_appVersion} only and leave the settings of {saved.ToString(3)} unchanged."
+                    : () => $"The settings file was saved by BrimDeck {saved.ToString(3)}. Version {_appVersion} uses the settings it saved last; changes leave the settings of {saved.ToString(3)} unchanged.";
                 return SettingsMigrations.Read(own ?? root, running, out _);
             }
             _snapshots = snapshots;
@@ -998,8 +996,8 @@ public sealed class SettingsStore(string directory, string? appVersion = null)
         {
             var kept = KeepUnreadable();
             _loadWarning = kept is null
-                ? () => Loc.T("无法读取已保存的设置，本次使用默认值。", "The saved settings could not be read. Default settings are used this time.")
-                : () => Loc.T($"无法读取已保存的设置，本次使用默认值。原文件已另存为 {kept}。", $"The saved settings could not be read. Default settings are used this time. The original file is kept as {kept}.");
+                ? () => "The saved settings could not be read. Default settings are used this time."
+                : () => $"The saved settings could not be read. Default settings are used this time. The original file is kept as {kept}.";
             return FirstStart();
         }
     }

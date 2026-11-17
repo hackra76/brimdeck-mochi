@@ -111,11 +111,11 @@ public sealed class TrayIcon : IDisposable
             menu.Resources["MenuHover"] = new SolidColorBrush(Color.FromRgb(0xE9, 0xE9, 0xE9));
             menu.Resources["MenuRule"] = new SolidColorBrush(Color.FromRgb(0xE1, 0xE1, 0xE1));
         }
-        if (toggleHidden is not null) { var show = new MenuItem { Header = hidden ? Loc.T("显示面板", "Show panel") : Loc.T("隐藏面板", "Hide panel") }; show.Click += (_, _) => toggleHidden(); menu.Items.Add(show); }
-        if (toggleClickThrough is not null) { var through = new MenuItem { Header = clickThrough ? Loc.T("关闭鼠标穿透", "Turn off mouse pass-through") : Loc.T("开启鼠标穿透", "Turn on mouse pass-through") }; through.Click += (_, _) => toggleClickThrough(); menu.Items.Add(through); }
-        var open = new MenuItem { Header = Loc.T("设置", "Settings") }; open.Click += (_, _) => settings(); menu.Items.Add(open);
+        if (toggleHidden is not null) { var show = new MenuItem { Header = hidden ? "Show panel" : "Hide panel" }; show.Click += (_, _) => toggleHidden(); menu.Items.Add(show); }
+        if (toggleClickThrough is not null) { var through = new MenuItem { Header = clickThrough ? "Turn off mouse pass-through" : "Turn on mouse pass-through" }; through.Click += (_, _) => toggleClickThrough(); menu.Items.Add(through); }
+        var open = new MenuItem { Header = "Settings" }; open.Click += (_, _) => settings(); menu.Items.Add(open);
         menu.Items.Add(new Separator());
-        var quit = new MenuItem { Header = Loc.T("退出", "Exit") }; quit.Click += (_, _) => exit(); menu.Items.Add(quit);
+        var quit = new MenuItem { Header = "Exit" }; quit.Click += (_, _) => exit(); menu.Items.Add(quit);
         return menu;
     }
     public void Dispose() { _disposed = true; _retry.Stop(); Shell_NotifyIcon(2, ref _data); _source.RemoveHook(Hook); if (_ownsIcon) DestroyIcon(_data.Icon); }

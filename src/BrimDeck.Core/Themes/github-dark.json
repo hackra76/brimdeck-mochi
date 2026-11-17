@@ -3,7 +3,7 @@
   "formatVersion": 1,
   "id": "github-dark",
   "name": "GitHub Dark",
-  "description": "GitHub 深色默认主题：蓝黑底色，Primer 设计系统的语义色。",
+  "description": "GitHub Dark Default: a blue-black surface with the semantic colors of Primer.",
   "descriptionEn": "GitHub Dark Default: a blue-black surface with the semantic colors of Primer.",
   "author": "GitHub (Primer)",
   "license": "MIT",
@@ -57,11 +57,11 @@
     "style": "minimal", "color": "default",
     "palette": { "amber": "#D29922", "cyan": "#39C5CF", "pink": "#DB61A2", "lime": "#3FB950" },
     "gradients": [
-      { "name": "日落", "nameEn": "Sunset", "stops": ["#D29922", "#DB6D28", "#DB61A2"] },
-      { "name": "海洋", "nameEn": "Ocean", "stops": ["#39C5CF", "#4493F8", "#A371F7"] },
-      { "name": "极光", "nameEn": "Aurora", "stops": ["#3FB950", "#39C5CF", "#4493F8"] },
-      { "name": "火焰", "nameEn": "Ember", "stops": ["#D29922", "#DB6D28", "#F85149"] },
-      { "name": "霓虹", "nameEn": "Neon", "stops": ["#DB61A2", "#A371F7", "#39C5CF"] }
+      { "name": "Sunset", "nameEn": "Sunset", "stops": ["#D29922", "#DB6D28", "#DB61A2"] },
+      { "name": "Ocean", "nameEn": "Ocean", "stops": ["#39C5CF", "#4493F8", "#A371F7"] },
+      { "name": "Aurora", "nameEn": "Aurora", "stops": ["#3FB950", "#39C5CF", "#4493F8"] },
+      { "name": "Ember", "nameEn": "Ember", "stops": ["#D29922", "#DB6D28", "#F85149"] },
+      { "name": "Neon", "nameEn": "Neon", "stops": ["#DB61A2", "#A371F7", "#39C5CF"] }
     ]
   },
   "effects": { "shadowOpacity": 0.4 }

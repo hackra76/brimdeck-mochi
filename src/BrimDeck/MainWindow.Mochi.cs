@@ -454,7 +454,7 @@ public partial class MainWindow
             ExpandedMochi.TriggerEmote(MochiEmote.Proud, 2.0);
             _desktopMochi?.Mochi.TriggerEmote(MochiEmote.Proud, 2.0);
             if (_roamingOnDesktop && _desktopMochi is { IsVisible: true } && !Settings.MochiDoNotDisturb)
-                _desktopMochi.ShowBubble(Loc.T("配额已重置！", "Quota reset!"));
+                _desktopMochi.ShowBubble("Quota reset!");
         }
         else if (_roamingOnDesktop && _desktopMochi is { IsVisible: true } && status.State != _lastResolvedMochiState
             && (!Settings.MochiDoNotDisturb || status.State == MochiState.Error)
@@ -604,18 +604,18 @@ public partial class MainWindow
         _ => Color.FromRgb(148, 163, 184)
     };
 
-    private static readonly (MochiOutfit Outfit, string Zh, string En)[] MochiWardrobeItems =
+    private static readonly (MochiOutfit Outfit, string En)[] MochiWardrobeItems =
     [
-        (MochiOutfit.Auto, "自动（随节日）", "Auto (Seasonal)"),
-        (MochiOutfit.None, "无装扮", "None"),
-        (MochiOutfit.SantaHat, "圣诞帽", "Santa Hat"),
-        (MochiOutfit.PartyHat, "派对帽", "Party Hat"),
-        (MochiOutfit.WitchHat, "女巫帽", "Witch Hat"),
-        (MochiOutfit.Sunglasses, "墨镜", "Sunglasses"),
-        (MochiOutfit.RoundGlasses, "圆框眼镜", "Round Glasses"),
-        (MochiOutfit.Bow, "蝴蝶结", "Ribbon Bow"),
-        (MochiOutfit.Scarf, "冬日围巾", "Winter Scarf"),
-        (MochiOutfit.Pumpkin, "南瓜头饰", "Pumpkin")
+        (MochiOutfit.Auto, "Auto (Seasonal)"),
+        (MochiOutfit.None, "None"),
+        (MochiOutfit.SantaHat, "Santa Hat"),
+        (MochiOutfit.PartyHat, "Party Hat"),
+        (MochiOutfit.WitchHat, "Witch Hat"),
+        (MochiOutfit.Sunglasses, "Sunglasses"),
+        (MochiOutfit.RoundGlasses, "Round Glasses"),
+        (MochiOutfit.Bow, "Ribbon Bow"),
+        (MochiOutfit.Scarf, "Winter Scarf"),
+        (MochiOutfit.Pumpkin, "Pumpkin")
     ];
 
     private void AttachMochiContextMenu(FrameworkElement target, bool isDesktop)
@@ -629,12 +629,12 @@ public partial class MainWindow
     {
         menu.Items.Clear();
 
-        var wardrobe = new MenuItem { Header = Loc.T("换装", "Wardrobe") };
-        foreach (var (outfit, zh, en) in MochiWardrobeItems)
+        var wardrobe = new MenuItem { Header = "Wardrobe" };
+        foreach (var (outfit, en) in MochiWardrobeItems)
         {
             var item = new MenuItem
             {
-                Header = Loc.T(zh, en),
+                Header = en,
                 IsCheckable = true,
                 IsChecked = Settings.MochiOutfit == outfit
             };
@@ -650,7 +650,7 @@ public partial class MainWindow
 
         var sounds = new MenuItem
         {
-            Header = Loc.T("音效", "Sounds"),
+            Header = "Sounds",
             IsCheckable = true,
             IsChecked = Settings.MochiSoundsEnabled
         };
@@ -664,7 +664,7 @@ public partial class MainWindow
 
         var dnd = new MenuItem
         {
-            Header = Loc.T("勿扰模式", "Do Not Disturb"),
+            Header = "Do Not Disturb",
             IsCheckable = true,
             IsChecked = Settings.MochiDoNotDisturb
         };
@@ -681,13 +681,13 @@ public partial class MainWindow
             menu.Items.Add(new Separator());
             if (isDesktop || _roamingOnDesktop)
             {
-                var dock = new MenuItem { Header = Loc.T("回到灵动岛", "Return to Island") };
+                var dock = new MenuItem { Header = "Return to Island" };
                 dock.Click += (_, _) => ReturnMochiToIsland(clearSavedPosition: true);
                 menu.Items.Add(dock);
             }
             else
             {
-                var roam = new MenuItem { Header = Loc.T("放到桌面", "Send to Desktop") };
+                var roam = new MenuItem { Header = "Send to Desktop" };
                 roam.Click += (_, _) =>
                 {
                     var center = PointToScreen(new Point(ActualWidth / 2.0, ActualHeight + 40));
@@ -698,7 +698,7 @@ public partial class MainWindow
         }
 
         menu.Items.Add(new Separator());
-        var settings = new MenuItem { Header = Loc.T("Mochi 设置", "Mochi Settings") };
+        var settings = new MenuItem { Header = "Mochi Settings" };
         settings.Click += (_, _) => _app.OpenSettings();
         menu.Items.Add(settings);
     }
@@ -725,8 +725,8 @@ public partial class MainWindow
         });
 
         string prefix = prompt.State == MochiState.Approval
-            ? Loc.T("等待批准", "Approve")
-            : Loc.T("需要回答", "Question");
+            ? "Approve"
+            : "Question";
         string labelText = string.IsNullOrWhiteSpace(prompt.Detail) ? prefix : $"{prefix}: {prompt.Detail}";
         var label = UI.Fixed(labelText, Math.Max(9, 11 * scale), Math.Max(14, 16 * scale), UI.Primary, FontWeights.SemiBold);
         label.MaxWidth = 170 * scale;
@@ -766,8 +766,8 @@ public partial class MainWindow
 
         if (prompt.State == MochiState.Approval)
         {
-            panel.Children.Add(MakePillButton(Loc.T("允许", "Allow"), Color.FromRgb(52, 211, 153), Color.FromRgb(10, 20, 16), "allow", MochiState.Working));
-            panel.Children.Add(MakePillButton(Loc.T("拒绝", "Deny"), Color.FromArgb(64, 244, 80, 94), Color.FromRgb(255, 220, 224), "deny", MochiState.Idle));
+            panel.Children.Add(MakePillButton("Allow", Color.FromRgb(52, 211, 153), Color.FromRgb(10, 20, 16), "allow", MochiState.Working));
+            panel.Children.Add(MakePillButton("Deny", Color.FromArgb(64, 244, 80, 94), Color.FromRgb(255, 220, 224), "deny", MochiState.Idle));
         }
         else if (prompt.Options.Count > 0)
         {
@@ -779,7 +779,7 @@ public partial class MainWindow
         }
         else
         {
-            panel.Children.Add(MakePillButton(Loc.T("知道了", "OK"), Color.FromArgb(56, 34, 211, 238), Color.FromRgb(224, 249, 255), "ok", MochiState.Working));
+            panel.Children.Add(MakePillButton("OK", Color.FromArgb(56, 34, 211, 238), Color.FromRgb(224, 249, 255), "ok", MochiState.Working));
         }
 
         panel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
@@ -853,7 +853,7 @@ public partial class MainWindow
         var header = new Grid { Margin = new Thickness(0, 0, 0, 8) };
         var title = new TextBlock
         {
-            Text = Loc.T("Mochi 快速提问", "Mochi Quick Ask"),
+            Text = "Mochi Quick Ask",
             FontFamily = UI.TextFont,
             FontSize = 12.5,
             FontWeight = FontWeights.SemiBold,
@@ -869,7 +869,7 @@ public partial class MainWindow
             FontFamily = UI.TextFont,
             FontSize = 11,
             Margin = new Thickness(0, 0, 8, 0),
-            ItemsSource = backends.Count > 0 ? backends.Select(b => b.Backend.Name).ToList() : [Loc.T("未检测到 CLI", "No CLI found")],
+            ItemsSource = backends.Count > 0 ? backends.Select(b => b.Backend.Name).ToList() : ["No CLI found"],
             SelectedIndex = 0,
             IsEnabled = backends.Count > 0
         };
@@ -902,8 +902,8 @@ public partial class MainWindow
             FontFamily = UI.TextFont,
             FontSize = 11.5,
             Text = backends.Count > 0
-                ? Loc.T("使用本机已登录的 AI CLI 提问（无需额外 API 密钥）。", "Ask anything using your local signed-in AI CLI (no extra API keys needed).")
-                : Loc.T("未在 PATH 中检测到 claude / gemini / codex / agy CLI。", "No claude / gemini / codex / agy CLI detected on PATH.")
+                ? "Ask anything using your local signed-in AI CLI (no extra API keys needed)."
+                : "No claude / gemini / codex / agy CLI detected on PATH."
         };
         Grid.SetRow(_quickAskOutput, 1);
         grid.Children.Add(_quickAskOutput);
@@ -942,7 +942,7 @@ public partial class MainWindow
 
         _quickAskSend = new Button
         {
-            Content = Loc.T("发送", "Ask"),
+            Content = "Ask",
             Height = 28,
             Padding = new Thickness(12, 0, 12, 0),
             Margin = new Thickness(6, 0, 0, 0),
@@ -983,7 +983,7 @@ public partial class MainWindow
 
         _quickAskInput.Text = "";
         _quickAskSend.IsEnabled = false;
-        _quickAskOutput.Text = Loc.T($"正在询问 {backend.Name}…", $"Asking {backend.Name}…");
+        _quickAskOutput.Text = $"Asking {backend.Name}…";
 
         _hookAgentState = MochiState.Thinking;
         _hookDetail = $"Quick Ask ({backend.Name})";

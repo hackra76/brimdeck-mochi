@@ -296,7 +296,7 @@ public static class Shelf
     }
 
     // The name shown for a category; "Pinned" in the language of the interface.
-    public static string CategoryName(ShelfCategory category) => category.Id == ShelfData.Favorites ? Loc.T("常用", "Favorites") : category.Name;
+    public static string CategoryName(ShelfCategory category) => category.Id == ShelfData.Favorites ? "Favorites" : category.Name;
 
     // A category the user makes goes last, in the next of the colors given (the panel theme's swatches).
     public static ShelfCategory AddCategory(ShelfData data, ShelfSide side, string name, IReadOnlyList<string> colors)
@@ -362,12 +362,12 @@ public static class Shelf
     public static string When(DateTimeOffset time, DateTimeOffset now)
     {
         var span = now - time;
-        if (span < TimeSpan.FromMinutes(1)) return Loc.T("刚刚", "Now");
-        if (span < TimeSpan.FromHours(1)) return Loc.T($"{(int)span.TotalMinutes} 分钟前", $"{(int)span.TotalMinutes} min");
+        if (span < TimeSpan.FromMinutes(1)) return "Now";
+        if (span < TimeSpan.FromHours(1)) return $"{(int)span.TotalMinutes} min";
         var local = time.ToLocalTime(); var today = now.ToLocalTime().Date;
         if (local.Date == today) return local.ToString("HH:mm", CultureInfo.InvariantCulture);
-        if (local.Date == today.AddDays(-1)) return Loc.T("昨天", "Yesterday");
-        return local.Year == today.Year ? local.ToString(Loc.T("M月d日", "MMM d"), CultureInfo.CurrentCulture) : local.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        if (local.Date == today.AddDays(-1)) return "Yesterday";
+        return local.Year == today.Year ? local.ToString("MMM d", CultureInfo.CurrentCulture) : local.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
     }
 }
 

@@ -20,10 +20,10 @@ internal static class FullscreenRuleTests
         check("A rule does not match a different executable", !ScreenPolicy.Matches(byPath, "unrelated", @"F:\Other\Sahhpire.exe"));
 
         // The behavior a context calls for: the app's own rule first, the global rules everywhere else.
-        var global = new DeckSettings();  // Maximized Line, Borderless Hide, Exclusive Hide
+        var global = new DeckSettings();  // Maximized Normal, Borderless Hide, Exclusive Hide
         check("Without a rule the global rules answer",
-            global.Behavior(ScreenContext.Maximized) == WindowBehavior.Line && global.Behavior(ScreenContext.Borderless) == WindowBehavior.Hide
-            && global.Behavior(ScreenContext.Desktop) == WindowBehavior.Normal && global.Behavior(ScreenContext.Maximized, "Any", "") == WindowBehavior.Line);
+            global.Behavior(ScreenContext.Maximized) == WindowBehavior.Normal && global.Behavior(ScreenContext.Borderless) == WindowBehavior.Hide
+            && global.Behavior(ScreenContext.Desktop) == WindowBehavior.Normal && global.Behavior(ScreenContext.Maximized, "Any", "") == WindowBehavior.Normal);
         var exempt = new FullscreenRule("Sahhpire") { Maximized = WindowBehavior.Normal, Borderless = WindowBehavior.Normal, Exclusive = WindowBehavior.Normal };
         var blanket = new DeckSettings { FullscreenRules = [exempt] };
         check("A rule that keeps the style everywhere exempts the app from all three",

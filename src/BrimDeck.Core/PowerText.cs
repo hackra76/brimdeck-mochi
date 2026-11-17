@@ -17,20 +17,20 @@ public static class PowerText
     public static string Percent(double percent) => MonitorFormat.Percent(percent / 100) + "%";
 
     // "17.0 W (estimated)" / "23.4 W (measured)".
-    private static string Quality(PowerSample power) => power.Estimated ? Loc.T("估算", "estimated") : Loc.T("实测", "measured");
-    private static string Bracket(string text) => Loc.T("（" + text + "）", " (" + text + ")");
+    private static string Quality(PowerSample power) => power.Estimated ? "estimated" : "measured";
+    private static string Bracket(string text) => " (" + text + ")";
 
     // Where the whole machine's figure comes from, the tooltip's last line: "（）", or the parts the estimate adds up and what
     // it leaves out: "CPU + GPU ，、、".
     private static string Source(PowerSample power) => power.Source switch
     {
-        PowerSource.SystemMeter => Loc.T("整机功率计", "system meter") + Bracket(Loc.T("实测", "measured")),
-        PowerSource.Battery => Loc.T("电池放电", "battery discharge") + Bracket(Loc.T("实测", "measured")),
-        _ => string.Join(" + ", power.Parts.Select(part => part.Key switch { "cpu" => "CPU", "gpu" => "GPU", _ => Loc.T("内存", "memory") }).Distinct())
-            + Loc.T(" 估算，不含屏幕、硬盘、风扇等", " estimate; display, drives, fans and others not included")
+        PowerSource.SystemMeter => "system meter" + Bracket("measured"),
+        PowerSource.Battery => "battery discharge" + Bracket("measured"),
+        _ => string.Join(" + ", power.Parts.Select(part => part.Key switch { "cpu" => "CPU", "gpu" => "GPU", _ => "memory" }).Distinct())
+            + " estimate; display, drives, fans and others not included"
     };
     // The power tooltip with no reading: a dash and the reason.
-    public static string NoPower(string reason) => Line(Loc.T("整机功耗", "System power"), "—") + "\n" + Line(Loc.T("原因", "Reason"), reason);
+    public static string NoPower(string reason) => Line("System power", "—") + "\n" + Line("Reason", reason);
 
     // The power tooltip as a table, a column for the whole machine and one each for the CPU and the GPU where this machine has them:
     //                     CPU       GPU
@@ -55,42 +55,42 @@ public static class PowerText
         var columns = new List<string> { ViewName(PowerView.Whole) };
         if (hasCpu) columns.Add(ViewName(PowerView.Cpu));
         if (hasGpu) columns.Add(ViewName(PowerView.Gpu));
-        var rows = new List<PowerTableRow> { new(Loc.T("当前", "Now"), Cells(sample.Watts, cpuNow, gpuNow)) };
+        var rows = new List<PowerTableRow> { new("Now", Cells(sample.Watts, cpuNow, gpuNow)) };
         if (whole is { Count: > 0 })
         {
             string span = PowerFormat.Span(whole.Seconds);
-            rows.Add(new(Loc.T(span + "内峰值", "Peak, " + span), Cells(whole.Peak, cpu.Summary?.Peak, gpu.Summary?.Peak)));
-            rows.Add(new(Loc.T(span + "内均值", "Mean, " + span), Cells(whole.Average, cpu.Summary?.Average, gpu.Summary?.Average)));
+            rows.Add(new("Peak, " + span, Cells(whole.Peak, cpu.Summary?.Peak, gpu.Summary?.Peak)));
+            rows.Add(new("Mean, " + span, Cells(whole.Average, cpu.Summary?.Average, gpu.Summary?.Average)));
         }
         // The whole machine is these parts added up only when it is the estimate and every part it adds is a column.
         bool sum = sample.Source == PowerSource.Components && columns.Count > 1 && sample.Parts.All(part => part.Key is "cpu" or "gpu");
         var notes = new List<string>();
-        if (sample.Missing.Count > 0) notes.Add(Line(Loc.T("未读取", "Not read"), string.Join(Loc.T("、", ", "), sample.Missing)));
-        notes.Add(Line(Loc.T("来源", "Source"), Source(sample)));
+        if (sample.Missing.Count > 0) notes.Add(Line("Not read", string.Join(", ", sample.Missing)));
+        notes.Add(Line("Source", Source(sample)));
         return new PowerTable(columns, rows, sum, notes);
     }
 
     // What the power line shows, after its unit: "", "CPU", "GPU".
-    public static string ViewName(PowerView view) => view switch { PowerView.Cpu => "CPU", PowerView.Gpu => "GPU", _ => Loc.T("整机", "System") };
+    public static string ViewName(PowerView view) => view switch { PowerView.Cpu => "CPU", PowerView.Gpu => "GPU", _ => "System" };
 
     // The power line's mean at its right end: " 46 W".
-    public static string Mean(double watts) => Loc.T("均值 ", "Mean ") + PowerFormat.Compact(watts, 9999) + " W";
+    public static string Mean(double watts) => "Mean " + PowerFormat.Compact(watts, 9999) + " W";
 
     // " 23.4 W", " 31.0 W", "，", "".
     public static string State(BatterySample battery) => battery.State switch
     {
-        BatteryState.Charging => Loc.T("充电", "Charging") + (battery.HasRate ? " " + Watts(battery.Watts) : ""),
-        BatteryState.Full => Loc.T("已充满", "Full"),
-        BatteryState.PluggedIn => Loc.T("已接通电源，未在充电", "Plugged in, not charging"),
-        _ => Loc.T("放电", "Discharging") + (battery.HasRate ? " " + Watts(battery.Watts) : "")
+        BatteryState.Charging => "Charging" + (battery.HasRate ? " " + Watts(battery.Watts) : ""),
+        BatteryState.Full => "Full",
+        BatteryState.PluggedIn => "Plugged in, not charging",
+        _ => "Discharging" + (battery.HasRate ? " " + Watts(battery.Watts) : "")
     };
 
     // After the battery's charge on the page: the time, where there is one (" 1:42", " 0:40"); nothing otherwise, since the
     // charge and the battery's drawing (the plug while on mains) already say full, plugged in or on battery.
     public static string Brief(BatterySample battery) => battery.State switch
     {
-        BatteryState.Charging when battery.TimeToFull is { } full => Loc.T("充满 ", "Full in ") + PowerFormat.Clock(full),
-        BatteryState.Discharging when battery.TimeLeft is { } left => Loc.T("剩余 " + PowerFormat.Clock(left), PowerFormat.Clock(left) + " left"),
+        BatteryState.Charging when battery.TimeToFull is { } full => "Full in " + PowerFormat.Clock(full),
+        BatteryState.Discharging when battery.TimeLeft is { } left => PowerFormat.Clock(left) + " left",
         _ => ""
     };
 
@@ -98,16 +98,16 @@ public static class PowerText
     public static string Battery(Reading<BatterySample> battery)
     {
         if (!battery.TryGet(out var sample))
-            return Line(Loc.T("电池", "Battery"), "—") + "\n" + Line(Loc.T("原因", "Reason"), battery.Reason);
-        var lines = new List<string> { Line(Loc.T("电池", "Battery"), Percent(sample.Percent) + (sample.RemainingWh is { } wh ? Bracket(Loc.T("储存电能 ", "") + wh.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + Loc.T(" Wh", " Wh stored")) : "")) };
-        lines.Add(Line(Loc.T("状态", "State"), State(sample)));
-        if (sample.TimeLeft is { } left) lines.Add(Line(Loc.T("剩余", "Remaining"), PowerFormat.Duration(left)));
-        else if (sample.TimeToFull is { } full) lines.Add(Line(Loc.T("充满需", "To full"), PowerFormat.Duration(full)));
-        if (BatteryModel.ModeName(sample.Mode) is { Length: > 0 } mode) lines.Add(Line(Loc.T("电源模式", "Power mode"), mode));
-        if (sample.BatterySaver) lines.Add(Line(Loc.T("节电模式", "Battery saver"), Loc.T("开启", "on")));
+            return Line("Battery", "—") + "\n" + Line("Reason", battery.Reason);
+        var lines = new List<string> { Line("Battery", Percent(sample.Percent) + (sample.RemainingWh is { } wh ? Bracket("" + wh.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " Wh stored") : "")) };
+        lines.Add(Line("State", State(sample)));
+        if (sample.TimeLeft is { } left) lines.Add(Line("Remaining", PowerFormat.Duration(left)));
+        else if (sample.TimeToFull is { } full) lines.Add(Line("To full", PowerFormat.Duration(full)));
+        if (BatteryModel.ModeName(sample.Mode) is { Length: > 0 } mode) lines.Add(Line("Power mode", mode));
+        if (sample.BatterySaver) lines.Add(Line("Battery saver", "on"));
         if (sample.Health is { } health && sample.FullWh is { } fullWh && sample.DesignWh is { } design)
-            lines.Add(Line(Loc.T("健康度", "Health"), MonitorFormat.Percent(health) + "%" + Bracket(Loc.T("满充 ", "full ") + fullWh.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " Wh / " + Loc.T("设计 ", "design ") + design.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " Wh")));
-        if (sample.Count > 1) lines.Add(Line(Loc.T("电池数", "Batteries"), sample.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            lines.Add(Line("Health", MonitorFormat.Percent(health) + "%" + Bracket("full " + fullWh.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " Wh / " + "design " + design.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " Wh")));
+        if (sample.Count > 1) lines.Add(Line("Batteries", sample.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)));
         return string.Join("\n", lines);
     }
 
@@ -115,11 +115,11 @@ public static class PowerText
     public static string Spoken(Reading<PowerSample> power, Reading<BatterySample> battery, bool batteryShown)
     {
         string text = power.TryGet(out var sample)
-            ? Loc.T("整机功耗 ", "System power ") + Watts(sample.Watts) + Loc.T("，", ", ") + Quality(sample)
-            : Loc.T("整机功耗 无读数", "System power: no reading");
+            ? "System power " + Watts(sample.Watts) + ", " + Quality(sample)
+            : "System power: no reading";
         if (batteryShown && battery.TryGet(out var cell))
-            text += Loc.T("；电池 ", "; battery ") + Percent(cell.Percent) + Loc.T("，", ", ") + State(cell)
-                + (BatteryModel.ModeName(cell.Mode) is { Length: > 0 } mode ? Loc.T("；电源模式 ", "; power mode ") + mode : "");
+            text += "; battery " + Percent(cell.Percent) + ", " + State(cell)
+                + (BatteryModel.ModeName(cell.Mode) is { Length: > 0 } mode ? "; power mode " + mode : "");
         return text;
     }
 }

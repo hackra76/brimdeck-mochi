@@ -30,7 +30,7 @@ static class CursorUsageTests
         handler.FailAfter = 5;
         var first = await Refresh();
         check("A Cursor refresh that stops part way keeps the days it read in full",
-            first.Quotas.Count > 0 && first.UsageAvailable && !first.UsageComplete && first.Entries.Count == 1003 && first.UsageNote.Contains("其中 26 天", StringComparison.Ordinal));
+            first.Quotas.Count > 0 && first.UsageAvailable && !first.UsageComplete && first.Entries.Count == 1003 && first.UsageNote.Contains("26 days", StringComparison.Ordinal));
         check("Cursor records are read a day at a time, newest first, with every page of a full day",
             handler.Calls.Take(3).SequenceEqual([(today, 1), (today.AddDays(-1), 1), (today.AddDays(-1), 2)]));
 

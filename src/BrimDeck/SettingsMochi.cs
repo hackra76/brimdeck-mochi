@@ -24,7 +24,7 @@ public sealed partial class SettingsWindow
 
     private void MochiSettings()
     {
-        SectionTitle(Loc.T("伙伴与外观", "Companion & Wardrobe"));
+        SectionTitle("Companion & Wardrobe");
         var outfitCombo = new ComboBox
         {
             Width = 170,
@@ -39,29 +39,25 @@ public sealed partial class SettingsWindow
         };
 
         Group(
-            Toggle(Loc.T("启用 Mochi AI 伙伴", "Enable Mochi AI companion"), S.MochiEnabled,
+            Toggle("Enable Mochi AI companion", S.MochiEnabled,
                 value => Change(s => s.MochiEnabled = value)),
-            Row(Loc.T("装扮衣橱", "Outfit / Wardrobe"), outfitCombo,
-                help: () => Loc.T("“自动（季节限定）”会在万圣节、圣诞节、新年与复活节自动切换装扮。",
-                    "Auto (Seasonal) automatically switches outfits for Halloween, Christmas, New Year, and Easter.")),
-            Toggle(Loc.T("更新提示徽章", "Show update hint on Mochi"), S.MochiUpdateHintEnabled,
+            Row("Outfit / Wardrobe", outfitCombo,
+                help: () => "Auto (Seasonal) automatically switches outfits for Halloween, Christmas, New Year, and Easter."),
+            Toggle("Show update hint on Mochi", S.MochiUpdateHintEnabled,
                 value => Change(s => s.MochiUpdateHintEnabled = value),
-                help: Loc.T("有新版本可用时，在 Mochi 空闲或睡眠时显示提示微光（就绪后切换为信箱形态）。",
-                    "Shows a subtle update indicator on Mochi while idle or sleeping when a new release is available (and morphs into a mailbox when ready).")),
-            Toggle(Loc.T("睡眠时自动隐藏刘海", "Hide notch while sleeping"), S.MochiHideWhenIdle,
+                help: "Shows a subtle update indicator on Mochi while idle or sleeping when a new release is available (and morphs into a mailbox when ready)."),
+            Toggle("Hide notch while sleeping", S.MochiHideWhenIdle,
                 value => Change(s => s.MochiHideWhenIdle = value),
-                help: Loc.T("Mochi 进入睡眠且无活跃任务时淡出刘海，鼠标移至屏幕顶部或有新任务时自动恢复。",
-                    "Fades out the notch while Mochi is sleeping with no active tasks. Reappears on top-edge hover or when an agent wakes up.")),
-            Toggle(Loc.T("勿扰模式", "Do Not Disturb"), S.MochiDoNotDisturb,
+                help: "Fades out the notch while Mochi is sleeping with no active tasks. Reappears on top-edge hover or when an agent wakes up."),
+            Toggle("Do Not Disturb", S.MochiDoNotDisturb,
                 value => Change(s => s.MochiDoNotDisturb = value),
-                help: Loc.T("静音 Mochi 提示音并屏蔽非紧急的桌面气泡提示。",
-                    "Mutes Mochi sound effects and suppresses non-urgent desktop speech bubbles."))
+                help: "Mutes Mochi sound effects and suppresses non-urgent desktop speech bubbles.")
         );
 
-        SectionTitle(Loc.T("动作与交互", "Animations & Behavior"));
+        SectionTitle("Animations & Behavior");
         var sleepDelay = SliderRow(
-            Loc.T("空闲入睡时间", "Auto-sleep delay"),
-            S.MochiAutoSleepMinutes, 1, 30, 1, Loc.T("分钟", "min"),
+            "Auto-sleep delay",
+            S.MochiAutoSleepMinutes, 1, 30, 1, "min",
             value => Change(s => s.MochiAutoSleepMinutes = (int)value));
 
         static void SetRowEnabled(Grid row, bool enabled)
@@ -74,34 +70,32 @@ public sealed partial class SettingsWindow
         SetRowEnabled(sleepDelay, S.MochiAutoSleepEnabled);
 
         Group(
-            Toggle(Loc.T("音乐节拍跳舞 (112 BPM)", "Dance to music (112 BPM)"), S.MochiDanceEnabled,
+            Toggle("Dance to music (112 BPM)", S.MochiDanceEnabled,
                 value => Change(s => s.MochiDanceEnabled = value)),
-            Toggle(Loc.T("启动欢迎动画", "Launch drop-in greeting"), S.MochiLaunchGreetingEnabled,
+            Toggle("Launch drop-in greeting", S.MochiLaunchGreetingEnabled,
                 value => Change(s => s.MochiLaunchGreetingEnabled = value)),
-            Toggle(Loc.T("交互音效", "Sound effects"), S.MochiSoundsEnabled,
+            Toggle("Sound effects", S.MochiSoundsEnabled,
                 value => Change(s => s.MochiSoundsEnabled = value)),
-            Toggle(Loc.T("空闲自动入睡", "Auto-sleep on inactivity"), S.MochiAutoSleepEnabled,
+            Toggle("Auto-sleep on inactivity", S.MochiAutoSleepEnabled,
                 value => { Change(s => s.MochiAutoSleepEnabled = value); SetRowEnabled(sleepDelay, value); }),
             sleepDelay
         );
 
-        SectionTitle(Loc.T("桌面漫游与多任务", "Desktop Roaming & Multi-Agent"));
-        var returnBtn = ActionButton(Loc.T("回到灵动岛", "Return Mochi to Island"), () =>
+        SectionTitle("Desktop Roaming & Multi-Agent");
+        var returnBtn = ActionButton("Return Mochi to Island", () =>
         {
             foreach (var deck in _app.Decks.ToList())
                 deck.ReturnMochiToIsland(clearSavedPosition: true);
         });
 
         Group(
-            Toggle(Loc.T("允许拖出到桌面", "Allow dragging Mochi onto desktop"), S.MochiDesktopRoamingEnabled,
+            Toggle("Allow dragging Mochi onto desktop", S.MochiDesktopRoamingEnabled,
                 value => Change(s => s.MochiDesktopRoamingEnabled = value),
-                help: Loc.T("将 Mochi 拖出刘海或面板即可自由放置在桌面上；双击回到灵动岛，有紧急审批/错误时也会自动归位。",
-                    "Drag Mochi out of the notch or panel to place him anywhere on your desktop. Double-click to return, or he will auto-retract on urgent approvals/errors.")),
-            Row(Loc.T("桌面位置", "Desktop position"), returnBtn),
-            Toggle(Loc.T("并行任务迷你 Mochi", "Mini Mochis for parallel tasks"), S.MochiMiniBotsEnabled,
+                help: "Drag Mochi out of the notch or panel to place him anywhere on your desktop. Double-click to return, or he will auto-retract on urgent approvals/errors."),
+            Row("Desktop position", returnBtn),
+            Toggle("Mini Mochis for parallel tasks", S.MochiMiniBotsEnabled,
                 value => Change(s => s.MochiMiniBotsEnabled = value),
-                help: Loc.T("当多个 Agent 会话或子任务同时运行时，在展开面板顶部显示对应的迷你 Mochi。",
-                    "Displays mini Mochi companions in the expanded header when multiple agent sessions or subagents run concurrently."))
+                help: "Displays mini Mochi companions in the expanded header when multiple agent sessions or subagents run concurrently.")
         );
     }
 }

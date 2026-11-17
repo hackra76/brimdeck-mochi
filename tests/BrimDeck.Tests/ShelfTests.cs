@@ -280,9 +280,9 @@ internal static class ShelfTests
         var readRule = read.OwnCategories(ShelfSide.Clipboard).First().Rule!;
         check("Shelf rules: a rule is saved and read back",
             readRule.Conditions.Single().Values.SequenceEqual(["Link", "Image"]) && read.OwnCategories(ShelfSide.Clipboard).Last().Rule is null);
-        Loc.Use(Loc.Chinese);
-        check("Shelf rules: the row's summary says each condition, joined by 或 or 且",
-            ShelfRules.Summary(linksAndPictures, ShelfSide.Clipboard) == "链接或图片"
-            && ShelfRules.Summary(repo, ShelfSide.Clipboard) == "链接，且github.com 的链接，且来自 chrome、msedge");
+        Loc.Use(Loc.English);
+        check("Shelf rules: the row's summary says each condition, joined by or or and",
+            ShelfRules.Summary(linksAndPictures, ShelfSide.Clipboard) == "Link or Picture"
+            && ShelfRules.Summary(repo, ShelfSide.Clipboard) == "Link; and links to github.com; and from chrome, msedge");
     }
 }

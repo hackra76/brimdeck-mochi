@@ -143,7 +143,7 @@ public static class MusicTitleFit
         return Math.Round(3 + (CompactMusicLayout.SafeBars(bars) - 1) * (fiveBars - 3) / 4);
     }
     // What a screen reader reads for the title: the whole title, and the artist when the short page merges it into the line.
-    public static string ReadAs(string title, string tail = "") => Loc.T("歌名 ", "Title ") + title + tail;
+    public static string ReadAs(string title, string tail = "") => "Title " + title + tail;
     // How far the text overhangs its room, in whole device pixels (scale: device pixels per DIP). The small allowance keeps
     // rounding noise from starting a one-pixel scroll.
     public static double Overflow(double textWidth, double room, double scale)
@@ -172,5 +172,5 @@ public static class MusicPlaybackModes
         return modes.Count == 0 ? Current(track) : modes[(modes.IndexOf(Current(track)) + 1) % modes.Count];
     }
     public static string Label(MusicPlaybackMode mode) => mode switch
-    { MusicPlaybackMode.List => Loc.T("列表循环", "Repeat all"), MusicPlaybackMode.Track => Loc.T("单曲循环", "Repeat one"), MusicPlaybackMode.Shuffle => Loc.T("随机播放", "Shuffle"), _ => Loc.T("顺序播放", "In order") };
+    { MusicPlaybackMode.List => "Repeat all", MusicPlaybackMode.Track => "Repeat one", MusicPlaybackMode.Shuffle => "Shuffle", _ => "In order" };
 }

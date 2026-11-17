@@ -47,10 +47,10 @@ public sealed partial class SettingsWindow
     }
     private void StyleOptions(CompactStyle style)
     {
-        SectionTitle(Loc.T("显示内容 · ", "Content · ") + StyleName(style));
+        SectionTitle("Content · " + StyleName(style));
         if (style == CompactStyle.Line)
         {
-            Group(Toggle(Loc.T("显示播放进度", "Show playback progress"), S.MusicIndicatorProgress, v => Change(s => s.MusicIndicatorProgress = v)));
+            Group(Toggle("Show playback progress", S.MusicIndicatorProgress, v => Change(s => s.MusicIndicatorProgress = v)));
             return;
         }
         // The rows are in the order the collapsed row shows the parts, left to right; only the cover keeps its place at the left.
@@ -72,13 +72,13 @@ public sealed partial class SettingsWindow
         bool notch = style == CompactStyle.Notch;
         var (title, shown, help) = part switch
         {
-            CompactPart.Rings => (Loc.T("配额环", "Quota rings"), S.ShowsSummary(style), null),
-            CompactPart.Equalizer => (Loc.T("律动条", "Equalizer"), S.ShowsEqualizer(style), null),
-            CompactPart.Music => (Loc.T("正在播放的音乐", "Music now playing"), S.ShowsMusic(style),
-                Loc.T("拖动只改变歌名或歌词的位置。封面始终在最左侧。", "Dragging moves only the title or lyric. The cover stays at the left.")),
-            CompactPart.Transfer => (Loc.T("文件中转", "File transfer"), style == CompactStyle.Notch ? S.NotchTransfer : S.CapsuleTransfer,
-                Loc.T("显示文件中转里的文件数量，没有文件时不显示。单击直接展开到剪贴板与文件中转页。", "Shows how many files the file transfer holds, and nothing while it is empty. Clicking it opens the clipboard and file transfer page.")),
-            _ => (Loc.T("系统监控", "System monitor"), S.ShowsMonitor(style), null)
+            CompactPart.Rings => ("Quota rings", S.ShowsSummary(style), null),
+            CompactPart.Equalizer => ("Equalizer", S.ShowsEqualizer(style), null),
+            CompactPart.Music => ("Music now playing", S.ShowsMusic(style),
+                "Dragging moves only the title or lyric. The cover stays at the left."),
+            CompactPart.Transfer => ("File transfer", style == CompactStyle.Notch ? S.NotchTransfer : S.CapsuleTransfer,
+                "Shows how many files the file transfer holds, and nothing while it is empty. Clicking it opens the clipboard and file transfer page."),
+            _ => ("System monitor", S.ShowsMonitor(style), null)
         };
         void Show(bool on) => Change(s =>
         {
@@ -161,15 +161,13 @@ public sealed partial class SettingsWindow
     // switched on or off with the collapsed content (PartRow). A new style builds the application rows again, so their ring lines follow it.
     private void QuotaRingSection()
     {
-        SectionTitle(Loc.T("配额显示", "Quota display"));
-        Group(MusicChoice(Loc.T("环的样式", "Ring style"), S.QuotaRingStyle, [(QuotaRingStyle.Single, Loc.T("单环", "Single")), (QuotaRingStyle.Nested, Loc.T("多环", "Nested"))],
-                v => { Change(s => s.QuotaRingStyle = v); foreach (var entry in S.Apps) RefreshAppRow(entry.InstanceId); }, help: Loc.T("单环：每个应用一个环，默认显示已用比例最高的一项额度。\n多环：每个应用最多三个环，分别显示不同的额度。\n各环显示哪项额度，在下方展开该应用后设置。",
-                    "Single: one ring per app, showing its most used quota by default.\nNested: up to three rings per app, each showing a different quota.\nWhich quota each ring shows is set by expanding the app below."), width: 200),
-            MusicChoice(Loc.T("显示已用或剩余", "Used or left"), S.QuotaRingRemaining, [(false, Loc.T("已用额度", "Used")), (true, Loc.T("剩余额度", "Left"))],
-                v => Change(s => s.QuotaRingRemaining = v), help: Loc.T("已用额度：显示已用的比例，用得越多，配额环和进度条越长。\n剩余额度：显示剩余的比例，用得越多，配额环和进度条越短。\n配额环、展开面板的进度条和百分比、配额提醒都按这里显示；余额、扣费等金额不受影响。",
-                    "Used: shows the share used; the more is used, the longer the rings and bars.\nLeft: shows the share left; the more is used, the shorter the rings and bars.\nThe quota rings, the panel's bars and percentages, and the quota notices all follow it; amounts such as balances and spending stay as they are."), width: 200),
-            Toggle(Loc.T("环内显示首字母", "Letter in the rings"), S.QuotaRingLetters, v => Change(s => s.QuotaRingLetters = v),
-                help: Loc.T("在配额环中间显示应用名称的首字母，名称以下方“显示名称”一栏为准。", "Shows the first letter of the app's name inside its quota ring, taken from the Display name column below.")));
+        SectionTitle("Quota display");
+        Group(MusicChoice("Ring style", S.QuotaRingStyle, [(QuotaRingStyle.Single, "Single"), (QuotaRingStyle.Nested, "Nested")],
+                v => { Change(s => s.QuotaRingStyle = v); foreach (var entry in S.Apps) RefreshAppRow(entry.InstanceId); }, help: "Single: one ring per app, showing its most used quota by default.\nNested: up to three rings per app, each showing a different quota.\nWhich quota each ring shows is set by expanding the app below.", width: 200),
+            MusicChoice("Used or left", S.QuotaRingRemaining, [(false, "Used"), (true, "Left")],
+                v => Change(s => s.QuotaRingRemaining = v), help: "Used: shows the share used; the more is used, the longer the rings and bars.\nLeft: shows the share left; the more is used, the shorter the rings and bars.\nThe quota rings, the panel's bars and percentages, and the quota notices all follow it; amounts such as balances and spending stay as they are.", width: 200),
+            Toggle("Letter in the rings", S.QuotaRingLetters, v => Change(s => s.QuotaRingLetters = v),
+                help: "Shows the first letter of the app's name inside its quota ring, taken from the Display name column below."));
     }
     // The clock's swatches but the gradient: the theme's color (theme), the presets, a custom color and the cover's. Used for the
     // equalizer and for the music page's current lyric; save gets the chosen color and the custom one.
@@ -211,48 +209,44 @@ public sealed partial class SettingsWindow
     {
         // The equalizer's way and color serve the collapsed and the expanded equalizer alike; each keeps its own length, and the
         // collapsed one's switch stays with the collapsed content (PartRow).
-        SectionTitle(Loc.T("通用", "General"));
-        var pageBars = SliderRow(Loc.T("展开时律动条长度", "Expanded equalizer length"), S.MusicEqualizerBars, CompactMusicLayout.MinimumBars, CompactMusicLayout.MaximumBars, 1, Loc.T("根", "bars"),
+        SectionTitle("General");
+        var pageBars = SliderRow("Expanded equalizer length", S.MusicEqualizerBars, CompactMusicLayout.MinimumBars, CompactMusicLayout.MaximumBars, 1, "bars",
             v => Change(s => s.MusicEqualizerBars = (int)v));
         pageBars.IsEnabled = S.MusicPage;
-        Group(MusicChoice(Loc.T("律动方式", "Equalizer mode"), S.EqualizerMode, [(EqualizerMode.Flow, Loc.T("流动", "Flow")), (EqualizerMode.Spectrum, Loc.T("频谱", "Spectrum"))],
-                v => Change(s => s.EqualizerMode = v), help: Loc.T("流动：声音的起伏从左流到右。频谱：每根条显示一段音高，左低右高。",
-                    "Flow: the rise and fall of the sound runs from left to right. Spectrum: each bar shows a range of pitch, low on the left.")),
-            Row(Loc.T("律动条颜色", "Equalizer color"), ColorSwatches("EqualizerColor", Loc.T("律动条颜色 ", "Equalizer color "), S.EqualizerColor, S.EqualizerCustomColor,
+        Group(MusicChoice("Equalizer mode", S.EqualizerMode, [(EqualizerMode.Flow, "Flow"), (EqualizerMode.Spectrum, "Spectrum")],
+                v => Change(s => s.EqualizerMode = v), help: "Flow: the rise and fall of the sound runs from left to right. Spectrum: each bar shows a range of pitch, low on the left."),
+            Row("Equalizer color", ColorSwatches("EqualizerColor", "Equalizer color ", S.EqualizerColor, S.EqualizerCustomColor,
                 UI.Brush(PanelTheme.Hex("equalizer")), (chosen, custom) => Change(s => { s.EqualizerColor = chosen; s.EqualizerCustomColor = custom; }))),
-            SliderRow(Loc.T("收起时律动条长度", "Collapsed equalizer length"), S.EqualizerBars, CompactMusicLayout.MinimumBars, CompactMusicLayout.MaximumBars, 1, Loc.T("根", "bars"),
+            SliderRow("Collapsed equalizer length", S.EqualizerBars, CompactMusicLayout.MinimumBars, CompactMusicLayout.MaximumBars, 1, "bars",
                 v => Change(s => s.EqualizerBars = (int)v)),
             pageBars,
-            MusicChoice(Loc.T("收起时律动条显示时机", "Collapsed equalizer shown"), S.EqualizerAlways, [(false, Loc.T("播放音乐时", "While music plays")), (true, Loc.T("始终显示", "Always"))],
-                v => Change(s => s.EqualizerAlways = v), help: Loc.T("在收起形态中打开律动条后生效。始终显示时，没有音乐播放也会显示，读取系统的全部声音。",
-                    "Applies once the equalizer is switched on in the collapsed content. When always shown, it also shows while no music plays, reading all system sound.")));
-        SectionTitle(Loc.T("收起时", "When collapsed"));
+            MusicChoice("Collapsed equalizer shown", S.EqualizerAlways, [(false, "While music plays"), (true, "Always")],
+                v => Change(s => s.EqualizerAlways = v), help: "Applies once the equalizer is switched on in the collapsed content. When always shown, it also shows while no music plays, reading all system sound."));
+        SectionTitle("When collapsed");
         // The instrumental choice belongs to the lyric, so it shows only while the middle text is the lyric.
-        var text = new List<FrameworkElement> { MusicChoice(Loc.T("中间文字", "Middle text"), S.MusicText, new[] { (CompactMusicText.None, Loc.T("无", "None")), (CompactMusicText.Title, Loc.T("歌名", "Title")), (CompactMusicText.Lyrics, Loc.T("歌词", "Lyrics")) },
+        var text = new List<FrameworkElement> { MusicChoice("Middle text", S.MusicText, new[] { (CompactMusicText.None, "None"), (CompactMusicText.Title, "Title"), (CompactMusicText.Lyrics, "Lyrics") },
             v => { Change(s => s.MusicText = v); ShowPage(_page); }) };
         if (S.MusicText == CompactMusicText.Lyrics)
-            text.Add(Toggle(Loc.T("纯音乐时显示歌名", "Show the title for instrumentals"), S.MusicInstrumentalTitle, v => Change(s => s.MusicInstrumentalTitle = v),
-                help: Loc.T("歌曲本身没有可靠的纯音乐标识，只能根据歌词内容推断，因此可能判断错误。",
-                    "Songs carry no reliable instrumental mark, so this is inferred from the lyrics and can be wrong.")));
+            text.Add(Toggle("Show the title for instrumentals", S.MusicInstrumentalTitle, v => Change(s => s.MusicInstrumentalTitle = v),
+                help: "Songs carry no reliable instrumental mark, so this is inferred from the lyrics and can be wrong."));
         Group([.. text,
-            MusicChoice(Loc.T("暂停时隐藏", "Hide while paused"), S.MusicPausedHide, new[] { (PausedMusicHide.None, Loc.T("不隐藏", "Nothing")), (PausedMusicHide.Text, Loc.T("文字", "Text")),
-                (PausedMusicHide.Cover, Loc.T("封面", "Cover")), (PausedMusicHide.Both, Loc.T("全部", "Both")) }, v => Change(s => s.MusicPausedHide = v),
-                help: Loc.T("音乐暂停时，收起状态下隐藏所选内容，恢复播放后重新显示。“文字”指按“中间文字”显示的歌名或歌词；“全部”指文字和封面，不包括律动条。",
-                    "While music is paused, the chosen part is hidden when collapsed and comes back when playback resumes. \"Text\" is the title or lyric shown by \"Middle text\"; \"Both\" is the text and the cover, not the equalizer.")),
-            Toggle(Loc.T("切歌时短暂显示歌名", "Briefly show the title on a track change"), S.MusicTrackNotice, v => Change(s => s.MusicTrackNotice = v)),
-            Toggle(Loc.T("显示封面", "Show cover"), S.MusicCompactCover, v => Change(s => s.MusicCompactCover = v))]);
-        SectionTitle(Loc.T("展开时", "When expanded"));
-        var lyricColor = Row(Loc.T("当前歌词颜色", "Current lyric color"), ColorSwatches("MusicLyricColor", Loc.T("当前歌词颜色 ", "Current lyric color "),
+            MusicChoice("Hide while paused", S.MusicPausedHide, new[] { (PausedMusicHide.None, "Nothing"), (PausedMusicHide.Text, "Text"),
+                (PausedMusicHide.Cover, "Cover"), (PausedMusicHide.Both, "Both") }, v => Change(s => s.MusicPausedHide = v),
+                help: "While music is paused, the chosen part is hidden when collapsed and comes back when playback resumes. \"Text\" is the title or lyric shown by \"Middle text\"; \"Both\" is the text and the cover, not the equalizer."),
+            Toggle("Briefly show the title on a track change", S.MusicTrackNotice, v => Change(s => s.MusicTrackNotice = v)),
+            Toggle("Show cover", S.MusicCompactCover, v => Change(s => s.MusicCompactCover = v))]);
+        SectionTitle("When expanded");
+        var lyricColor = Row("Current lyric color", ColorSwatches("MusicLyricColor", "Current lyric color ",
             S.MusicLyricColor, S.MusicLyricCustomColor, UI.Brush(PanelTheme.Hex("textPrimary")),
             (chosen, custom) => Change(s => { s.MusicLyricColor = chosen; s.MusicLyricCustomColor = custom; })));
         lyricColor.IsEnabled = S.MusicPage;
-        Group(Toggle(Loc.T("显示封面", "Show cover"), S.MusicPageCover, v => Change(s => s.MusicPageCover = v), S.MusicPage),
-            Toggle(Loc.T("显示歌词", "Show lyrics"), S.LyricsEnabled, v => Change(s => s.LyricsEnabled = v), S.MusicPage), lyricColor);
+        Group(Toggle("Show cover", S.MusicPageCover, v => Change(s => s.MusicPageCover = v), S.MusicPage),
+            Toggle("Show lyrics", S.LyricsEnabled, v => Change(s => s.LyricsEnabled = v), S.MusicPage), lyricColor);
     }
     // Operations only one player supports, grouped under that player's name.
     private void Players()
     {
-        SectionTitle(Loc.T("播放来源", "Playback sources"));
+        SectionTitle("Playback sources");
         Group(IgnoredAppsRow());
     }
     // Whether the ignored apps are shown under their row, kept while the row is rebuilt after an app is added or removed.
@@ -266,10 +260,9 @@ public sealed partial class SettingsWindow
     private FrameworkElement IgnoredAppsRow() => _ignoredHost = new Border { Child = IgnoredAppsContent() };
     private void RefreshIgnoredApps() { if (_ignoredHost is not null) _ignoredHost.Child = IgnoredAppsContent(); }
 
-    private FrameworkElement IgnoredAppsContent() => AppListRow(Loc.T("忽略的应用", "Ignored apps"),
-        () => Loc.T("被忽略的应用播放时，面板不显示它的歌曲，来源菜单中也不列出它。“添加应用”列出正在播放或已暂停的应用，也可以浏览可执行文件。忽略浏览器会忽略其中所有网页的播放。",
-            "While an ignored app plays, the panel does not show its songs and the source menu leaves it out. \"Add app\" lists the apps that are playing or paused, or browse for an executable. Ignoring a browser ignores playback in all its pages."),
-        Loc.T("展开忽略的应用", "Show ignored apps"), Loc.T("添加要忽略的应用", "Add an app to ignore"),
+    private FrameworkElement IgnoredAppsContent() => AppListRow("Ignored apps",
+        () => "While an ignored app plays, the panel does not show its songs and the source menu leaves it out. \"Add app\" lists the apps that are playing or paused, or browse for an executable. Ignoring a browser ignores playback in all its pages.",
+        "Show ignored apps", "Add an app to ignore",
         [.. S.IgnoredMediaApps.Select(IgnoredAppLine)], IgnoredAppMenu, _ignoredOpen, open => _ignoredOpen = open);
 
     private FrameworkElement IgnoredAppLine(IgnoredMediaApp app)
@@ -297,8 +290,8 @@ public sealed partial class SettingsWindow
                 Change(s => s.IgnoredMediaApps.Add(app));
                 RefreshIgnoredApps();
             }));
-        if (apps.Count == 0) menu.Items.Add(new MenuItem { Header = Loc.T("没有正在播放的应用", "No app is playing"), IsEnabled = false });
-        AddBrowseItem(menu, Loc.T("选择要忽略的应用", "Choose an app to ignore"), path =>
+        if (apps.Count == 0) menu.Items.Add(new MenuItem { Header = "No app is playing", IsEnabled = false });
+        AddBrowseItem(menu, "Choose an app to ignore", path =>
         {
             var app = new IgnoredMediaApp(System.IO.Path.GetFileName(path), AppName(System.IO.Path.GetFileNameWithoutExtension(path), path), path);
             if (S.IgnoredMediaApps.Any(entry => string.Equals(entry.AppId, app.AppId, StringComparison.OrdinalIgnoreCase))) return;
@@ -313,15 +306,15 @@ public sealed partial class SettingsWindow
     private void MusicSizeControls()
     {
         var dimensions = new Grid { Margin = new Thickness(0, 8, 0, 0) }; dimensions.ColumnDefinitions.Add(new()); dimensions.ColumnDefinitions.Add(new());
-        var width = Dimension(Loc.T("宽度", "Width"), S.MusicWidth, 440, 1200, value => Resize(s => s.MusicWidth = value, DeckPage.Music)); width.Margin = new Thickness(0, 0, 20, 0); dimensions.Children.Add(width);
-        var height = Dimension(Loc.T("高度", "Height"), S.MusicHeight, 140, 400, value => Resize(s => s.MusicHeight = value, DeckPage.Music)); height.Margin = new Thickness(20, 0, 0, 0); Grid.SetColumn(height, 1); dimensions.Children.Add(height);
+        var width = Dimension("Width", S.MusicWidth, 440, 1200, value => Resize(s => s.MusicWidth = value, DeckPage.Music)); width.Margin = new Thickness(0, 0, 20, 0); dimensions.Children.Add(width);
+        var height = Dimension("Height", S.MusicHeight, 140, 400, value => Resize(s => s.MusicHeight = value, DeckPage.Music)); height.Margin = new Thickness(20, 0, 0, 0); Grid.SetColumn(height, 1); dimensions.Children.Add(height);
         Target.Children.Add(dimensions);
         var sizes = KeepPreview(new UniformGrid { Columns = 3, Width = 292 });
         foreach (var size in Enum.GetValues<PanelSize>())
         {
             var (w, h) = MusicSizes.For(size);
             var choice = new RadioButton { Style = (Style)FindResource("SettingsSegment"), Content = PanelSizes.Name(size), GroupName = "MusicSize", IsChecked = (S.MusicWidth, S.MusicHeight) == (w, h) };
-            AutomationProperties.SetName(choice, Loc.T("音乐快捷尺寸 ", "Music quick size ") + PanelSizes.Name(size)); choice.Checked += (_, _) => { Resize(s => { s.MusicWidth = w; s.MusicHeight = h; }, DeckPage.Music); ShowPage(2); }; sizes.Children.Add(choice);
+            AutomationProperties.SetName(choice, "Music quick size " + PanelSizes.Name(size)); choice.Checked += (_, _) => { Resize(s => { s.MusicWidth = w; s.MusicHeight = h; }, DeckPage.Music); ShowPage(2); }; sizes.Children.Add(choice);
         }
         QuickSizeRow(sizes);
     }

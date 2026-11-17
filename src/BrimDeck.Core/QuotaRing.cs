@@ -40,14 +40,14 @@ public sealed record QuotaRing(IReadOnlyList<double?> Shares, string Detail)
     {
         var choices = Choices(snapshot, entry?.ColumnQuotaGroup);
         double? Shown(UsageMetric metric) => Used(metric, entry) is { } used ? remaining ? 100 - used : used : null;
-        string Share(double shown) => remaining ? Loc.T($"剩余 {shown:0.#}%", $"{shown:0.#}% left") : Loc.T($"已用 {shown:0.#}%", $"{shown:0.#}% used");
+        string Share(double shown) => remaining ? $"{shown:0.#}% left" : $"{shown:0.#}% used";
         string Text(UsageMetric metric) => metric.ValueText.Length > 0 && metric.ValueText != "—" ? metric.ValueText + " " + metric.ValueSuffix : Loc.Label(metric.Label);
         // The tooltip: every quota with a share, and every balance or amount spent, with its figure; a lone share needs no name.
         var listed = snapshot.Metrics.Where(metric => Shown(metric) is not null || metric.Kind is MetricKind.Balance or MetricKind.Spend && metric.Amount is not null).ToArray();
         string detail = snapshot.Metrics.Count == 0 ? snapshot.StatusLabel
-            : listed.Length == 0 ? string.Join(Loc.T("；", "; "), snapshot.Metrics.Select(Text))
+            : listed.Length == 0 ? string.Join("; ", snapshot.Metrics.Select(Text))
             : listed.Length == 1 && Shown(listed[0]) is { } lone ? Share(lone)
-            : string.Join(Loc.T("；", "; "), listed.Select(metric => Shown(metric) is { } shown ? Loc.Label(metric.Label) + " " + Share(shown) : Text(metric)));
+            : string.Join("; ", listed.Select(metric => Shown(metric) is { } shown ? Loc.Label(metric.Label) + " " + Share(shown) : Text(metric)));
         QuotaRing Rings(IEnumerable<UsageMetric?> metrics)
         {
             var shares = metrics.Take(MaximumRings).Select(metric => metric is null ? null : Shown(metric)).ToList();

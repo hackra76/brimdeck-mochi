@@ -56,11 +56,11 @@ public static class ZCodeUsage
     {
         if (!value.StartsWith(Encrypted, StringComparison.Ordinal)) return value;
         var parts = value[Encrypted.Length..].Split('.');
-        if (parts.Length != 3) throw new InvalidDataException(Loc.T("ZCode 凭据格式无法识别。", "The ZCode credential format is not recognized."));
+        if (parts.Length != 3) throw new InvalidDataException("The ZCode credential format is not recognized.");
         byte[] iv = Base64Url(parts[0]), tag = Base64Url(parts[1]), data = Base64Url(parts[2]), plain = new byte[data.Length];
         using var aes = new AesGcm(key, tag.Length);
         try { aes.Decrypt(iv, data, tag, plain); }
-        catch (CryptographicException) { throw new InvalidDataException(Loc.T("ZCode 凭据无法解密。", "The ZCode credentials cannot be decrypted.")); }
+        catch (CryptographicException) { throw new InvalidDataException("The ZCode credentials cannot be decrypted."); }
         return Encoding.UTF8.GetString(plain);
     }
 
@@ -68,7 +68,7 @@ public static class ZCodeUsage
     {
         text = text.Replace('-', '+').Replace('_', '/');
         try { return Convert.FromBase64String(text + new string('=', (4 - text.Length % 4) % 4)); }
-        catch (FormatException) { throw new InvalidDataException(Loc.T("ZCode 凭据格式无法识别。", "The ZCode credential format is not recognized.")); }
+        catch (FormatException) { throw new InvalidDataException("The ZCode credential format is not recognized."); }
     }
 
     // ZCode Start Plan (event allowances): data.plans[] name the plans; data.balances[] hold one allowance per entitlement,
@@ -118,13 +118,13 @@ public static class ZCodeUsage
     {
         var database = Database(home);
         snapshot.UsageAvailable = File.Exists(database);
-        if (!snapshot.UsageAvailable) { snapshot.UsageNote = Loc.T("未找到本机 ZCode 记录。", "No local ZCode records were found."); return; }
+        if (!snapshot.UsageAvailable) { snapshot.UsageNote = "No local ZCode records were found."; return; }
         var rows = desktop.QueryDatabase(database,
             "SELECT id, model_id, COALESCE(completed_at, started_at), input_tokens, output_tokens, cache_read_input_tokens, cache_creation_input_tokens " +
             "FROM model_usage WHERE status <> 'running' AND started_at >= " + start.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture));
-        if (rows is null) { snapshot.UsageComplete = false; snapshot.UsageNote = Loc.T("ZCode 记录暂时无法读取。", "The ZCode records cannot be read right now."); return; }
+        if (rows is null) { snapshot.UsageComplete = false; snapshot.UsageNote = "The ZCode records cannot be read right now."; return; }
         snapshot.Entries = Parse(rows).Where(e => e.Time >= start && e.Time <= now && e.Total > 0).OrderBy(e => e.Time).ToList();
-        snapshot.UsageNote = Loc.T($"本机 ZCode {start.LocalDateTime:yyyy-MM-dd} 起 · {snapshot.Entries.Count} 次模型请求", $"Local ZCode since {start.LocalDateTime:yyyy-MM-dd} · " + Loc.Count(snapshot.Entries.Count, "model request", "model requests"));
+        snapshot.UsageNote = $"Local ZCode since {start.LocalDateTime:yyyy-MM-dd} · " + Loc.Count(snapshot.Entries.Count, "model request", "model requests");
     }
 
     public static IEnumerable<TokenEntry> Parse(IEnumerable<string?[]> rows)

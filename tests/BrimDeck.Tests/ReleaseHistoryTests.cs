@@ -11,8 +11,8 @@ internal static class ReleaseHistoryTests
         var bundled = ReleaseHistory.Bundled;
         var files = Directory.GetFiles(Path.Combine(Repository(), "releases"), "*.md").Select(Path.GetFileNameWithoutExtension).Order().ToArray();
         check("every release notes file is built in", bundled.Select(e => e.Version).Order().SequenceEqual(files));
-        check("every built-in release has Chinese and English notes", bundled.All(e =>
-            e.Notes.Entries.Any(n => n.Language == "zh-CN") && e.Notes.Entries.Any(n => n.Language == "en-US")));
+        check("every built-in release has English notes", bundled.All(e =>
+            !string.IsNullOrWhiteSpace(e.Notes.For("en-US"))));
 
         ReleaseEntry Entry(string version) => new(version, ReleaseNotes.Of(version));
         var all = new[] { "1.0.0", "1.1.0-alpha.1", "1.1.0-beta.1", "1.1.0", "1.2.0-alpha.1", "1.2.0-beta.1", "1.2.0-beta.2", "1.2.0" }.Select(Entry).ToList();

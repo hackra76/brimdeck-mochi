@@ -48,8 +48,7 @@ public static class SettingsMigrations
         // One pair of switches used to apply to both the notch and the capsule.
         Split(root, "CompactSummary", "NotchSummary", "CapsuleSummary");
         Split(root, "CompactMusic", "NotchMusic", "CapsuleMusic");
-        // Earlier builds were Chinese only. Language now defaults to English, so a file without it keeps Chinese.
-        if (!root.ContainsKey("Language")) root["Language"] = Loc.Chinese;
+        if (!root.ContainsKey("Language")) root["Language"] = Loc.English;
         // Four on/off switches preceded the ordered application list; their order matches ProviderCatalog.BuiltIns.
         string[] switches = ["Claude", "Codex", "Antigravity", "Cursor"];
         if (root["Apps"] is not JsonArray && switches.Any(root.ContainsKey))

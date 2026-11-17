@@ -52,15 +52,14 @@ internal sealed class FramesBlock : FrameworkElement
     {
         if (_frames is not { } frames)
         {
-            ToolTip = Loc.T("帧率：暂无读数。一直没有读数时，请在设置的“系统监控”页授权读取帧率。",
-                "Frame rate: no reading. If none comes, allow reading frame rates on the System monitor page of the settings.");
-            AutomationProperties.SetName(this, Loc.T("帧率", "Frame rate"));
+            ToolTip = "Frame rate: no reading. If none comes, allow reading frame rates on the System monitor page of the settings.";
+            AutomationProperties.SetName(this, "Frame rate");
             return;
         }
-        ToolTip = Loc.T($"{frames.Program}：每秒 {Figure} 帧", $"{frames.Program}: {Figure} frames a second")
-            + Loc.T("\n前台程序的帧率；前台程序不在绘制时，显示最近一个在绘制的程序。", "\nThe frame rate of the program in front; while it draws nothing, of the last program that did.")
-            + (frames.Refresh is { } hertz ? Loc.T($"\n所在显示器刷新率 {Hertz(hertz)}", $"\nIts display's refresh rate: {Hertz(hertz)}") : "");
-        AutomationProperties.SetName(this, Loc.T($"帧率 {Figure} FPS，{frames.Program}", $"Frame rate {Figure} FPS, {frames.Program}"));
+        ToolTip = $"{frames.Program}: {Figure} frames a second"
+            + "\nThe frame rate of the program in front; while it draws nothing, of the last program that did."
+            + (frames.Refresh is { } hertz ? $"\nIts display's refresh rate: {Hertz(hertz)}" : "");
+        AutomationProperties.SetName(this, $"Frame rate {Figure} FPS, {frames.Program}");
     }
 
     protected override Size MeasureOverride(Size availableSize) => new(0, Height);
@@ -162,8 +161,8 @@ internal sealed class FigureGauge : FrameworkElement
     private string Spoken()
     {
         string name = _letter switch { "C" => "CPU", "G" => "GPU", _ => _letter };
-        string reading = _hasShare ? Loc.T($"{name} 占用 {_number}{_unit}", $"{name} usage {_number}{_unit}") : name + " · " + DrawnPeer.FirstLine(ToolTip);
-        return reading + (_detail.Length > 0 ? " · " + _detail : "") + (_button && !string.IsNullOrEmpty(_buttonName) ? Loc.T("，", ", ") + _buttonName : "");
+        string reading = _hasShare ? $"{name} usage {_number}{_unit}" : name + " · " + DrawnPeer.FirstLine(ToolTip);
+        return reading + (_detail.Length > 0 ? " · " + _detail : "") + (_button && !string.IsNullOrEmpty(_buttonName) ? ", " + _buttonName : "");
     }
 
     // detailColor: the detail's color, the tertiary text color by default (a temperature takes its level's).
@@ -304,13 +303,13 @@ internal sealed class ColumnGraph : FrameworkElement
     // For screen readers: a list of the columns, each read as its tooltip says (" 3 · 47% · 3.41 GHz"); as a button, the
     // graph's name and what a click does.
     protected override AutomationPeer OnCreateAutomationPeer() => _button
-        ? new DrawnPeer(this, AutomationControlType.Button, () => _name + Loc.T("，", ", ") + _action, () => Clicked?.Invoke())
+        ? new DrawnPeer(this, AutomationControlType.Button, () => _name + ", " + _action, () => Clicked?.Invoke())
         : new DrawnPeer(this, AutomationControlType.List, () => _name, parts: Parts);
     private IEnumerable<DrawnPart> Parts()
     {
         var (xs, column) = Geometry(ActualWidth);
         for (int i = 0; i < xs.Length; i++)
-            yield return new DrawnPart(i.ToString(), _columns[i].Tip.Replace("\n", Loc.T("，", ", ")), new Rect(xs[i], 0, column, ActualHeight));
+            yield return new DrawnPart(i.ToString(), _columns[i].Tip.Replace("\n", ", "), new Rect(xs[i], 0, column, ActualHeight));
     }
 
     // The room under the columns for their figures. With the figure line alone, the line's baseline sits on the graph's bottom
@@ -467,17 +466,17 @@ internal sealed class MemoryBlock : FrameworkElement
         {
             moving |= _used.Set(memory.UsedFraction, motion); moving |= _cached.Set(memory.CachedFraction, motion); moving |= _commit.Set(memory.CommitFraction, motion);
             _memory = memory;
-            ToolTip = Loc.T("物理内存 ", "Physical memory ") + MonitorFormat.Percent(memory.UsedFraction) + "% · " + Level(memory.Level) + "\n" + Loc.T("缓存 ", "Cached ") + MonitorFormat.Gigabytes(memory.Cached)
-                + " GB\n" + Loc.T("已提交 ", "Committed ") + MonitorFormat.Gigabytes(memory.CommitUsed) + " / " + MonitorFormat.Gigabytes(memory.CommitLimit) + " GB" + Loc.T("（下方细线）", " (the thin line)");
+            ToolTip = "Physical memory " + MonitorFormat.Percent(memory.UsedFraction) + "% · " + Level(memory.Level) + "\n" + "Cached " + MonitorFormat.Gigabytes(memory.Cached)
+                + " GB\n" + "Committed " + MonitorFormat.Gigabytes(memory.CommitUsed) + " / " + MonitorFormat.Gigabytes(memory.CommitLimit) + " GB" + " (the thin line)";
         }
-        else { _memory = null; ToolTip = Loc.T("暂无读数：", "No reading: ") + reading.Reason; }
+        else { _memory = null; ToolTip = "No reading: " + reading.Reason; }
         if (moving) Motion.Start(this, now => { InvalidateVisual(); return _used.Moving(now) || _cached.Moving(now) || _commit.Moving(now); }); else InvalidateVisual();
     }
 
     protected override Size MeasureOverride(Size availableSize) => new(0, Height);
 
     private static string Level(MemoryLevel level) => level switch
-    { MemoryLevel.Critical => Loc.T("紧张", "Critical"), MemoryLevel.Elevated => Loc.T("偏高", "Elevated"), _ => Loc.T("正常", "Normal") };
+    { MemoryLevel.Critical => "Critical", MemoryLevel.Elevated => "Elevated", _ => "Normal" };
 
     protected override void OnRender(DrawingContext drawing)
     {
@@ -551,13 +550,13 @@ internal sealed class NetworkBlock : FrameworkElement
     }
 
     // For screen readers: " ·  1.2 MB/s ·  85 KB/s".
-    protected override AutomationPeer OnCreateAutomationPeer() => new DrawnPeer(this, AutomationControlType.Text, () => Loc.T("网络 · ", "Network · ") + DrawnPeer.FirstLine(ToolTip));
+    protected override AutomationPeer OnCreateAutomationPeer() => new DrawnPeer(this, AutomationControlType.Text, () => "Network · " + DrawnPeer.FirstLine(ToolTip));
 
     public void Set(Reading<NetworkSample> reading, IReadOnlyList<double> down, IReadOnlyList<double> up)
     {
         _rates = reading.OrDefault; _reason = reading.HasValue ? "" : reading.Reason; _down = down; _up = up;
-        ToolTip = _rates is { } r ? Loc.T("下载 ", "Download ") + MonitorFormat.Rate(r.DownBytesPerSecond).Text + " · " + Loc.T("上传 ", "Upload ") + MonitorFormat.Rate(r.UpBytesPerSecond).Text
-            : Loc.T("暂无读数：", "No reading: ") + _reason;
+        ToolTip = _rates is { } r ? "Download " + MonitorFormat.Rate(r.DownBytesPerSecond).Text + " · " + "Upload " + MonitorFormat.Rate(r.UpBytesPerSecond).Text
+            : "No reading: " + _reason;
         InvalidateVisual();
     }
 
@@ -629,7 +628,7 @@ internal sealed class StorageBlock : FrameworkElement
 
     // For screen readers: a list of the volumes' entries, each read as its line shows it; the entries lie as OnRender places them,
     // filled left to right across the columns.
-    protected override AutomationPeer OnCreateAutomationPeer() => new DrawnPeer(this, AutomationControlType.List, () => Loc.T("硬盘", "Drives"), parts: Parts);
+    protected override AutomationPeer OnCreateAutomationPeer() => new DrawnPeer(this, AutomationControlType.List, () => "Drives", parts: Parts);
     private IEnumerable<DrawnPart> Parts()
     {
         if (_shown.Target <= 0) yield break;
@@ -674,7 +673,7 @@ internal sealed class StorageBlock : FrameworkElement
         var (used, total, unit) = Storage.Sizes(drive.Used, drive.Total);
         string text = drive.Letters + (drive.Model.Length > 0 ? " · " + drive.Model : "") + $" · {used} / {total} {unit}";
         if (drive.Temperature is { } heat)
-            text += " · " + Temperatures.Detail(heat.Celsius) + (heat.Warning is { } warning ? Loc.T($"（警告 {Temperatures.Format(warning)} °C）", $" (warning at {Temperatures.Format(warning)} °C)") : "");
+            text += " · " + Temperatures.Detail(heat.Celsius) + (heat.Warning is { } warning ? $" (warning at {Temperatures.Format(warning)} °C)" : "");
         if (drive.Volumes.Count > 1)
             foreach (var volume in drive.Volumes)
             {

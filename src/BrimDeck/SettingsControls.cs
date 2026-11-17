@@ -60,7 +60,7 @@ public sealed partial class SettingsWindow
             AutomationProperties.SetHelpText(info, description.Text);
         }
         UpdateHelp();
-        AutomationProperties.SetName(info, Loc.T(title + "说明", "About " + title));
+        AutomationProperties.SetName(info, "About " + title);
         info.ToolTipOpening += (_, _) => UpdateHelp();
         // WPF normally keeps a tooltip open over the popup and the gap below its owner.
         // Help icons own the hover boundary; reopening here also handles immediate re-entry.
@@ -132,11 +132,11 @@ public sealed partial class SettingsWindow
         var slider = new Slider { Style=(Style)FindResource("SettingsSlider"),Minimum=min,Maximum=max,Value=Math.Clamp(value,min,max),
             SmallChange=tick,LargeChange=tick*2,TickFrequency=tick,IsSnapToTickEnabled=true,IsMoveToPointEnabled=true,VerticalAlignment=VerticalAlignment.Center };
         var input = new TextBox { Style=(Style)FindResource("SettingsNumber"),Width=40,Text=slider.Value.ToString("0",CultureInfo.InvariantCulture),VerticalAlignment=VerticalAlignment.Center };
-        AutomationProperties.SetName(slider,title); AutomationProperties.SetName(input,Loc.T(title+"数值", title+" value"));
+        AutomationProperties.SetName(slider,title); AutomationProperties.SetName(input,title+" value");
         var units=TextLine(unit,10,TextTertiary);units.Margin=new Thickness(4,0,6,0);units.VerticalAlignment=VerticalAlignment.Center;
         var minus=new RepeatButton { Style=(Style)FindResource("SettingsStepper"),Content="−" };
         var plus=new RepeatButton { Style=(Style)FindResource("SettingsStepper"),Content="+" };
-        AutomationProperties.SetName(minus,Loc.T("减少"+title, "Decrease "+title));AutomationProperties.SetName(plus,Loc.T("增加"+title, "Increase "+title));
+        AutomationProperties.SetName(minus,"Decrease "+title);AutomationProperties.SetName(plus,"Increase "+title);
         // The framed box: the number, its unit, a divider and the steppers (NumberBox).
         var chip=NumberBox.Create(input,units,minus,plus,UI.Brush(Divider),UI.Brush(_palette.Input),UI.Brush(_palette.InputBorder));
         FieldFocus(chip, input, () => UI.Brush(_palette.InputBorder));
@@ -184,7 +184,7 @@ public sealed partial class SettingsWindow
         var heading = TextLine(title, 16, TextPrimary, FontWeights.SemiBold); heading.Margin = new Thickness(0, 0, 0, 10); panel.Children.Add(heading);
         var text = TextLine(message, 12.5, TextSecondary); text.TextWrapping = TextWrapping.Wrap; panel.Children.Add(text);
         bool confirmed = false;
-        var cancel = ActionButton(Loc.T("取消", "Cancel"), dialog.Close); cancel.Style = (Style)dialog.FindResource("SettingsOutlineButton"); cancel.IsCancel = true;
+        var cancel = ActionButton("Cancel", dialog.Close); cancel.Style = (Style)dialog.FindResource("SettingsOutlineButton"); cancel.IsCancel = true;
         var confirm = ActionButton(action, () => { confirmed = true; dialog.Close(); }); confirm.Style = (Style)dialog.FindResource(danger ? "SettingsDangerButton" : "SettingsPrimaryButton");
         foreach (var button in new[] { cancel, confirm }) { button.MinWidth = 84; button.Padding = new Thickness(14, 6, 14, 6); }
         confirm.Margin = new Thickness(8, 0, 0, 0);

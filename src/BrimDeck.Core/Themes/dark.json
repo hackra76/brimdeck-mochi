@@ -3,9 +3,9 @@
   // so it sets every color and effect.
   "formatVersion": 1,
   "id": "dark",
-  "name": "深色",
+  "name": "Dark",
   "nameEn": "Dark",
-  "description": "纯黑表面，与屏幕顶部的硬件刘海融为一体。",
+  "description": "A pure black surface that blends in with a hardware notch.",
   "descriptionEn": "A pure black surface that blends in with a hardware notch.",
   "author": "BrimDeck",
   "license": "Apache-2.0",
@@ -58,11 +58,11 @@
     "style": "minimal", "color": "default",
     "palette": { "amber": "#FF9F43", "cyan": "#5CE1E6", "pink": "#FF8FB1", "lime": "#E4FF6A" },
     "gradients": [
-      { "name": "日落", "nameEn": "Sunset", "stops": ["#FFB38A", "#FF7EB3", "#B69CFF"] },
-      { "name": "海洋", "nameEn": "Ocean", "stops": ["#7CF3FF", "#4FA8FF", "#6A6CFF"] },
-      { "name": "极光", "nameEn": "Aurora", "stops": ["#8BFFB0", "#5CE1E6", "#B69CFF"] },
-      { "name": "火焰", "nameEn": "Ember", "stops": ["#FFE27A", "#FF9F43", "#FF5E5E"] },
-      { "name": "霓虹", "nameEn": "Neon", "stops": ["#FF5CF0", "#A66BFF", "#5CE1E6"] }
+      { "name": "Sunset", "nameEn": "Sunset", "stops": ["#FFB38A", "#FF7EB3", "#B69CFF"] },
+      { "name": "Ocean", "nameEn": "Ocean", "stops": ["#7CF3FF", "#4FA8FF", "#6A6CFF"] },
+      { "name": "Aurora", "nameEn": "Aurora", "stops": ["#8BFFB0", "#5CE1E6", "#B69CFF"] },
+      { "name": "Ember", "nameEn": "Ember", "stops": ["#FFE27A", "#FF9F43", "#FF5E5E"] },
+      { "name": "Neon", "nameEn": "Neon", "stops": ["#FF5CF0", "#A66BFF", "#5CE1E6"] }
     ]
   },
   // The color picker's original twelve presets; other themes offer their own colors instead.

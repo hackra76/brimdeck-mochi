@@ -320,7 +320,7 @@ public static class KimiUsage
     { "" => null, "REGION_CN" => false, var region => region.StartsWith("REGION_", StringComparison.Ordinal) ? true : null };
     // The source text naming the service, as ZCode names Z.ai and Zhipu accounts.
     public static string Source(string product, bool global) =>
-        product + (global ? Loc.T(" · kimi.ai 账户", " · kimi.ai account") : Loc.T(" · kimi.com 账户", " · kimi.com account"));
+        product + (global ? " · kimi.ai account" : " · kimi.com account");
 
     public static string Plan(JsonElement root) => root.Get("user_level_name").Text().Trim() is { Length: > 0 and <= 40 } name ? name : "";
 

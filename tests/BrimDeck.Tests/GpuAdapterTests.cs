@@ -90,7 +90,7 @@ internal static class GpuAdapterTests
     {
         var discrete = new GpuSample(.05, 0UL) { EngineUsage = .05, VendorId = GpuDriverReadings.Nvidia, Kind = GpuKind.Discrete, Luid = Nvidia };
         var read = GpuDriverReadings.Apply(discrete, 31, 42.5);
-        check("GPU driver: the driver's usage is shown, Windows' kept beside it", read.Usage == .31 && read.EngineUsage == .05 && read.UsageSource == "NVIDIA 驱动" && read.DriverWatts == 42.5);
+        check("GPU driver: the driver's usage is shown, Windows' kept beside it", read.Usage == .31 && read.EngineUsage == .05 && read.UsageSource == "NVIDIA driver" && read.DriverWatts == 42.5);
         check("GPU driver: without a reading the busiest engine stays", GpuDriverReadings.Apply(discrete, null, null) == discrete
             && GpuDriverReadings.Apply(discrete, 250, null).Usage == 1);
         var windows = GpuDriverReadings.Apply(discrete, 31, 42.5, 61, GpuUsageSource.Windows);
@@ -98,7 +98,7 @@ internal static class GpuAdapterTests
             windows.Usage == .05 && windows.UsageSource is null && windows.DriverWatts == 42.5 && windows.DriverTemperature == 61);
         var integrated = discrete with { VendorId = GpuDriverReadings.Amd, Kind = GpuKind.Integrated };
         check("GPU driver: an integrated adapter's power is the processor's, never added again", GpuDriverReadings.Apply(integrated, 12, 8).DriverWatts is null
-            && GpuDriverReadings.Apply(integrated, 12, 8).UsageSource == "AMD 驱动");
+            && GpuDriverReadings.Apply(integrated, 12, 8).UsageSource == "AMD driver");
         check("GPU driver: a temperature is kept, a zero or absurd one is none", GpuDriverReadings.Apply(discrete, null, null, 61).DriverTemperature == 61
             && GpuDriverReadings.Apply(discrete, null, null, 0).DriverTemperature is null && GpuDriverReadings.Apply(discrete, null, null, 900).DriverTemperature is null);
         check("GPU driver: rates from growing counters", GpuDriverReadings.Rate(10, 100, 10.5, 101) == .5 && GpuDriverReadings.Rate(10, 100, 9, 101) is null

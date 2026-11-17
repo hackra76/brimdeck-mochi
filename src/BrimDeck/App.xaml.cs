@@ -176,8 +176,8 @@ public partial class App : Application
     private void UseLanguage()
     {
         Loc.Use(Settings.Language);
-        Resources["PinSourceName"] = Loc.T("固定显示", "Pin");
-        Resources["UnpinSourceName"] = Loc.T("取消固定", "Unpin");
+        Resources["PinSourceName"] = "Pin";
+        Resources["UnpinSourceName"] = "Unpin";
     }
     public void OpenSettings() => ShowSettings(false);
     // The clipboard page's menus open the settings at its own pages (SettingsWindow.ClipboardSettingsPage, TransferSettingsPage).
@@ -229,7 +229,7 @@ public partial class App : Application
             {
                 try { Secrets.Delete(previous.InstanceId); }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
-                { _settingsWindow?.SaveStatus(Loc.T("密钥文件无法更新，请检查本机设置目录后重试。", "The key file could not be updated. Check the local settings folder and try again."), true); return; }
+                { _settingsWindow?.SaveStatus("The key file could not be updated. Check the local settings folder and try again.", true); return; }
             }
         }
         bool dataChanged = settings.IncludeWsl != Settings.IncludeWsl || !settings.RequiredProviders.SetEquals(Settings.RequiredProviders) ||
@@ -485,7 +485,7 @@ public partial class App : Application
         {
             string? error = null;
             try { Store.Write(text); }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { error = Loc.T("保存失败，请检查设置目录权限。", "Saving failed. Check the permissions of the settings folder."); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { error = "Saving failed. Check the permissions of the settings folder."; }
             Dispatcher.BeginInvoke(() => { if (error is null) _settingsWindow?.SaveStatus(""); else _settingsWindow?.SaveStatus(error, true); });
         }, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
     }

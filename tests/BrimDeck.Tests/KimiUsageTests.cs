@@ -327,7 +327,7 @@ static class KimiUsageTests
         const string waiting = "使用 Kimi Code 后自动更新";
 
         var snapshot = await Refresh();
-        check("Without a sign-in Kimi Code asks to sign in and sends nothing", handler.Calls.Count == 0 && snapshot.StatusLabel == Loc.T("未连接", "Not connected") &&
+        check("Without a sign-in Kimi Code asks to sign in and sends nothing", handler.Calls.Count == 0 && snapshot.StatusLabel == "Not connected" &&
             snapshot.Entries.Count == 1 && snapshot.Entries[0].Model == "kimi-k3.1-pro");
 
         Directory.CreateDirectory(Path.GetDirectoryName(KimiUsage.Credentials(home))!);
@@ -400,7 +400,7 @@ static class KimiUsageTests
         Sign(now.AddMinutes(10));
         handler.Respond = _ => new HttpResponseMessage(HttpStatusCode.PaymentRequired) { Content = new StringContent("{}") };
         snapshot = await Refresh();
-        check("HTTP 402 means no Kimi Code plan, with no bars, and drops the kept quota", snapshot.Status == Loc.T("未订阅 Kimi Code 套餐", "No Kimi Code plan") &&
+        check("HTTP 402 means no Kimi Code plan, with no bars, and drops the kept quota", snapshot.Status == "No Kimi Code plan" &&
             snapshot.Metrics.Count == 0 && !File.Exists(cache));
         Sign(now.AddMinutes(-5));
         snapshot = await Refresh();
@@ -409,13 +409,13 @@ static class KimiUsageTests
         Sign(now.AddMinutes(10));
         handler.Respond = request => request.RequestUri!.AbsolutePath.EndsWith("/me", StringComparison.Ordinal) ? Reply("{}") : Reply("""{"usages":{}}""");
         snapshot = await Refresh();
-        check("An empty usages object means no plan", snapshot.Status == Loc.T("未订阅 Kimi Code 套餐", "No Kimi Code plan") && snapshot.Metrics.Count == 0);
+        check("An empty usages object means no plan", snapshot.Status == "No Kimi Code plan" && snapshot.Metrics.Count == 0);
         handler.Respond = _ => new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent("") };
         snapshot = await Refresh();
-        check("HTTP 404 with nothing kept reports the usage API as unavailable", snapshot.StatusLabel == Loc.T("暂不可用", "Unavailable") && snapshot.Metrics.Count == 0);
+        check("HTTP 404 with nothing kept reports the usage API as unavailable", snapshot.StatusLabel == "Unavailable" && snapshot.Metrics.Count == 0);
         handler.Respond = _ => new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent("") };
         snapshot = await Refresh();
-        check("Other failures with nothing kept use the shared status", snapshot.StatusLabel == Loc.T("暂不可用", "Unavailable") && snapshot.Metrics.Count == 0 && !snapshot.IsStale);
+        check("Other failures with nothing kept use the shared status", snapshot.StatusLabel == "Unavailable" && snapshot.Metrics.Count == 0 && !snapshot.IsStale);
 
         // A new sign-in reads the membership again; a failed read leaves the label out.
         Sign(now.AddMinutes(10), Jwt("user-3", "c"));
@@ -432,7 +432,7 @@ static class KimiUsageTests
             $$"""{"access_token":"{{value}}","refresh_token":"fixture-refresh","expires_at":{{expires.ToUnixTimeSeconds()}}}""");
         handler.Calls.Clear();
         snapshot = await Refresh();
-        check("A kimi.ai sign-in is not taken from kimi.com's sign-in file", handler.Calls.Count == 0 && snapshot.StatusLabel == Loc.T("未连接", "Not connected"));
+        check("A kimi.ai sign-in is not taken from kimi.com's sign-in file", handler.Calls.Count == 0 && snapshot.StatusLabel == "Not connected");
         SignGlobal(now.AddMinutes(-1), Jwt("user-3", "g"));
         snapshot = await Refresh();
         check("The reading kept for kimi.com is not shown for the same account on kimi.ai", handler.Calls.Count == 0 && snapshot.Metrics.Count == 0 && snapshot.StatusLabel == "等待更新");

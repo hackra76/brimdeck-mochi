@@ -50,10 +50,10 @@ internal sealed class ClockFace : FrameworkElement
 
     public static string Title(ClockStyle style) => style switch
     {
-        ClockStyle.Stacked => Loc.T("双行", "Two lines"), ClockStyle.Digits => Loc.T("叠放", "Stacked digits"), ClockStyle.Dots => Loc.T("点阵", "Dot matrix"),
-        ClockStyle.Segment => Loc.T("数码管", "Seven segment"), ClockStyle.Neon => Loc.T("霓虹", "Neon"), ClockStyle.Serif => Loc.T("衬线", "Serif"),
-        ClockStyle.Wide => Loc.T("宽体", "Wide"), ClockStyle.Condensed => Loc.T("窄体", "Condensed"), ClockStyle.Pixel => Loc.T("像素", "Pixel"),
-        ClockStyle.Rounded => Loc.T("圆润", "Rounded"), _ => Loc.T("简约", "Simple")
+        ClockStyle.Stacked => "Two lines", ClockStyle.Digits => "Stacked digits", ClockStyle.Dots => "Dot matrix",
+        ClockStyle.Segment => "Seven segment", ClockStyle.Neon => "Neon", ClockStyle.Serif => "Serif",
+        ClockStyle.Wide => "Wide", ClockStyle.Condensed => "Condensed", ClockStyle.Pixel => "Pixel",
+        ClockStyle.Rounded => "Rounded", _ => "Simple"
     };
     // The cover color is used when a song with a cover is playing; otherwise the clock takes the theme's clock color, which
     // "white" stands for. Every color is drawn as the theme can read it on its surface (see PanelTheme.Readable). Under high
@@ -145,8 +145,7 @@ internal sealed class ClockFace : FrameworkElement
                 // The time over the date and weekday, each line centred on the other.
                 var time1 = new Run(clock, Bold, 11.5);
                 var label = period is null ? (Run?)null : new Run(period, Plain, 9.5, Opacity: .62, Cells: false);
-                var date = new Run(Loc.IsEnglish ? time.ToString("ddd M/d", CultureInfo.GetCultureInfo("en-US"))
-                    : $"{time.Month}/{time.Day} 周{"日一二三四五六"[(int)time.DayOfWeek]}", Plain, 9, Opacity: .62, Cells: false);
+                var date = new Run(time.ToString("ddd M/d", CultureInfo.GetCultureInfo("en-US")), Plain, 9, Opacity: .62, Cells: false);
                 const double gap = 3;
                 double first = RunWidth(time1) + (label is { } l ? RunWidth(l) + gap : 0), second = RunWidth(date), width = Math.Max(first, second);
                 double baseline = Baseline(time1, 6.5);

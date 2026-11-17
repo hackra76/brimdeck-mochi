@@ -26,7 +26,7 @@ public static class DshUsage
         using (var stream = SharedFile.Open(path))
         using (var reader = new StreamReader(stream, Encoding.UTF8)) text = reader.ReadToEnd();
         var root = Yaml.Parse(text);
-        if (Yaml.Find(root, "version") != "1") throw new InvalidDataException(Loc.T("DeepSeek Harness 凭据格式无法识别。", "The DeepSeek Harness credential format is not recognized."));
+        if (Yaml.Find(root, "version") != "1") throw new InvalidDataException("The DeepSeek Harness credential format is not recognized.");
         // DeepSeek Harness discards a grant issued by another origin, so only one from the public platform is used.
         var grant = Yaml.Find(root, "records", "deepseek-account-platform/default", "payload", "token");
         if (Yaml.Find(root, "records", "deepseek-account-platform/default", "kind") != "grant" ||

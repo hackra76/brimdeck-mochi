@@ -261,13 +261,13 @@ public static class GpuChoice
 
     public static string KindName(GpuKind kind) => kind switch
     {
-        GpuKind.Discrete => Loc.T("独显", "Discrete"), GpuKind.Integrated => Loc.T("核显", "Integrated"), _ => ""
+        GpuKind.Discrete => "Discrete", GpuKind.Integrated => "Integrated", _ => ""
     };
     // "NVIDIA GeForce RTX 4060 Laptop GPU (dGPU)", for lists and tooltips.
     public static string Describe(string? name, GpuKind kind)
     {
         string shown = name is { Length: > 0 } ? name : "GPU", word = KindName(kind);
-        return word.Length == 0 ? shown : Loc.T($"{shown}（{word}）", $"{shown} ({word})");
+        return word.Length == 0 ? shown : $"{shown} ({word})";
     }
 }
 

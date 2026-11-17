@@ -84,7 +84,7 @@ public partial class MainWindow
     private PowerOptions PowerBlockFor(bool animate) => Native.BatteryProvider.SystemHasBattery
         ? new(PowerStyle.For(MonitorThemeColors.For(Settings)), BatteryModel.LowPercent, true, Native.BatteryProvider.Quick(), animate)
         : new(PowerStyle.For(MonitorThemeColors.For(Settings)), BatteryModel.LowPercent, false, default, animate);
-    private static MonitorSnapshot WaitingSnapshot => MonitorSnapshot.Empty(Environment.ProcessorCount, Loc.T("正在读取", "Reading"));
+    private static MonitorSnapshot WaitingSnapshot => MonitorSnapshot.Empty(Environment.ProcessorCount, "Reading");
 
     private bool MonitorMotion => Settings.Animations && SystemParameters.ClientAreaAnimation;
 

@@ -9,12 +9,12 @@ internal static class MonitorSpeechTests
         var language = Loc.Language;
         try
         {
-            Loc.Use(Loc.Chinese);
-            check("GPU block reads its usage and memory", MonitorSpeech.GpuBlock(.12, .18, "x", "切换为以 GPU 为主") == "GPU 占用块：占用 12% · 显存 18%，切换为以 GPU 为主");
-            check("GPU block reads a real zero as zero", MonitorSpeech.GpuBlock(0, null, "x", "切换") == "GPU 占用块：占用 0%，切换");
-            check("GPU block without a reading says why, not zero", MonitorSpeech.GpuBlock(null, null, "暂无读数：计数器不可用", "切换") == "GPU 占用块：暂无读数：计数器不可用，切换");
-            check("GPU block without a reading ignores a stale memory figure", !MonitorSpeech.GpuBlock(null, .5, "暂无读数", "切换").Contains("显存"));
-            check("GPU block without a reading or a note still says there is none", MonitorSpeech.GpuBlock(null, null, "", "切换") == "GPU 占用块：暂无读数，切换");
+            Loc.Use(Loc.English);
+            check("GPU block reads its usage and memory", MonitorSpeech.GpuBlock(.12, .18, "x", "Switch to GPU primary") == "GPU block: usage 12% · VRAM 18%, Switch to GPU primary");
+            check("GPU block reads a real zero as zero", MonitorSpeech.GpuBlock(0, null, "x", "Switch") == "GPU block: usage 0%, Switch");
+            check("GPU block without a reading says why, not zero", MonitorSpeech.GpuBlock(null, null, "No reading: counter unavailable", "Switch") == "GPU block: No reading: counter unavailable, Switch");
+            check("GPU block without a reading ignores a stale memory figure", !MonitorSpeech.GpuBlock(null, .5, "No reading", "Switch").Contains("VRAM"));
+            check("GPU block without a reading or a note still says there is none", MonitorSpeech.GpuBlock(null, null, "", "Switch") == "GPU block: No reading, Switch");
         }
         finally { Loc.Use(language); }
     }

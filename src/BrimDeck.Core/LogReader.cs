@@ -84,17 +84,17 @@ public sealed class LogReader
             _merged[id] = merged = (cutoff, entries.Values.OrderBy(x => x.Time).ToList());
         }
         result.Entries = merged.Entries;
-        var where = place ?? Loc.T("本机", "This PC");
-        result.UsageNote = result.UsageAvailable ? Loc.T($"{where} {cutoff.LocalDateTime:yyyy-MM-dd} 起 · {count} 个记录文件", $"{where} since {cutoff.LocalDateTime:yyyy-MM-dd} · " + Loc.Count(count, "record file", "record files"))
-            : Loc.T("未找到本机会话记录。", "No local session records were found.");
+        var where = place ?? "This PC";
+        result.UsageNote = result.UsageAvailable ? $"{where} since {cutoff.LocalDateTime:yyyy-MM-dd} · " + Loc.Count(count, "record file", "record files")
+            : "No local session records were found.";
         result.UsageComplete = errors == 0;
-        if (errors > 0) result.UsageNote += Loc.T($" · {errors} 处记录未能读取", " · " + Loc.Count(errors, "record", "records") + " could not be read");
+        if (errors > 0) result.UsageNote += " · " + Loc.Count(errors, "record", "records") + " could not be read";
         if (latestQuota.ValueKind == JsonValueKind.Object)
         {
             result.Quotas = QuotaParser.Codex(latestQuota, result.QuotaTime ?? now, false);
             result.Plan = latestQuota.Get("plan_type").Text();
-            result.Source = Loc.T("本地配额快照", "Local quota snapshot");
-            result.Status = Loc.T("本地记录", "Local records");
+            result.Source = "Local quota snapshot";
+            result.Status = "Local records";
         }
         return result;
     }
@@ -311,7 +311,9 @@ public static class QuotaParser
                 var window = bucket.Get("window").Text().ToLowerInvariant();
                 var bucketTitle = bucket.Get("displayName").Text();
 
-                string resolvedGroup = groupName.Length > 0 ? groupName : InferAntigravityGroupFromBucket(id);
+                string resolvedGroup = id.Contains("argon", StringComparison.OrdinalIgnoreCase)
+                    ? "Argon"
+                    : (groupName.Length > 0 ? groupName : InferAntigravityGroupFromBucket(id));
                 string windowLabel = window switch
                 {
                     "5h" => "5-hour",

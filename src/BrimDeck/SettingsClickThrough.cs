@@ -12,18 +12,16 @@ public sealed partial class SettingsWindow
 
     private FrameworkElement ClickThroughRows()
     {
-        var clickable = Toggle(Loc.T("展开后的面板可以点击", "Expanded panel takes clicks"), S.ClickThroughPanel, value => Change(s => s.ClickThroughPanel = value),
-            help: Loc.T("开启后，展开的面板可以正常点击，鼠标进入再离开后收起。关闭时，面板不接收鼠标，一直保持展开，直到再按快捷键或 Esc 收起。",
-                "When on, the expanded panel takes clicks as usual and collapses once the pointer has entered and left it. When off, it takes no mouse input and stays open until a shortcut or Esc collapses it."));
+        var clickable = Toggle("Expanded panel takes clicks", S.ClickThroughPanel, value => Change(s => s.ClickThroughPanel = value),
+            help: "When on, the expanded panel takes clicks as usual and collapses once the pointer has entered and left it. When off, it takes no mouse input and stays open until a shortcut or Esc collapses it.");
         var more = new StackPanel { Visibility = S.ClickThrough ? Visibility.Visible : Visibility.Collapsed };
         more.Children.Add(new Border { Height = 1, Background = UI.Brush(_palette.RowDivider) });
         more.Children.Add(clickable);
-        var main = Toggle(Loc.T("鼠标穿透模式", "Mouse pass-through"), S.ClickThrough, value =>
+        var main = Toggle("Mouse pass-through", S.ClickThrough, value =>
         {
             if (S.ClickThrough != value) Change(s => s.ClickThrough = value);
             more.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
-        }, help: Loc.T("开启后，鼠标经过不会展开面板，点击会直接落到下方窗口，适合玩游戏时使用。快捷键在“设置 › 快捷键”中设置。",
-            "When on, the pointer passing over does not expand the panel and clicks go to the window beneath, which suits games. Set shortcuts in Settings › Shortcuts."));
+        }, help: "When on, the pointer passing over does not expand the panel and clicks go to the window beneath, which suits games. Set shortcuts in Settings › Shortcuts.");
         _clickThroughBox = ((Panel)main).Children.OfType<CheckBox>().FirstOrDefault();
         var group = new StackPanel();
         group.Children.Add(main); group.Children.Add(more);

@@ -154,35 +154,35 @@ internal static class UI
     // Null when there is nothing to add to the amount itself, so the cost shows no tooltip.
     public static string? CostNote(CostSummary cost, Pricing pricing)
     {
-        if (!cost.HasValue && cost.Unpriced == 0) return Loc.T("无用量记录", "No usage records");
-        if (!cost.HasValue && cost.Unpriced > 0) return pricing.LastError ?? Loc.T("未匹配到完整价格", "Prices could not be matched for every record");
+        if (!cost.HasValue && cost.Unpriced == 0) return "No usage records";
+        if (!cost.HasValue && cost.Unpriced > 0) return pricing.LastError ?? "Prices could not be matched for every record";
         var lines = new List<string>();
         if (cost.IsEstimate && pricing.UpdatedAt is { } time)
-            lines.Add(Loc.T($"价格更新 {time.LocalDateTime:MM-dd HH:mm}", $"Prices updated {time.LocalDateTime:MM-dd HH:mm}") +
-                (pricing.IsStale || pricing.LastError is not null ? Loc.T(" · 缓存", " · cached") : ""));
-        if (cost.Fitted > 0) lines.Add(Loc.T($"{cost.Fitted} 条记录的费用按每周已用金额分摊", Loc.Count(cost.Fitted, "record shares", "records share") + " the weekly amount used"));
-        if (cost.Unpriced > 0) lines.Add(Loc.T($"{cost.Unpriced} 条记录未计价", Loc.Count(cost.Unpriced, "record has", "records have") + " no price"));
+            lines.Add($"Prices updated {time.LocalDateTime:MM-dd HH:mm}" +
+                (pricing.IsStale || pricing.LastError is not null ? " · cached" : ""));
+        if (cost.Fitted > 0) lines.Add(Loc.Count(cost.Fitted, "record shares", "records share") + " the weekly amount used");
+        if (cost.Unpriced > 0) lines.Add(Loc.Count(cost.Unpriced, "record has", "records have") + " no price");
         return lines.Count == 0 ? null : string.Join("\n", lines);
     }
     public static string Reset(DateTimeOffset? date)
     {
-        if (date is null) return Loc.T("重置时间未知", "Reset time unknown");
+        if (date is null) return "Reset time unknown";
         var remaining = date.Value - DateTimeOffset.Now;
-        if (remaining <= TimeSpan.Zero) return Loc.T("已到重置时间，等待更新", "Reset time reached; waiting for an update");
-        if (remaining.TotalDays >= 1) return Loc.T($"{(int)remaining.TotalDays} 天 {remaining.Hours} 小时后重置", $"Resets in {(int)remaining.TotalDays} d {remaining.Hours} h");
-        if (remaining.TotalHours >= 1) return Loc.T($"{remaining.Hours} 小时 {remaining.Minutes} 分后重置", $"Resets in {remaining.Hours} h {remaining.Minutes} min");
+        if (remaining <= TimeSpan.Zero) return "Reset time reached; waiting for an update";
+        if (remaining.TotalDays >= 1) return $"Resets in {(int)remaining.TotalDays} d {remaining.Hours} h";
+        if (remaining.TotalHours >= 1) return $"Resets in {remaining.Hours} h {remaining.Minutes} min";
         int minutes = Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes));
-        return Loc.T($"{minutes} 分钟后重置", $"Resets in {minutes} min");
+        return $"Resets in {minutes} min";
     }
     public static string ShortReset(DateTimeOffset? date)
     {
         if (date is null) return "";
         var remaining = date.Value - DateTimeOffset.Now;
-        if (remaining <= TimeSpan.Zero) return Loc.T("待重置", "Reset due");
-        if (remaining.TotalDays >= 1) return Loc.T($"{(int)remaining.TotalDays} 天 {remaining.Hours} 时后", $"in {(int)remaining.TotalDays}d {remaining.Hours}h");
-        if (remaining.TotalHours >= 1) return Loc.T($"{remaining.Hours} 时 {remaining.Minutes} 分后", $"in {remaining.Hours}h {remaining.Minutes}m");
+        if (remaining <= TimeSpan.Zero) return "Reset due";
+        if (remaining.TotalDays >= 1) return $"in {(int)remaining.TotalDays}d {remaining.Hours}h";
+        if (remaining.TotalHours >= 1) return $"in {remaining.Hours}h {remaining.Minutes}m";
         int minutes = Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes));
-        return Loc.T($"{minutes} 分后", $"in {minutes}m");
+        return $"in {minutes}m";
     }
     // "Gemini · 5 " → group "Gemini", which orders the quota pages. The group stays in the data's words.
     public static string QuotaGroup(Quota quota) => quota.Label.Contains('·') ? quota.Label.Split('·')[0].Trim() : "";

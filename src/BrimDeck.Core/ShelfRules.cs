@@ -58,12 +58,12 @@ public static class ShelfRules
         {
             return error.Error switch
             {
-                RegexParseError.InsufficientClosingParentheses => Loc.T("缺少右括号。", "A closing parenthesis is missing."),
-                RegexParseError.InsufficientOpeningParentheses => Loc.T("右括号多于左括号。", "There are more closing parentheses than opening ones."),
-                RegexParseError.UnterminatedBracket => Loc.T("缺少右方括号。", "A closing bracket is missing."),
-                RegexParseError.QuantifierAfterNothing => Loc.T("数量符号前面没有内容。", "A quantifier has nothing before it."),
-                RegexParseError.UnescapedEndingBackslash => Loc.T("末尾的反斜杠需要再写一个。", "The backslash at the end needs another one."),
-                _ => Loc.T($"第 {error.Offset} 个字符处有误。", $"There is a mistake at character {error.Offset}.")
+                RegexParseError.InsufficientClosingParentheses => "A closing parenthesis is missing.",
+                RegexParseError.InsufficientOpeningParentheses => "There are more closing parentheses than opening ones.",
+                RegexParseError.UnterminatedBracket => "A closing bracket is missing.",
+                RegexParseError.QuantifierAfterNothing => "A quantifier has nothing before it.",
+                RegexParseError.UnescapedEndingBackslash => "The backslash at the end needs another one.",
+                _ => $"There is a mistake at character {error.Offset}."
             };
         }
     }
@@ -210,23 +210,23 @@ public static class ShelfRules
     // ---- Names, for the editor and the summary ----
     public static string Name(RuleField field) => field switch
     {
-        RuleField.Kind => Loc.T("内容类型", "Kind"), RuleField.Text => Loc.T("文字", "Text"), RuleField.Site => Loc.T("链接网站", "Link site"),
-        RuleField.Source => Loc.T("来源应用", "Source app"), RuleField.FileType => Loc.T("文件类型", "File type"), RuleField.Extension => Loc.T("扩展名", "Extension"),
-        RuleField.FileName => Loc.T("文件名", "File name"), _ => Loc.T("所在文件夹", "Folder")
+        RuleField.Kind => "Kind", RuleField.Text => "Text", RuleField.Site => "Link site",
+        RuleField.Source => "Source app", RuleField.FileType => "File type", RuleField.Extension => "Extension",
+        RuleField.FileName => "File name", _ => "Folder"
     };
     public static string Name(RuleTest test) => test switch
     {
-        RuleTest.Contains => Loc.T("包含", "contains"), RuleTest.StartsWith => Loc.T("开头是", "starts with"), RuleTest.EndsWith => Loc.T("结尾是", "ends with"),
-        RuleTest.Format => Loc.T("是", "is"), _ => Loc.T("符合正则", "matches regex")
+        RuleTest.Contains => "contains", RuleTest.StartsWith => "starts with", RuleTest.EndsWith => "ends with",
+        RuleTest.Format => "is", _ => "matches regex"
     };
     public static string Name(ClipKind kind) => kind switch
     {
-        ClipKind.Link => Loc.T("链接", "Link"), ClipKind.Code => Loc.T("代码", "Code"), ClipKind.Color => Loc.T("颜色", "Color"), ClipKind.Image => Loc.T("图片", "Picture"), _ => Loc.T("文字", "Text")
+        ClipKind.Link => "Link", ClipKind.Code => "Code", ClipKind.Color => "Color", ClipKind.Image => "Picture", _ => "Text"
     };
     public static string Name(TextFormat format) => format switch
     {
-        TextFormat.Email => Loc.T("邮箱地址", "Email address"), TextFormat.Phone => Loc.T("手机号码", "Mobile number"), TextFormat.Path => Loc.T("文件路径", "File path"),
-        TextFormat.IpAddress => Loc.T("IP 地址", "IP address"), TextFormat.Number => Loc.T("纯数字", "Number"), _ => Loc.T("Git 提交号", "Git commit")
+        TextFormat.Email => "Email address", TextFormat.Phone => "Mobile number", TextFormat.Path => "File path",
+        TextFormat.IpAddress => "IP address", TextFormat.Number => "Number", _ => "Git commit"
     };
     public static string Example(TextFormat format) => format switch
     {
@@ -235,35 +235,35 @@ public static class ShelfRules
     };
     public static string Name(FileKind kind) => kind switch
     {
-        FileKind.Folder => Loc.T("文件夹", "Folder"), FileKind.Image => Loc.T("图片", "Image"), FileKind.Document => Loc.T("文档", "Document"),
-        FileKind.Spreadsheet => Loc.T("表格", "Spreadsheet"), FileKind.Presentation => Loc.T("演示文稿", "Presentation"), FileKind.Pdf => "PDF",
-        FileKind.Archive => Loc.T("压缩包", "Archive"), FileKind.Installer => Loc.T("安装包", "Installer"), FileKind.Video => Loc.T("视频", "Video"),
-        FileKind.Audio => Loc.T("音频", "Audio"), _ => Loc.T("代码", "Code")
+        FileKind.Folder => "Folder", FileKind.Image => "Image", FileKind.Document => "Document",
+        FileKind.Spreadsheet => "Spreadsheet", FileKind.Presentation => "Presentation", FileKind.Pdf => "PDF",
+        FileKind.Archive => "Archive", FileKind.Installer => "Installer", FileKind.Video => "Video",
+        FileKind.Audio => "Audio", _ => "Code"
     };
 
     // One line for the category's row: each condition said on its own ("Image or link", "From chrome"), joined by "or" or "and".
     public static string Summary(ShelfRule rule, ShelfSide side)
     {
         var parts = Used(rule, side).Select(Describe).ToList();
-        return string.Join(rule.Match == RuleMatch.All ? Loc.T("，且", "; and ") : Loc.T("，或", "; or "), parts);
+        return string.Join(rule.Match == RuleMatch.All ? "; and " : "; or ", parts);
     }
     static string Describe(RuleCondition c)
     {
-        string or = Loc.T("或", " or ");
-        string Quote(string text) => Loc.T($"“{text}”", $"\"{text}\"");
-        string list = string.Join(Loc.T("、", ", "), Items(c.Value));
-        string Apps() => string.Join(Loc.T("、", ", "), Items(c.Value).Select(ClipboardExclusions.ProcessName));
+        string or = " or ";
+        string Quote(string text) => $"\"{text}\"";
+        string list = string.Join(", ", Items(c.Value));
+        string Apps() => string.Join(", ", Items(c.Value).Select(ClipboardExclusions.ProcessName));
         return c.Field switch
         {
             RuleField.Kind => string.Join(or, c.Values.Select(v => Enum.TryParse<ClipKind>(v, out var k) ? Name(k) : v)),
             RuleField.FileType => string.Join(or, c.Values.Select(v => Enum.TryParse<FileKind>(v, out var k) ? Name(k) : v)),
-            RuleField.Site => Loc.T($"{list} 的链接", $"links to {list}"),
-            RuleField.Source => Loc.T($"来自 {Apps()}", $"from {Apps()}"),
+            RuleField.Site => $"links to {list}",
+            RuleField.Source => $"from {Apps()}",
             RuleField.Extension => list,
-            RuleField.Folder => Loc.T($"在 {c.Value.Trim()} 中", $"in {c.Value.Trim()}"),
+            RuleField.Folder => $"in {c.Value.Trim()}",
             _ when c.Test == RuleTest.Format => Enum.TryParse<TextFormat>(c.Value, out var f) ? Name(f) : c.Value,
-            _ when c.Test == RuleTest.Regex => Loc.T($"{Name(c.Field)}符合 {c.Value}", $"{Name(c.Field)} matches {c.Value}"),
-            _ => Loc.T($"{Name(c.Field)}{Name(c.Test)}{Quote(c.Value)}", $"{Name(c.Field)} {Name(c.Test)} {Quote(c.Value)}")
+            _ when c.Test == RuleTest.Regex => $"{Name(c.Field)} matches {c.Value}",
+            _ => $"{Name(c.Field)} {Name(c.Test)} {Quote(c.Value)}"
         };
     }
 }

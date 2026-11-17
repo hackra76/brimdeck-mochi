@@ -9,10 +9,10 @@ public static class MonitorSpeech
     // when it says what the tooltip's first line says (note: "：…") and never a usage of zero; vram: the memory line, if drawn.
     public static string GpuBlock(double? usage, double? vram, string note, string action)
     {
-        string head = Loc.T("GPU 占用块：", "GPU block: ");
+        string head = "GPU block: ";
         string body = usage is { } used
-            ? Loc.T("占用 ", "usage ") + MonitorFormat.Percent(used) + "%" + (vram is { } memory ? Loc.T(" · 显存 ", " · VRAM ") + MonitorFormat.Percent(memory) + "%" : "")
-            : note.Length > 0 ? note : Loc.T("暂无读数", "No reading");
-        return head + body + Loc.T("，", ", ") + action;
+            ? "usage " + MonitorFormat.Percent(used) + "%" + (vram is { } memory ? " · VRAM " + MonitorFormat.Percent(memory) + "%" : "")
+            : note.Length > 0 ? note : "No reading";
+        return head + body + ", " + action;
     }
 }

@@ -504,19 +504,19 @@ internal sealed class MonitorStrip : FrameworkElement
             switch (item)
             {
                 case CompactMonitorItems.Cpu when s?.Cpu.OrDefault is { } cpu: parts.Add("CPU " + MonitorFormat.Percent(cpu.Usage) + "%"); break;
-                case CompactMonitorItems.Memory when s?.Memory.OrDefault is { } memory: parts.Add(Loc.T("内存 ", "Memory ") + MonitorFormat.Percent(memory.UsedFraction) + "%"); break;
+                case CompactMonitorItems.Memory when s?.Memory.OrDefault is { } memory: parts.Add("Memory " + MonitorFormat.Percent(memory.UsedFraction) + "%"); break;
                 case CompactMonitorItems.Gpu when s?.Gpu.OrDefault is { NoReadings: false } gpu: parts.Add("GPU " + MonitorFormat.Percent(gpu.Usage) + "%"); break;
-                case CompactMonitorItems.Download when s?.Network.OrDefault is { } down: parts.Add(Loc.T("下载 ", "Download ") + MonitorFormat.Rate(down.DownBytesPerSecond).Text); break;
-                case CompactMonitorItems.Upload when s?.Network.OrDefault is { } up: parts.Add(Loc.T("上传 ", "Upload ") + MonitorFormat.Rate(up.UpBytesPerSecond).Text); break;
+                case CompactMonitorItems.Download when s?.Network.OrDefault is { } down: parts.Add("Download " + MonitorFormat.Rate(down.DownBytesPerSecond).Text); break;
+                case CompactMonitorItems.Upload when s?.Network.OrDefault is { } up: parts.Add("Upload " + MonitorFormat.Rate(up.UpBytesPerSecond).Text); break;
                 case CompactMonitorItems.Power when s?.Power.OrDefault is { } power:
-                    parts.Add(Loc.T("整机功耗 ", "System power ") + PowerText.Watts(power.Watts) + Loc.T("，", ", ") + (power.Estimated ? Loc.T("估算", "estimated") : Loc.T("实测", "measured"))); break;
-                case CompactMonitorItems.Frames when FrameOf(s) is { } frames: parts.Add(Loc.T("帧率 ", "Frame rate ") + FramesFigure(frames.PerSecond) + " FPS" + Loc.T("，", ", ") + frames.Program); break;
+                    parts.Add("System power " + PowerText.Watts(power.Watts) + ", " + (power.Estimated ? "estimated" : "measured")); break;
+                case CompactMonitorItems.Frames when FrameOf(s) is { } frames: parts.Add("Frame rate " + FramesFigure(frames.PerSecond) + " FPS" + ", " + frames.Program); break;
                 case CompactMonitorItems.Charge when s?.Battery.OrDefault is { } own:
-                    parts.Add(Loc.T("本机电池 ", "This PC's battery ") + PowerText.Percent(own.Percent) + Loc.T("，", ", ") + PowerText.State(own) + LevelWords(BatteryModel.Level(own, BatteryModel.LowPercent))); break;
+                    parts.Add("This PC's battery " + PowerText.Percent(own.Percent) + ", " + PowerText.State(own) + LevelWords(BatteryModel.Level(own, BatteryModel.LowPercent))); break;
             }
         }
-        return string.Join(Loc.T("；", "; "), parts);
+        return string.Join("; ", parts);
     }
     private static string LevelWords(MemoryLevel level) => level switch
-    { MemoryLevel.Critical => Loc.T("，低电量", ", low"), MemoryLevel.Elevated => Loc.T("，电量偏低", ", getting low"), _ => "" };
+    { MemoryLevel.Critical => ", low", MemoryLevel.Elevated => ", getting low", _ => "" };
 }

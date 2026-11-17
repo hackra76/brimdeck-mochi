@@ -10,9 +10,9 @@
   // The motifs are drawn, not pictures: no image ships with the theme.
   "formatVersion": 1,
   "id": "island-holiday-2",
-  "name": "海岛假日 2",
+  "name": "Island Holiday 2",
   "nameEn": "Island Holiday 2",
-  "description": "海岛明信片：白天是晴空、泻湖海面上的粼粼水光与棕榈叶影，海岸线描边、圆润的珊瑚色时钟、芒果色指示条；夜晚是月光下的深青海面与岛下的海光，按本地时间自动渐变切换。",
+  "description": "An island postcard: a clear sky over a lagoon with sunlit ripples and a palm's shade by day, with a shoreline rim, a round coral clock and a mango indicator; a moonlit dark teal sea with a soft glow under the island by night, fading over by the local clock.",
   "descriptionEn": "An island postcard: a clear sky over a lagoon with sunlit ripples and a palm's shade by day, with a shoreline rim, a round coral clock and a mango indicator; a moonlit dark teal sea with a soft glow under the island by night, fading over by the local clock.",
   "author": "BrimDeck",
   "license": "Apache-2.0",
@@ -66,11 +66,11 @@
     "style": "rounded", "color": "default",
     "palette": { "amber": "#744500", "cyan": "#075960", "pink": "#8C2C54", "lime": "#3A5800" },
     "gradients": [
-      { "name": "日落", "nameEn": "Sunset", "stops": ["#86390C", "#8C2C54", "#5838AD"] },
-      { "name": "海洋", "nameEn": "Ocean", "stops": ["#075960", "#184E9C", "#4A3BB5"] },
-      { "name": "极光", "nameEn": "Aurora", "stops": ["#225B25", "#075960", "#184E9C"] },
-      { "name": "火焰", "nameEn": "Ember", "stops": ["#744500", "#86390C", "#922A1F"] },
-      { "name": "霓虹", "nameEn": "Neon", "stops": ["#8A237C", "#5838AD", "#075960"] }
+      { "name": "Sunset", "nameEn": "Sunset", "stops": ["#86390C", "#8C2C54", "#5838AD"] },
+      { "name": "Ocean", "nameEn": "Ocean", "stops": ["#075960", "#184E9C", "#4A3BB5"] },
+      { "name": "Aurora", "nameEn": "Aurora", "stops": ["#225B25", "#075960", "#184E9C"] },
+      { "name": "Ember", "nameEn": "Ember", "stops": ["#744500", "#86390C", "#922A1F"] },
+      { "name": "Neon", "nameEn": "Neon", "stops": ["#8A237C", "#5838AD", "#075960"] }
     ]
   },
   "effects": {
@@ -139,11 +139,11 @@
     "clock": {
       "palette": { "amber": "#FFC06B", "cyan": "#6FE8E0", "pink": "#FF9EC4", "lime": "#D9FF86" },
       "gradients": [
-        { "name": "日落", "nameEn": "Sunset", "stops": ["#FFD27A", "#FFA08F", "#FF99C6"] },
-        { "name": "海洋", "nameEn": "Ocean", "stops": ["#7CF2E8", "#6FC6FF", "#B3B2FF"] },
-        { "name": "极光", "nameEn": "Aurora", "stops": ["#93FFB8", "#6FE8E0", "#B3B2FF"] },
-        { "name": "火焰", "nameEn": "Ember", "stops": ["#FFE18A", "#FFC06B", "#FFA095"] },
-        { "name": "霓虹", "nameEn": "Neon", "stops": ["#FF93EE", "#C2ADFF", "#6FE8E0"] }
+        { "name": "Sunset", "nameEn": "Sunset", "stops": ["#FFD27A", "#FFA08F", "#FF99C6"] },
+        { "name": "Ocean", "nameEn": "Ocean", "stops": ["#7CF2E8", "#6FC6FF", "#B3B2FF"] },
+        { "name": "Aurora", "nameEn": "Aurora", "stops": ["#93FFB8", "#6FE8E0", "#B3B2FF"] },
+        { "name": "Ember", "nameEn": "Ember", "stops": ["#FFE18A", "#FFC06B", "#FFA095"] },
+        { "name": "Neon", "nameEn": "Neon", "stops": ["#FF93EE", "#C2ADFF", "#6FE8E0"] }
       ]
     },
     "effects": {

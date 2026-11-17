@@ -101,10 +101,10 @@ public static class OpenCodeUsage
     public static void Read(ProviderSnapshot snapshot, IDesktopSources desktop, string database, DateTimeOffset start, DateTimeOffset now)
     {
         snapshot.UsageAvailable = File.Exists(database);
-        if (!snapshot.UsageAvailable) { snapshot.UsageNote = Loc.T("未找到本机 OpenCode 记录。", "No local OpenCode records were found."); return; }
+        if (!snapshot.UsageAvailable) { snapshot.UsageNote = "No local OpenCode records were found."; return; }
         var tables = desktop.QueryDatabase(database, "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('session_message', 'message')")?
             .Select(row => row[0]).ToHashSet();
-        if (tables is null) { snapshot.UsageComplete = false; snapshot.UsageNote = Loc.T("OpenCode 记录暂时无法读取。", "The OpenCode records cannot be read right now."); return; }
+        if (tables is null) { snapshot.UsageComplete = false; snapshot.UsageNote = "The OpenCode records cannot be read right now."; return; }
         var since = start.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture);
         const string Fields = "id, session_id, time_created, json_extract(data, '$.model.id'), json_extract(data, '$.modelID'), json_extract(data, '$.tokens.input'), " +
             "json_extract(data, '$.tokens.cache.read'), json_extract(data, '$.tokens.cache.write'), json_extract(data, '$.tokens.output'), json_extract(data, '$.tokens.reasoning'), json_extract(data, '$.cost')";
@@ -121,9 +121,8 @@ public static class OpenCodeUsage
         snapshot.Entries = Parse(rows).Where(e => e.Time >= start && e.Time <= now && e.Total > 0).OrderBy(e => e.Time).ToList();
         snapshot.UsageComplete = complete;
         int sessions = rows.Where(row => row.Length > 1 && row[1] is not null).Select(row => row[1]).Distinct().Count();
-        snapshot.UsageNote = Loc.T($"本机 OpenCode {start.LocalDateTime:yyyy-MM-dd} 起 · {sessions} 个会话 · {snapshot.Entries.Count} 次模型请求",
-            $"Local OpenCode since {start.LocalDateTime:yyyy-MM-dd} · " + Loc.Count(sessions, "session", "sessions") + " · " + Loc.Count(snapshot.Entries.Count, "model request", "model requests"));
-        if (!complete) snapshot.UsageNote += Loc.T(" · 部分记录未能读取", " · Some records could not be read");
+        snapshot.UsageNote = $"Local OpenCode since {start.LocalDateTime:yyyy-MM-dd} · " + Loc.Count(sessions, "session", "sessions") + " · " + Loc.Count(snapshot.Entries.Count, "model request", "model requests");
+        if (!complete) snapshot.UsageNote += " · Some records could not be read";
     }
 
     // Rows of: id, session, time (ms), model (2.x), model (1.x), input, cache read, cache write, output, reasoning, cost.

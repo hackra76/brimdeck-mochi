@@ -164,7 +164,7 @@ public partial class MainWindow
             Canvas.SetTop(ring, line * (layout.RingSize + gap));
             canvas.Children.Add(ring);
         }
-        System.Windows.Automation.AutomationProperties.SetName(canvas, Loc.T("配额环 ", "Quota rings ") + canvas.ToolTip);
+        System.Windows.Automation.AutomationProperties.SetName(canvas, "Quota rings " + canvas.ToolTip);
         return canvas;
     }
 

@@ -130,8 +130,8 @@ public partial class MainWindow
         ClockLabel.Text = DateTime.Now.ToString("HH:mm");
         // The gear shows a tooltip only while it carries the update notice.
         var updates = _app.Updates;
-        SettingsButton.ToolTip = updates.NoticeVersion is { } version ? Loc.T($"新版本 {version} 可用", $"Version {version} is available")
-            : updates.UpdatedFrom is not null ? Loc.T($"已更新到 {updates.CurrentVersion}，点击查看更新内容", $"Updated to {updates.CurrentVersion}. Click to see what's new") : null;
+        SettingsButton.ToolTip = updates.NoticeVersion is { } version ? $"Version {version} is available"
+            : updates.UpdatedFrom is not null ? $"Updated to {updates.CurrentVersion}. Click to see what's new" : null;
     }
 
     // How the next rebuild of the usage page takes over (PageHandover); the action that changes the page's form sets it.
@@ -217,8 +217,8 @@ public partial class MainWindow
         {
             _usageForm = "empty";
             var empty = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-            empty.Children.Add(UI.Fixed(Settings.UsagePage ? Loc.T("未选择应用", "No apps selected") : Loc.T("AI 用量已关闭", "AI usage is off"), 14, 20, UI.Secondary));
-            var openText = Loc.T("打开设置", "Open settings");
+            empty.Children.Add(UI.Fixed(Settings.UsagePage ? "No apps selected" : "AI usage is off", 14, 20, UI.Secondary));
+            var openText = "Open settings";
             var open = Segmented([new(openText, openText, false, _app.OpenSettings)], 12, 22, 12, centerText: true);
             open.Margin = new Thickness(0, 12, 0, 0); open.HorizontalAlignment = HorizontalAlignment.Center;
             empty.Children.Add(open); UsageContent.Children.Add(empty);
@@ -319,10 +319,10 @@ public partial class MainWindow
                 button.IsEnabled = step < 0 ? _applicationPage > 0 : _applicationPage + 1 < pages;
                 button.Padding = new Thickness(6, 0, 6, 0); return button;
             }
-            controls.Children.Add(PageButton("‹", Loc.T("上一页应用", "Previous apps"), -1));
+            controls.Children.Add(PageButton("‹", "Previous apps", -1));
             var page = UI.Centered($"{_applicationPage + 1}/{pages}", 11, UI.Secondary); page.Margin = new Thickness(4, 0, 4, 0);
-            page.ToolTip = Loc.T($"共 {columns.Count} 项应用", $"{columns.Count} apps in total"); controls.Children.Add(page);
-            controls.Children.Add(PageButton("›", Loc.T("下一页应用", "Next apps"), 1));
+            page.ToolTip = $"{columns.Count} apps in total"; controls.Children.Add(page);
+            controls.Children.Add(PageButton("›", "Next apps", 1));
             ApplicationPages.Children.Add(controls); ApplicationPages.Visibility = Visibility.Visible;
         }
         // See FitColumns. A short last page leaves its remaining columns empty.
@@ -409,8 +409,8 @@ public partial class MainWindow
                 status.Children.Add(detail);
             }
             var sync = new Button { Style = (Style)FindResource("PanelOutlineButton"), FontFamily = UI.TextFont, Padding = new Thickness(10, 2, 10, 2), Height = 24,
-                HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 6, 0, 0), Content = Loc.T("立即同步", "Sync now") };
-            AutomationProperties.SetName(sync, Loc.T("立即同步用量", "Sync usage now"));
+                HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 6, 0, 0), Content = "Sync now" };
+            AutomationProperties.SetName(sync, "Sync usage now");
             sync.Click += (_, _) => SyncNow();
             status.Children.Add(sync);
             var holder = new Grid { VerticalAlignment = VerticalAlignment.Stretch };
@@ -476,7 +476,7 @@ public partial class MainWindow
         {
             var footer = new StackPanel();
             footer.Children.Add(new Border { Height = 1, Background = UI.Brush(UI.Hairline), Margin = new Thickness(0, layout.FootTop, 0, layout.FootBottom) });
-            string todayLabel = Loc.T("今日", "Today"), weekLabel = Loc.T("七日", "Week");
+            string todayLabel = "Today", weekLabel = "Week";
             // Both captions take the wider one's width, so they start and end on the same vertical lines.
             double captionWidth = Math.Max(JustifiedText.NaturalWidth(todayLabel, layout.Foot), JustifiedText.NaturalWidth(weekLabel, layout.Foot));
             var today = TotalRow(entry, usage, todayLabel, 1, layout, captionWidth, inline); var week = TotalRow(entry, usage, weekLabel, 7, layout, captionWidth, inline);
@@ -501,7 +501,7 @@ public partial class MainWindow
         if (view.Pages > 1)
         {
             surface.Background = Brushes.Transparent; surface.Cursor = Cursors.Hand;
-            AutomationProperties.SetHelpText(surface, Loc.T($"点击此列切换配额，第 {view.Page + 1} 页，共 {view.Pages} 页。", $"Click this column to switch quotas. Page {view.Page + 1} of {view.Pages}."));
+            AutomationProperties.SetHelpText(surface, $"Click this column to switch quotas. Page {view.Page + 1} of {view.Pages}.");
             // Buttons handle their own mouse events, so statistics links act only once.
             surface.MouseLeftButtonUp += (_, e) => { e.Handled = true; NextQuotaPage(); };
         }
@@ -551,7 +551,7 @@ public partial class MainWindow
         var block = new Grid();
         foreach (double height in new[] { layout.LabelRow, layout.RowGap, layout.NumberRow, layout.RowGap, layout.Track })
             block.RowDefinitions.Add(new RowDefinition { Height = new GridLength(height) });
-        FrameworkElement label = slot == 0 ? UI.Fixed(Loc.T("正在读取…", "Reading…"), layout.Label, layout.LabelRow, UI.Tertiary)
+        FrameworkElement label = slot == 0 ? UI.Fixed("Reading…", layout.Label, layout.LabelRow, UI.Tertiary)
             : new Border { Width = Math.Round(layout.Label * 3.5), Height = Math.Max(4, Math.Round(layout.Label * .7)), CornerRadius = new CornerRadius(PanelTheme.Corner(3)),
                 Background = UI.Brush(UI.Fill), VerticalAlignment = VerticalAlignment.Center };
         label.HorizontalAlignment = HorizontalAlignment.Left;
@@ -562,7 +562,7 @@ public partial class MainWindow
         Grid.SetRow(number, 2); block.Children.Add(number);
         var track = new QuotaBar($"{entry.InstanceId:N}:{slot}", 0, PanelTheme.AppTheme(entry)); Grid.SetRow(track, 4);
         block.Children.Add(track);
-        AutomationProperties.SetName(block, Loc.T("正在读取配额", "Reading the quota"));
+        AutomationProperties.SetName(block, "Reading the quota");
         return block;
     }
 
@@ -577,7 +577,7 @@ public partial class MainWindow
         double used = Math.Clamp(quota.UsedPercent ?? 100, 0, 100);
         bool left = remaining && quota.UsedPercent is not null;
         bool share = quota.Kind is MetricKind.Percent or MetricKind.Count;
-        string valueText = left && share ? $"{100 - used:0.#}%" : quota.ValueText, valueSuffix = left && share ? Loc.T("剩余", "left") : quota.ValueSuffix;
+        string valueText = left && share ? $"{100 - used:0.#}%" : quota.ValueText, valueSuffix = left && share ? "left" : quota.ValueSuffix;
         string color = quota.UsedPercent is null ? PanelTheme.QuotaTheme(entry) : PanelTheme.QuotaColor(entry, used);
         int level = quota.UsedPercent is null ? 0 : AppPresets.Level(used);
         var block = new Grid();
@@ -596,21 +596,21 @@ public partial class MainWindow
         if (layout.UsedWord && valueSuffix.Length > 0) number.Inlines.Add(new Run(" " + valueSuffix) { FontSize = 11, FontFamily = UI.PanelFont, Foreground = UI.Brush(UI.Tertiary) });
         number.ToolTip = quota.Kind switch
         {
-            MetricKind.Balance => Loc.T("可用 " + quota.ValueText, quota.ValueText + " available")
+            MetricKind.Balance => quota.ValueText + " available"
                 + (quota.Total is { } total ? quota.TotalIsTarget
-                    ? Loc.T(" · 目标余额 " + UsageMetric.Money(total, quota.Currency), " · target " + UsageMetric.Money(total, quota.Currency))
-                    : Loc.T(" · 总额 " + UsageMetric.Money(total, quota.Currency), " · " + UsageMetric.Money(total, quota.Currency) + " total") : ""),
-            MetricKind.Spend => Loc.T("已用 " + quota.ValueText, quota.ValueText + " used") + (quota.Unlimited ? Loc.T(" · 无上限", " · no limit") : "")
-                + (quota.Total is { } goal && quota.TotalIsTarget ? Loc.T(" · 目标金额 " + UsageMetric.Money(goal, quota.Currency), " · target " + UsageMetric.Money(goal, quota.Currency)) : ""),
+                    ? " · target " + UsageMetric.Money(total, quota.Currency)
+                    : " · " + UsageMetric.Money(total, quota.Currency) + " total" : ""),
+            MetricKind.Spend => quota.ValueText + " used" + (quota.Unlimited ? " · no limit" : "")
+                + (quota.Total is { } goal && quota.TotalIsTarget ? " · target " + UsageMetric.Money(goal, quota.Currency) : ""),
             MetricKind.Count => CountTooltip(quota),
             _ => MetricPercentTooltip(quota)
         };
         numbers.Children.Add(number);
         var resetText = UI.ShortReset(quota.ResetAt);
-        var expiryText = quota.ExpiresAt is { } expiry ? (expiry <= DateTimeOffset.Now ? Loc.T("已到期", "Expired") : Loc.T(UI.ShortReset(expiry) + "到期", "expires " + UI.ShortReset(expiry))) : "";
+        var expiryText = quota.ExpiresAt is { } expiry ? (expiry <= DateTimeOffset.Now ? "Expired" : "expires " + UI.ShortReset(expiry)) : "";
         var countText = CountLabel(quota);
         var sideText = countText.Length > 0 ? countText : quota.Kind is MetricKind.Balance or MetricKind.Spend && quota.UsedPercent is { } percent
-            ? left ? Loc.T($"{100 - used:0.#}% 剩余", $"{100 - used:0.#}% left") : Loc.T($"{Math.Max(0, percent):0.#}% 已用", $"{Math.Max(0, percent):0.#}% used") : quota.Unlimited ? Loc.T("无上限", "No limit") : "";
+            ? left ? $"{100 - used:0.#}% left" : $"{Math.Max(0, percent):0.#}% used" : quota.Unlimited ? "No limit" : "";
         // Times sit beside the number, next to the track; shares, counts and "" sit at the label's right.
         // A quota with both a reset and an expiry keeps the reset below and moves the expiry up.
         bool expiryAbove = resetText.Length > 0 && expiryText.Length > 0;
@@ -621,7 +621,7 @@ public partial class MainWindow
         var clock = DateTime.Now;
         bool offPeak = quota.Kind == MetricKind.Balance && quota.Label == "账户余额" && entry.OffPeak.Count > 0, offPeakNow = offPeak && entry.IsOffPeak(clock);
         var change = offPeak ? entry.NextOffPeakChange(clock) : null;
-        var upperText = text ? quota.Note : offPeak ? (offPeakNow ? Loc.T("低峰时段", "Off-peak") : Loc.T("高峰时段", "Peak")) : expiryAbove ? expiryText : sideText;
+        var upperText = text ? quota.Note : offPeak ? (offPeakNow ? "Off-peak" : "Peak") : expiryAbove ? expiryText : sideText;
         if (upperText.Length > 0)
         {
             var reset = UI.Fixed(upperText, layout.Reset, layout.LabelRow, UI.Tertiary);
@@ -630,13 +630,13 @@ public partial class MainWindow
                 : countText.Length > 0 ? CountTooltip(quota) : MetricPercentTooltip(quota);
             Grid.SetColumn(reset, 1); labelRow.Children.Add(reset);
         }
-        var rightText = text ? quota.ResetText : offPeak ? (change is { } next ? Loc.T(UI.ShortReset(next) + "切换", "switches " + UI.ShortReset(next)) : "")
+        var rightText = text ? quota.ResetText : offPeak ? (change is { } next ? "switches " + UI.ShortReset(next) : "")
             : resetText.Length > 0 ? resetText : expiryText;
         if (rightText.Length > 0)
         {
             var right = UI.Line(rightText, layout.Reset, UI.Tertiary);
             right.FontFamily = UI.PanelFont;
-            right.ToolTip = text ? null : offPeak ? Loc.T($"{change:yyyy-MM-dd HH:mm} 转为" + (offPeakNow ? "高峰时段" : "低峰时段"), (offPeakNow ? "Peak" : "Off-peak") + $" from {change:yyyy-MM-dd HH:mm}")
+            right.ToolTip = text ? null : offPeak ? (offPeakNow ? "Peak" : "Off-peak") + $" from {change:yyyy-MM-dd HH:mm}"
                 : (quota.ResetAt ?? quota.ExpiresAt)!.Value.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss");
             right.VerticalAlignment = VerticalAlignment.Bottom; right.HorizontalAlignment = HorizontalAlignment.Right;
             right.Margin = new Thickness(6, 0, 0, 1); Grid.SetColumn(right, 1); numbers.Children.Add(right);
@@ -648,16 +648,15 @@ public partial class MainWindow
     }
 
     // The row's off-peak periods, written as the settings write them.
-    private static string OffPeakTooltip(AppEntry entry) => Loc.T("低峰时间：", "Off-peak time: ") + string.Join(Loc.T("、", ", "), entry.OffPeak.Select(period =>
-        OffPeakPeriod.Format(period.Start) + " – " + (period.End <= period.Start ? Loc.T("次日 ", "next day ") : "") + OffPeakPeriod.Format(period.End)));
+    private static string OffPeakTooltip(AppEntry entry) => "Off-peak time: " + string.Join(", ", entry.OffPeak.Select(period =>
+        OffPeakPeriod.Format(period.Start) + " – " + (period.End <= period.Start ? "next day " : "") + OffPeakPeriod.Format(period.End)));
 
     // A rounded share hides small usage of a large grant, so counts show the exact amounts.
     private static string? CountTooltip(UsageMetric metric)
     {
         if (metric is not { Used: { } used, Total: { } total }) return MetricPercentTooltip(metric);
         var unit = metric.Unit.Length > 0 ? " " + Loc.Label(metric.Unit) : "";
-        return Loc.T($"已用 {used:N0}{unit} · 剩余 {Math.Max(0, total - used):N0}{unit}\n总额 {total:N0}{unit}",
-            $"{used:N0}{unit} used · {Math.Max(0, total - used):N0}{unit} left\n{total:N0}{unit} total");
+        return $"{used:N0}{unit} used · {Math.Max(0, total - used):N0}{unit} left\n{total:N0}{unit} total";
     }
 
     // Counts in the hundreds of thousands, such as token grants, are abbreviated so the title keeps its room.
@@ -665,15 +664,15 @@ public partial class MainWindow
         ? total >= 100_000 ? $"{UI.Number((long)used)} / {UI.Number((long)total)}" : metric.CountText : "";
 
     private static string? MetricPercentTooltip(UsageMetric metric) => metric.UsedPercent is { } percent
-        ? Loc.T($"已用 {Math.Max(0, percent):0.#}% · 剩余 {Math.Max(0, 100 - percent):0.#}%", $"{Math.Max(0, percent):0.#}% used · {Math.Max(0, 100 - percent):0.#}% left") : null;
+        ? $"{Math.Max(0, percent):0.#}% used · {Math.Max(0, 100 - percent):0.#}% left" : null;
 
     private static string? QuotaTooltip(ProviderSnapshot snapshot)
     {
         var lines = new List<string>();
         // Quota values, windows and the plan already appear in the column.
-        if (snapshot.QuotaTime is { } time) lines.Add(Loc.T($"更新时间：{time.LocalDateTime:MM-dd HH:mm:ss}", $"Updated: {time.LocalDateTime:MM-dd HH:mm:ss}"));
-        if ((!snapshot.LiveQuota || snapshot.IsStale) && snapshot.Status.Length > 0 && snapshot.Status != Loc.T("已连接", "Connected")) lines.Add(snapshot.Status);
-        return lines.Count > 0 ? string.Join("\n", lines) : snapshot.LiveQuota || snapshot.Metrics.Count > 0 ? null : Loc.T("尚未获取配额", "Quota not read yet");
+        if (snapshot.QuotaTime is { } time) lines.Add($"Updated: {time.LocalDateTime:MM-dd HH:mm:ss}");
+        if ((!snapshot.LiveQuota || snapshot.IsStale) && snapshot.Status.Length > 0 && snapshot.Status != "Connected") lines.Add(snapshot.Status);
+        return lines.Count > 0 ? string.Join("\n", lines) : snapshot.LiveQuota || snapshot.Metrics.Count > 0 ? null : "Quota not read yet";
     }
     private static string MetricLabel(UsageMetric metric) => metric.Kind == MetricKind.Text ? metric.Label : UI.QuotaLabel(new Quota(metric.Label, 0, null, metric.Window));
 
@@ -696,7 +695,7 @@ public partial class MainWindow
         FrameworkElement tokens = snapshot.UsageAvailable ? UI.Centered(UI.Number(total), layout.Foot, UI.Secondary)
             : UI.CenteredSymbol("—", layout.Foot, UI.Secondary);
         tokens.HorizontalAlignment = HorizontalAlignment.Left;
-        tokens.ToolTip = ProviderCatalog.UsageTip(snapshot.Id) + "\n" + (snapshot.UsageAvailable ? Loc.T($"{label} Token · {total:N0}", $"{label} tokens · {total:N0}") : snapshot.UsageNote); Grid.SetColumn(tokens, 1); row.Children.Add(tokens);
+        tokens.ToolTip = ProviderCatalog.UsageTip(snapshot.Id) + "\n" + (snapshot.UsageAvailable ? $"{label} tokens · {total:N0}" : snapshot.UsageNote); Grid.SetColumn(tokens, 1); row.Children.Add(tokens);
         FrameworkElement price = snapshot.UsageAvailable ? UI.Centered(UI.Amount(cost!), layout.Foot, UI.Primary, FontWeights.SemiBold)
             : UI.CenteredSymbol("—", layout.Foot, UI.Tertiary, FontWeights.SemiBold);
         price.Margin = new Thickness(grouped ? 12 : 8, 0, 0, 0); price.ToolTip = snapshot.UsageAvailable ? UI.CostNote(cost!, _app.Prices) : snapshot.UsageNote; Grid.SetColumn(price, 2); row.Children.Add(price);
@@ -708,7 +707,7 @@ public partial class MainWindow
         }
         var arrow = UI.CenteredSymbol("›", layout.Foot + 1, UI.Tertiary); arrow.HorizontalAlignment = HorizontalAlignment.Right;
         Grid.SetColumn(arrow, 3); row.Children.Add(arrow);
-        var link = DetailLink(row, Loc.T($"查看 {entry.Name} {label}明细", $"Show {entry.Name} {label.ToLowerInvariant()} details"), () => OpenModelDetails(snapshot.Id, days));
+        var link = DetailLink(row, $"Show {entry.Name} {label.ToLowerInvariant()} details", () => OpenModelDetails(snapshot.Id, days));
         // Extend the highlight into the column inset without shifting the aligned totals.
         link.Padding = new Thickness(6, 0, 6, 0);
         link.Margin = new Thickness(-6, 0, -6, 0);

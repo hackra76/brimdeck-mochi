@@ -35,8 +35,8 @@ public sealed class ProviderSnapshot(ProviderId id)
     public List<UsageMetric> Metrics { get => _metrics ?? Quotas.Select(UsageMetric.FromQuota).ToList(); set => _metrics = value; }
     public string Plan { get; set; } = "";
     public string PlanSource { get; set; } = "";
-    public string Status { get; set; } = Loc.T("等待更新", "Waiting for update");
-    public string StatusLabel { get; set; } = Loc.T("等待更新", "Waiting for update");
+    public string Status { get; set; } = "Waiting for update";
+    public string StatusLabel { get; set; } = "Waiting for update";
     public string Source { get; set; } = "";
     public string UsageNote { get; set; } = "";
     public DateTimeOffset? QuotaTime { get; set; }

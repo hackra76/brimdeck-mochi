@@ -31,13 +31,13 @@ public partial class MainWindow
             var list = DetailList(detail.Side);
             int at = list.IndexOf(detail.Id);
             var left = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(_header.Side - 6, 0, 0, 0) };
-            var back = ToolbarGlyph("M 5,0 L 0,5 L 5,10", Loc.T("返回", "Back"), CloseDetail);
+            var back = ToolbarGlyph("M 5,0 L 0,5 L 5,10", "Back", CloseDetail);
             left.Children.Add(back);
             left.Children.Add(Label(DetailKind(detail.Side, detail.Id), 13, UI.Primary, HorizontalAlignment.Left, left: 4));
             if (at >= 0) left.Children.Add(Label($"{at + 1} / {list.Count}", 11.5, UI.Tertiary, HorizontalAlignment.Left, left: 8));
             var arrows = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, right, 0) };
-            var up = ToolbarGlyph("M 0,5 L 5,0 L 10,5", Loc.T("上一条", "Previous"), () => StepDetail(-1));
-            var down = ToolbarGlyph("M 0,0 L 5,5 L 10,0", Loc.T("下一条", "Next"), () => StepDetail(1));
+            var up = ToolbarGlyph("M 0,5 L 5,0 L 10,5", "Previous", () => StepDetail(-1));
+            var down = ToolbarGlyph("M 0,0 L 5,5 L 10,0", "Next", () => StepDetail(1));
             up.IsEnabled = at > 0; down.IsEnabled = at >= 0 && at < list.Count - 1;
             arrows.Children.Add(up); arrows.Children.Add(down);
             ShelfToolbar.Children.Add(left); ShelfToolbar.Children.Add(arrows);
@@ -63,7 +63,7 @@ public partial class MainWindow
                 StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round };
             var clear = new Border { Width = 20, Height = 20, Background = Brushes.Transparent, Child = cross, Cursor = Cursors.Hand,
                 HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) };
-            AutomationProperties.SetName(clear, Loc.T("清空搜索", "Clear search"));
+            AutomationProperties.SetName(clear, "Clear search");
             clear.MouseEnter += (_, _) => cross.Stroke = UI.Brush(UI.Primary);
             clear.MouseLeave += (_, _) => cross.Stroke = UI.Brush(UI.Tertiary);
             clear.MouseLeftButtonDown += (_, e) => e.Handled = true;
@@ -78,7 +78,7 @@ public partial class MainWindow
                 Stretch = Stretch.Uniform, Width = 12, Height = 12, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(9, 0, 0, 0), IsHitTestVisible = false });
             // The text starts 28 in (the box's padding 26 and the text box's own 2), where the caret blinks; the hint starts just after
             // it, so the caret does not cross its first letter.
-            var hint = Label(Loc.T("搜索剪贴板与文件", "Search clipboard and files"), 12.5, UI.Tertiary, HorizontalAlignment.Left, left: 30);
+            var hint = Label("Search clipboard and files", 12.5, UI.Tertiary, HorizontalAlignment.Left, left: 30);
             hint.IsHitTestVisible = false; hint.Visibility = box.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed; hint.Tag = "hint";
             host.Children.Add(hint);
             ShelfToolbar.Children.Add(host);
@@ -104,7 +104,7 @@ public partial class MainWindow
     private TextBox NewSearchBox()
     {
         var box = new TextBox { Style = (Style)FindResource("ShelfTextBox") };
-        AutomationProperties.SetName(box, Loc.T("搜索剪贴板与文件", "Search clipboard and files"));
+        AutomationProperties.SetName(box, "Search clipboard and files");
         TakeKeyboardOnClick(box);
         box.TextChanged += (_, _) =>
         {
@@ -184,7 +184,7 @@ public partial class MainWindow
     {
         var box = new TextBox { Style = (Style)FindResource("ShelfTextBox"), AcceptsReturn = true, AcceptsTab = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             Padding = new Thickness(8, 6, 8, 6), VerticalContentAlignment = VerticalAlignment.Top };
-        AutomationProperties.SetName(box, Loc.T("文字内容", "Text"));
+        AutomationProperties.SetName(box, "Text");
         TakeKeyboardOnClick(box);
         box.PreviewKeyDown += (_, e) => { if (e.Key == Key.Enter && Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) { e.Handled = true; CommitText(); } };
         return box;
@@ -201,10 +201,10 @@ public partial class MainWindow
         grid.Children.Add(box);
         var bar = new Grid { Margin = new Thickness(0, 6, 0, 0) };
         bar.ColumnDefinitions.Add(new ColumnDefinition()); bar.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        bar.Children.Add(Label(Loc.T("编辑 · Ctrl+Enter 保存 · Esc 取消", "Edit · Ctrl+Enter saves · Esc cancels"), layout.Aux, UI.Tertiary, HorizontalAlignment.Left));
+        bar.Children.Add(Label("Edit · Ctrl+Enter saves · Esc cancels", layout.Aux, UI.Tertiary, HorizontalAlignment.Left));
         var buttons = new StackPanel { Orientation = Orientation.Horizontal };
-        var cancel = PillButton(Loc.T("取消", "Cancel"), false, () => { _shelfEdit = null; EndTyping(); RenderShelf(); });
-        var save = PillButton(Loc.T("保存", "Save"), true, CommitText); save.Margin = new Thickness(6, 0, 0, 0);
+        var cancel = PillButton("Cancel", false, () => { _shelfEdit = null; EndTyping(); RenderShelf(); });
+        var save = PillButton("Save", true, CommitText); save.Margin = new Thickness(6, 0, 0, 0);
         buttons.Children.Add(cancel); buttons.Children.Add(save);
         Grid.SetColumn(buttons, 1); bar.Children.Add(buttons);
         Grid.SetRow(bar, 1); grid.Children.Add(bar);
@@ -237,10 +237,10 @@ public partial class MainWindow
     }
     private string DetailKind(ShelfSide side, Guid id)
     {
-        if (side == ShelfSide.Files) return Loc.T("文件详情", "File details");
+        if (side == ShelfSide.Files) return "File details";
         return (Find(side, id) as ClipEntry)?.Kind switch
         {
-            ClipKind.Link => Loc.T("链接", "Link"), ClipKind.Image => Loc.T("图片", "Picture"), ClipKind.Code => Loc.T("代码", "Code"), ClipKind.Color => Loc.T("颜色", "Color"), _ => Loc.T("文本", "Text")
+            ClipKind.Link => "Link", ClipKind.Image => "Picture", ClipKind.Code => "Code", ClipKind.Color => "Color", _ => "Text"
         };
     }
 
@@ -342,13 +342,13 @@ public partial class MainWindow
                 var (hex, rgb, hsl) = Shelf.ColorForms(c);
                 foreach (var (name, value) in new[] { ("HEX", hex), ("RGB", rgb), ("HSL", hsl) })
                 {
-                    var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2), Cursor = Cursors.Hand, Background = Brushes.Transparent, ToolTip = Loc.T("单击粘贴这种写法", "Click to paste this form") };
+                    var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2), Cursor = Cursors.Hand, Background = Brushes.Transparent, ToolTip = "Click to paste this form" };
                     row.Children.Add(new TextBlock { Text = name, Width = 40, FontFamily = UI.PanelFont, FontSize = layout.Aux, Foreground = UI.Brush(UI.Tertiary), VerticalAlignment = VerticalAlignment.Center });
                     var text = new TextBlock { Text = value, FontFamily = new FontFamily("Cascadia Mono, Consolas"), FontSize = size - 1, Foreground = UI.Brush(UI.Primary), VerticalAlignment = VerticalAlignment.Center };
                     row.Children.Add(text);
                     row.MouseEnter += (_, _) => text.Foreground = UI.Brush(UI.Accent);
                     row.MouseLeave += (_, _) => text.Foreground = UI.Brush(UI.Primary);
-                    row.MouseLeftButtonUp += (_, e) => { e.Handled = true; _app.Shelf.Paste(ShelfService.TextData(value), done => text.Text = value + (done ? Loc.T("  已粘贴", "  pasted") : Loc.T("  已复制", "  copied"))); };
+                    row.MouseLeftButtonUp += (_, e) => { e.Handled = true; _app.Shelf.Paste(ShelfService.TextData(value), done => text.Text = value + (done ? "  pasted" : "  copied")); };
                     forms.Children.Add(row);
                 }
                 panel.Children.Add(forms);
@@ -361,7 +361,7 @@ public partial class MainWindow
                 panel.Children.Add(Label(host, size + 2, UI.Primary, HorizontalAlignment.Left));
                 var url = ReadOnlyText(clip.Text.Trim(), size - 1, UI.PanelFont); url.Foreground = UI.Brush(UI.Secondary); url.Margin = new Thickness(0, 6, 0, 10);
                 panel.Children.Add(url);
-                var open = PillButton(Loc.T("在浏览器中打开", "Open in browser"), false, () => { if (Shelf.IsLink(clip.Text.Trim())) OpenFile(clip.Text.Trim()); });
+                var open = PillButton("Open in browser", false, () => { if (Shelf.IsLink(clip.Text.Trim())) OpenFile(clip.Text.Trim()); });
                 open.HorizontalAlignment = HorizontalAlignment.Left; panel.Children.Add(open);
                 return PassWheel(new ScrollViewer { Content = panel, Focusable = false });
             }
@@ -394,7 +394,7 @@ public partial class MainWindow
         var name = ReadOnlyText(file.Name, layout.DetailBody + 1, UI.PanelFont); name.FontWeight = FontWeights.SemiBold; name.Opacity = exists ? 1 : .55;
         text.Children.Add(name);
         string type = ShelfFiles.TypeName(file.Path);
-        text.Children.Add(Label(exists ? type : Loc.T("原文件已不存在（被移动或删除）", "The original is gone (moved or deleted)"), layout.Aux, exists ? UI.Secondary : "#E5C890", HorizontalAlignment.Left, top: 4));
+        text.Children.Add(Label(exists ? type : "The original is gone (moved or deleted)", layout.Aux, exists ? UI.Secondary : "#E5C890", HorizontalAlignment.Left, top: 4));
         var folder = ReadOnlyText(System.IO.Path.GetDirectoryName(file.Path) ?? "", layout.Aux, UI.PanelFont); folder.Foreground = UI.Brush(UI.Tertiary); folder.Margin = new Thickness(0, 4, 0, 0);
         text.Children.Add(folder);
         Grid.SetColumn(text, 1); grid.Children.Add(text);
@@ -404,46 +404,46 @@ public partial class MainWindow
     private List<(string Label, string Value, Action<FrameworkElement>? Change)> ClipFacts(ClipEntry clip)
     {
         var facts = new List<(string, string, Action<FrameworkElement>?)>();
-        facts.Add((Loc.T("来源", "Source"), clip.Manual ? Loc.T("常用语", "Phrase") : clip.Source.Length > 0 ? clip.Source : Loc.T("未知", "Unknown"), null));
-        facts.Add((Loc.T("时间", "Time"), clip.Copied.ToLocalTime().ToString(Loc.T("M月d日 HH:mm", "MMM d, HH:mm"), CultureInfo.CurrentCulture), null));
-        facts.Add(clip.Kind == ClipKind.Image ? (Loc.T("尺寸", "Size"), $"{clip.PixelWidth} × {clip.PixelHeight}", null)
-            : (Loc.T("长度", "Length"), Loc.T($"{clip.Text.Length} 字 · {Shelf.LineCount(clip.Text)} 行", $"{clip.Text.Length} chars · {Shelf.LineCount(clip.Text)} lines"), null));
-        facts.Add((Loc.T("分类", "Category"), CategoryNames(ShelfSide.Clipboard, clip.Categories), target => OpenMenu(CategoryChoices(ShelfSide.Clipboard, [clip.Id]), target)));
+        facts.Add(("Source", clip.Manual ? "Phrase" : clip.Source.Length > 0 ? clip.Source : "Unknown", null));
+        facts.Add(("Time", clip.Copied.ToLocalTime().ToString("MMM d, HH:mm", CultureInfo.CurrentCulture), null));
+        facts.Add(clip.Kind == ClipKind.Image ? ("Size", $"{clip.PixelWidth} × {clip.PixelHeight}", null)
+            : ("Length", $"{clip.Text.Length} chars · {Shelf.LineCount(clip.Text)} lines", null));
+        facts.Add(("Category", CategoryNames(ShelfSide.Clipboard, clip.Categories), target => OpenMenu(CategoryChoices(ShelfSide.Clipboard, [clip.Id]), target)));
         return facts;
     }
     private List<(string Label, string Value, Action<FrameworkElement>? Change)> FileFacts(TransferFile file)
     {
         bool exists = ShelfFiles.Exists(file.Path);
-        string size = !exists ? Loc.T("已不存在", "Missing") : ShelfFiles.IsFolder(file.Path) ? FolderFacts(file.Path) : ShelfFiles.FileSize(file.Path) is { } bytes ? Shelf.Size(bytes) : "";
-        var facts = new List<(string, string, Action<FrameworkElement>?)> { (Loc.T("大小", "Size"), size, null) };
-        if (exists && ShelfFiles.Modified(file.Path) is { } modified) facts.Add((Loc.T("修改", "Modified"), modified.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture), null));
-        facts.Add((Loc.T("加入", "Added"), Shelf.When(file.Added, DateTimeOffset.Now), null));
-        facts.Add((Loc.T("分类", "Category"), CategoryNames(ShelfSide.Files, file.Categories), target => OpenMenu(CategoryChoices(ShelfSide.Files, [file.Id]), target)));
+        string size = !exists ? "Missing" : ShelfFiles.IsFolder(file.Path) ? FolderFacts(file.Path) : ShelfFiles.FileSize(file.Path) is { } bytes ? Shelf.Size(bytes) : "";
+        var facts = new List<(string, string, Action<FrameworkElement>?)> { ("Size", size, null) };
+        if (exists && ShelfFiles.Modified(file.Path) is { } modified) facts.Add(("Modified", modified.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture), null));
+        facts.Add(("Added", Shelf.When(file.Added, DateTimeOffset.Now), null));
+        facts.Add(("Category", CategoryNames(ShelfSide.Files, file.Categories), target => OpenMenu(CategoryChoices(ShelfSide.Files, [file.Id]), target)));
         return facts;
     }
     // The categories an entry is in, in their order, or "".
     private string CategoryNames(ShelfSide side, List<Guid> ids) => ShelfData.Categories(side).Where(c => ids.Contains(c.Id)).Select(Shelf.CategoryName).ToList() is { Count: > 0 } names
-        ? string.Join(Loc.T("、", ", "), names) : Loc.T("无", "None");
+        ? string.Join(", ", names) : "None";
 
     private StackPanel ClipActions(ClipEntry clip)
     {
         var panel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom };
-        panel.Children.Add(PillButton(Loc.T("粘贴", "Paste"), true, () => PasteClip(clip)));
+        panel.Children.Add(PillButton("Paste", true, () => PasteClip(clip)));
         // Text pastes as plain text from a button of its own beside "".
         if (clip.Kind != ClipKind.Image)
         {
-            var plain = PillButton(Loc.T("粘贴为纯文本", "Paste as plain text"), false, () => PasteClip(clip, plain: true)); plain.Margin = new Thickness(6, 0, 0, 0);
+            var plain = PillButton("Paste as plain text", false, () => PasteClip(clip, plain: true)); plain.Margin = new Thickness(6, 0, 0, 0);
             panel.Children.Add(plain);
         }
         Button more = null!;
         more = PillButton("⋯", false, () =>
         {
             var menu = NewMenu();
-            menu.Items.Add(Item(Loc.T("只复制，不粘贴", "Copy only"), () => CopyClip(clip), MenuIcons.Copy));
-            if (clip.Kind != ClipKind.Image) menu.Items.Add(Item(Loc.T("编辑…", "Edit…"), () => BeginEdit(clip.Id), MenuIcons.Edit));
+            menu.Items.Add(Item("Copy only", () => CopyClip(clip), MenuIcons.Copy));
+            if (clip.Kind != ClipKind.Image) menu.Items.Add(Item("Edit…", () => BeginEdit(clip.Id), MenuIcons.Edit));
             AddFiling(menu, clip);
             menu.Items.Add(Separator());
-            menu.Items.Add(Item(Loc.T("删除", "Delete"), () => DeleteClips([clip]), MenuIcons.Delete, danger: true));
+            menu.Items.Add(Item("Delete", () => DeleteClips([clip]), MenuIcons.Delete, danger: true));
             OpenMenu(menu, more);
         });
         more.Margin = new Thickness(6, 0, 0, 0);
@@ -453,16 +453,16 @@ public partial class MainWindow
     private StackPanel FileActions(TransferFile file)
     {
         var panel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Bottom };
-        if (!ShelfFiles.Exists(file.Path)) { panel.Children.Add(PillButton(Loc.T("移除", "Remove"), false, () => RemoveFiles([file]))); return panel; }
-        panel.Children.Add(PillButton(Loc.T("打开", "Open"), true, () => OpenFile(file.Path)));
-        var show = PillButton(Loc.T("在文件夹中显示", "Show in folder"), false, () => ShowInFolder(file.Path)); show.Margin = new Thickness(6, 0, 0, 0);
+        if (!ShelfFiles.Exists(file.Path)) { panel.Children.Add(PillButton("Remove", false, () => RemoveFiles([file]))); return panel; }
+        panel.Children.Add(PillButton("Open", true, () => OpenFile(file.Path)));
+        var show = PillButton("Show in folder", false, () => ShowInFolder(file.Path)); show.Margin = new Thickness(6, 0, 0, 0);
         panel.Children.Add(show);
         Button more = null!;
         more = PillButton("⋯", false, () =>
         {
             var menu = NewMenu();
-            menu.Items.Add(Item(Loc.T("粘贴", "Paste"), () => PasteFiles([file]), MenuIcons.Paste));
-            menu.Items.Add(Item(Loc.T("复制路径", "Copy path"), () => CopyPath(file), MenuIcons.FilePath));
+            menu.Items.Add(Item("Paste", () => PasteFiles([file]), MenuIcons.Paste));
+            menu.Items.Add(Item("Copy path", () => CopyPath(file), MenuIcons.FilePath));
             if (FilingMenu(ShelfSide.Files, [file.Id]) is { } filing) { menu.Items.Add(Separator()); menu.Items.Add(filing); }
             menu.Items.Add(Separator());
             AddRemoval(menu, [file]);
@@ -489,8 +489,8 @@ public partial class MainWindow
     private void AddRemoval(ContextMenu menu, IReadOnlyList<TransferFile> files)
     {
         bool many = files.Count > 1;
-        menu.Items.Add(Item(many ? Loc.T($"移除 {files.Count} 项", $"Remove {files.Count} files") : Loc.T("移除", "Remove"), () => RemoveFiles(files), MenuIcons.Remove));
-        menu.Items.Add(Item(many ? Loc.T($"删除 {files.Count} 个原文件", $"Delete {files.Count} original files") : Loc.T("删除原文件", "Delete the original"), () => DeleteOriginals(files), MenuIcons.Delete, danger: true));
+        menu.Items.Add(Item(many ? $"Remove {files.Count} files" : "Remove", () => RemoveFiles(files), MenuIcons.Remove));
+        menu.Items.Add(Item(many ? $"Delete {files.Count} original files" : "Delete the original", () => DeleteOriginals(files), MenuIcons.Delete, danger: true));
     }
     // A file the shell will not delete (in use, or no permission) stays on the list and says so.
     private void DeleteOriginals(IReadOnlyList<TransferFile> files)
@@ -498,12 +498,12 @@ public partial class MainWindow
         var gone = new List<TransferFile>();
         foreach (var file in files)
         {
-            if (ShelfFiles.Exists(file.Path) && !Native.RecycleBin.Send(file.Path)) { Flash(file.Id, Loc.T("无法删除", "Not deleted")); continue; }
+            if (ShelfFiles.Exists(file.Path) && !Native.RecycleBin.Send(file.Path)) { Flash(file.Id, "Not deleted"); continue; }
             ShelfFiles.Forget(file.Path); gone.Add(file);
         }
         if (gone.Count > 0) RemoveFiles(gone);
     }
-    private void CopyPath(TransferFile file) { if (_app.Shelf.Put(ShelfService.TextData(file.Path))) Flash(file.Id, Loc.T("已复制路径", "Path copied")); }
+    private void CopyPath(TransferFile file) { if (_app.Shelf.Put(ShelfService.TextData(file.Path))) Flash(file.Id, "Path copied"); }
 
     // ---- Menus ----
     // The panel's menus only use and file what is here; categories and phrases are made and changed in the settings. A row has an
@@ -538,7 +538,7 @@ public partial class MainWindow
         header.Children.Add(new TextBlock { Text = label, Foreground = UI.Brush(color), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
         var item = new MenuItem { Style = (Style)FindResource("ShelfMenuItem"), Header = header, InputGestureText = hint ?? "", IsEnabled = enabled };
         AutomationProperties.SetName(item, label);
-        if (check == true) AutomationProperties.SetItemStatus(item, Loc.T("已选中", "Selected"));
+        if (check == true) AutomationProperties.SetItemStatus(item, "Selected");
         item.Click += (_, e) => { e.Handled = true; CloseMenu(); act(); };
         // Another row's menu beside it closes as soon as the pointer comes onto this row.
         item.MouseEnter += (_, _) =>
@@ -590,16 +590,16 @@ public partial class MainWindow
     {
         var menu = NewMenu();
         bool textual = clip.Kind != ClipKind.Image;
-        menu.Items.Add(Item(Loc.T("粘贴", "Paste"), () => PasteClip(clip), MenuIcons.Paste));
+        menu.Items.Add(Item("Paste", () => PasteClip(clip), MenuIcons.Paste));
         // Every text entry, as on its row and in its details.
-        if (textual) menu.Items.Add(Item(Loc.T("粘贴为纯文本", "Paste as plain text"), () => PasteClip(clip, plain: true), MenuIcons.PlainText));
-        menu.Items.Add(Item(Loc.T("只复制，不粘贴", "Copy only"), () => CopyClip(clip), MenuIcons.Copy));
+        if (textual) menu.Items.Add(Item("Paste as plain text", () => PasteClip(clip, plain: true), MenuIcons.PlainText));
+        menu.Items.Add(Item("Copy only", () => CopyClip(clip), MenuIcons.Copy));
         menu.Items.Add(Separator());
-        menu.Items.Add(Item(Loc.T("查看详情", "Details"), () => OpenDetail(ShelfSide.Clipboard, clip.Id), MenuIcons.Details));
-        if (textual) menu.Items.Add(Item(Loc.T("编辑…", "Edit…"), () => BeginEdit(clip.Id), MenuIcons.Edit));
+        menu.Items.Add(Item("Details", () => OpenDetail(ShelfSide.Clipboard, clip.Id), MenuIcons.Details));
+        if (textual) menu.Items.Add(Item("Edit…", () => BeginEdit(clip.Id), MenuIcons.Edit));
         AddFiling(menu, clip);
         menu.Items.Add(Separator());
-        menu.Items.Add(Item(Loc.T("删除", "Delete"), () => DeleteClips([clip]), MenuIcons.Delete, danger: true));
+        menu.Items.Add(Item("Delete", () => DeleteClips([clip]), MenuIcons.Delete, danger: true));
         return menu;
     }
     // "" (or "") on its own row, and the user's categories, when there are any, in a menu beside it.
@@ -607,7 +607,7 @@ public partial class MainWindow
     {
         menu.Items.Add(Separator());
         bool favorite = clip.Categories.Contains(ShelfData.Favorites);
-        menu.Items.Add(Item(favorite ? Loc.T("移出常用", "Remove from favorites") : Loc.T("加入常用", "Add to favorites"),
+        menu.Items.Add(Item(favorite ? "Remove from favorites" : "Add to favorites",
             () => SetCategory(ShelfSide.Clipboard, [clip.Id], ShelfData.Favorites, add: !favorite), StarData));
         if (FilingMenu(ShelfSide.Clipboard, [clip.Id]) is { } filing) menu.Items.Add(filing);
     }
@@ -623,30 +623,30 @@ public partial class MainWindow
         bool inOwn = own.Any(category => All(category.Id));
         var items = own.Select(category => (object)Item(category.Name, () => SetCategory(side, ids, category.Id, add: !All(category.Id)),
             check: inOwn ? All(category.Id) : null, dot: category.Color)).ToList();
-        return Submenu(Loc.T("加入分类", "Add to category"), MenuIcons.Category, items);
+        return Submenu("Add to category", MenuIcons.Category, items);
     }
     private ContextMenu FileMenu(TransferFile file)
     {
         var menu = NewMenu();
         if (!ShelfFiles.Exists(file.Path))
         {
-            menu.Items.Add(Item(Loc.T("查看详情", "Details"), () => OpenDetail(ShelfSide.Files, file.Id), MenuIcons.Details));
+            menu.Items.Add(Item("Details", () => OpenDetail(ShelfSide.Files, file.Id), MenuIcons.Details));
             if (FilingMenu(ShelfSide.Files, [file.Id]) is { } lost) menu.Items.Add(lost);
             menu.Items.Add(Separator());
-            menu.Items.Add(Item(Loc.T("移除", "Remove"), () => RemoveFiles([file]), MenuIcons.Remove));
+            menu.Items.Add(Item("Remove", () => RemoveFiles([file]), MenuIcons.Remove));
             return menu;
         }
         var files = _picked.Contains(file.Id) && _picked.Count > 1 ? ShelfData.Files.Where(f => _picked.Contains(f.Id)).ToList() : [file];
         bool many = files.Count > 1;
-        menu.Items.Add(Item(many ? Loc.T($"粘贴所选 {files.Count} 项", $"Paste {files.Count} files") : Loc.T("粘贴", "Paste"),
+        menu.Items.Add(Item(many ? $"Paste {files.Count} files" : "Paste",
             () => PasteFiles(files), MenuIcons.Paste));
         if (!many)
         {
-            menu.Items.Add(Item(Loc.T("打开", "Open"), () => OpenFile(file.Path), MenuIcons.Open));
-            menu.Items.Add(Item(Loc.T("在文件夹中显示", "Show in folder"), () => ShowInFolder(file.Path), MenuIcons.Folder));
-            menu.Items.Add(Item(Loc.T("复制路径", "Copy path"), () => CopyPath(file), MenuIcons.FilePath));
+            menu.Items.Add(Item("Open", () => OpenFile(file.Path), MenuIcons.Open));
+            menu.Items.Add(Item("Show in folder", () => ShowInFolder(file.Path), MenuIcons.Folder));
+            menu.Items.Add(Item("Copy path", () => CopyPath(file), MenuIcons.FilePath));
             menu.Items.Add(Separator());
-            menu.Items.Add(Item(Loc.T("查看详情", "Details"), () => OpenDetail(ShelfSide.Files, file.Id), MenuIcons.Details));
+            menu.Items.Add(Item("Details", () => OpenDetail(ShelfSide.Files, file.Id), MenuIcons.Details));
         }
         if (FilingMenu(ShelfSide.Files, files.Select(f => f.Id).ToList()) is { } filing) { if (many) menu.Items.Add(Separator()); menu.Items.Add(filing); }
         menu.Items.Add(Separator());
@@ -660,7 +660,7 @@ public partial class MainWindow
         var menu = NewMenu();
         var lists = CategoriesOf(side, ids);
         bool In(Guid id) => lists.Count > 0 && lists.All(list => list.Contains(id));
-        menu.Items.Add(Item(Loc.T("无", "None"), () => { foreach (var list in lists) list.Clear(); _app.Shelf.Edited(); }, check: lists.All(list => list.Count == 0)));
+        menu.Items.Add(Item("None", () => { foreach (var list in lists) list.Clear(); _app.Shelf.Edited(); }, check: lists.All(list => list.Count == 0)));
         foreach (var category in ShelfData.Categories(side))
             menu.Items.Add(category.Id == ShelfData.Favorites
                 ? Item(Shelf.CategoryName(category), () => SetCategory(side, ids, category.Id, add: !In(category.Id)), check: In(category.Id), star: true)

@@ -206,8 +206,8 @@ internal static class PanelThemeTests
             Path.GetFileName(created) == "my-theme.json" && Path.GetFileName(second) == "my-theme-2.json"
             && made.Any(theme => theme.Id == "my-theme" && theme.Usable) && made.Any(theme => theme.Id == "my-theme-2" && theme.Usable));
         check("New themes are numbered in their names and start without a description",
-            PanelThemes.Parse(File.ReadAllText(second)) is { Name: "我的主题 2", NameEn: "My theme 2", Description: "", DescriptionEn: "" }
-            && PanelThemes.Parse(File.ReadAllText(created)) is { Name: "我的主题", NameEn: "My theme" });
+            PanelThemes.Parse(File.ReadAllText(second)) is { Name: "My theme 2", NameEn: "My theme 2", Description: "", DescriptionEn: "" }
+            && PanelThemes.Parse(File.ReadAllText(created)) is { Name: "My theme", NameEn: "My theme" });
         File.Move(created, Path.Combine(templates, "renamed.json"));
         var third = PanelThemes.CreateFromTemplate(templates);
         check("A new theme never reuses an id a renamed file still carries", PanelThemes.LoadFolder(templates).Single(theme => theme.Path == third) is { Usable: true } fresh && fresh.Id != "my-theme");

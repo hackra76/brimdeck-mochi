@@ -684,7 +684,7 @@ internal sealed class QuotaCarousel : GlideCarousel
 {
     private readonly Canvas _strip;
     // For screen readers: its name, every ring's tooltip line, rotating or not.
-    protected override AutomationPeer OnCreateAutomationPeer() => new DrawnPeer(this, AutomationControlType.Text, () => AutomationProperties.GetName(this).Replace("\n", Loc.T("；", "; ")));
+    protected override AutomationPeer OnCreateAutomationPeer() => new DrawnPeer(this, AutomationControlType.Text, () => AutomationProperties.GetName(this).Replace("\n", "; "));
     // One ring with its application's letter inside, at the size the system readings' dials carry theirs for this height, in the secondary text color.
     // With more shares (QuotaRing.Shares) the rings stand one inside the other about one centre, and the letter goes inside the
     // innermost. Two keep the one ring's stroke, 2 DIP apart, leaving 8 DIP in a 20 DIP ring for the letter; three would leave
@@ -734,7 +734,7 @@ internal sealed class QuotaCarousel : GlideCarousel
         // so rings scrolled in from the right would render blank.
         var host = new Canvas(); host.Children.Add(_strip); Children.Add(host);
         ToolTip = string.Join("\n", items.Select(i => i.Tip));
-        AutomationProperties.SetName(this, Loc.T("配额环 ", "Quota rings ") + ToolTip);
+        AutomationProperties.SetName(this, "Quota rings " + ToolTip);
         if (!Rotates && !cutting) return;
         Margin = new Thickness(-edge, 0, -edge, 0);
         OpacityMask = Rotates ? EdgeFades(Width, edge) : CutFades(Width, edge, window, Math.Min(Snap(cut), Snap(gap)));

@@ -79,8 +79,8 @@ internal sealed class MonitorView : Grid
     {
         _layout = layout; _colors = colors; _main = main; _temperatures = temperatures;
         bool cpuMain = main == MonitorMain.Cpu;
-        string swapToGpu = Loc.T("切换为以 GPU 为主", "Show the GPU large"), swapToCpu = Loc.T("切换为以 CPU 为主", "Show the CPU large");
-        string cores = Loc.T("CPU 各核心占用", "CPU usage by core");
+        string swapToGpu = "Show the GPU large", swapToCpu = "Show the CPU large";
+        string cores = "CPU usage by core";
         var readings = _readings;
         readings.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         readings.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star), MinHeight = 16 });
@@ -122,7 +122,7 @@ internal sealed class MonitorView : Grid
         else
         {
             // The engines spread over the room the graph has, so a wide page leaves no gap between them and the processor's columns.
-            _gpuGraph = new ColumnGraph(EngineColumn, layout.Caption, !layout.CompactMetrics, gap: 6, name: Loc.T("GPU 各引擎占用", "GPU usage by engine"));
+            _gpuGraph = new ColumnGraph(EngineColumn, layout.Caption, !layout.CompactMetrics, gap: 6, name: "GPU usage by engine");
             _cpuGraph = new ColumnGraph(6, layout.Caption, false, gap: 1.5, button: swapToCpu, name: cores);
             _cpuGraph.Clicked += () => mainChanged(MonitorMain.Cpu);
             SetColumn(_cpuGraph, 2); graphs.Children.Add(_gpuGraph); graphs.Children.Add(_cpuGraph);
@@ -249,18 +249,18 @@ internal sealed class MonitorView : Grid
             double? heat = _temperatures ? cpu.Temperature : null;
             string temperature = heat is { } celsius ? Temperatures.Format(celsius) + " °C" : "";
             _cpuGauge.Set(cpu.Usage, MonitorFormat.Percent(cpu.Usage), "%", temperature,
-                "CPU " + MonitorFormat.Percent(cpu.Usage) + "%" + (frequency.Length > 0 ? " · " + frequency : "") + Loc.T($" · {cpu.Cores.Count} 个逻辑处理器", $" · {cpu.Cores.Count} logical processors")
+                "CPU " + MonitorFormat.Percent(cpu.Usage) + "%" + (frequency.Length > 0 ? " · " + frequency : "") + $" · {cpu.Cores.Count} logical processors"
                 + (temperature.Length > 0 ? "\n" + TemperatureLine(cpu, temperature) : ""),
                 motion, heat is { } c ? Hot(Temperatures.OfCpu(c)) : null);
             int groups = Math.Max(1, cpu.GroupCount);
             _cpuGraph.Set(cpu.Cores.Select(core => new GraphColumn(core.Usage, cpuMain ? core.FrequencyFraction : null, _colors.Core(core.Group, groups), core.Group, Describe(core))).ToList(), motion);
         }
-        else { _cpuGauge.Set(null, "—", "", "", Loc.T("暂无读数：", "No reading: ") + snapshot.Cpu.Reason, motion); _cpuGraph.Set([], motion); }
+        else { _cpuGauge.Set(null, "—", "", "", "No reading: " + snapshot.Cpu.Reason, motion); _cpuGraph.Set([], motion); }
 
         if (snapshot.Gpu.TryGet(out var gpu))
         {
             string memory = gpu.DedicatedBytes.TryGet(out var used)
-                ? Loc.T("显存 ", "VRAM ") + MonitorFormat.Gigabytes(used) + (gpu.DedicatedTotal is { } total ? " / " + MonitorFormat.GigabytesCompact(total) : "") + " GB" : "";
+                ? "VRAM " + MonitorFormat.Gigabytes(used) + (gpu.DedicatedTotal is { } total ? " / " + MonitorFormat.GigabytesCompact(total) : "") + " GB" : "";
             // With more than one adapter each is named with its kind, and the large gauge says which kind it shows.
             bool several = snapshot.Gpus.Count > 1;
             _nextGpu = several && !cpuMain ? GpuChoice.Next(snapshot.Gpus, gpu) : null;
@@ -269,12 +269,12 @@ internal sealed class MonitorView : Grid
             // An adapter without engine readings at the moment (NoReadings) shows a dash and says so; it can still be switched from.
             bool idle = gpu.NoReadings;
             // The usage says where it was read when its driver gave it; the engines' columns are always Windows' own.
-            string usage = MonitorFormat.Percent(gpu.Usage) + "%" + (gpu.UsageSource is { } source ? Loc.T($"（{source}）", $" ({source})") : "");
-            string tip = (several ? GpuChoice.Describe(gpu.Name, gpu.Kind) : gpu.Name ?? "GPU") + " · " + (idle ? Loc.T("暂无读数", "No reading") : usage) + (memory.Length > 0 ? " · " + memory : "")
-                + (gpu.SharedBytes.TryGet(out var shared) ? Loc.T(" · 共享 ", " · shared ") + MonitorFormat.Gigabytes(shared) + " GB" : "")
-                + (temperature.Length > 0 ? " · " + temperature + (gpu.TemperatureFrom is { } from ? Loc.T($"（{from} 的温度）", $" ({from}'s temperature)") : "") : "");
-            string switchTo = _nextGpu is { } next ? Loc.T("点击切换到 ", "Click to show ") + GpuChoice.Describe(next.Name, next.Kind) : "";
-            if (!cpuMain) _gpuGauge.Button = switchTo.Length > 0 ? Loc.T("切换显卡", "Switch GPU") : null;
+            string usage = MonitorFormat.Percent(gpu.Usage) + "%" + (gpu.UsageSource is { } source ? $" ({source})" : "");
+            string tip = (several ? GpuChoice.Describe(gpu.Name, gpu.Kind) : gpu.Name ?? "GPU") + " · " + (idle ? "No reading" : usage) + (memory.Length > 0 ? " · " + memory : "")
+                + (gpu.SharedBytes.TryGet(out var shared) ? " · shared " + MonitorFormat.Gigabytes(shared) + " GB" : "")
+                + (temperature.Length > 0 ? " · " + temperature + (gpu.TemperatureFrom is { } from ? $" ({from}'s temperature)" : "") : "");
+            string switchTo = _nextGpu is { } next ? "Click to show " + GpuChoice.Describe(next.Name, next.Kind) : "";
+            if (!cpuMain) _gpuGauge.Button = switchTo.Length > 0 ? "Switch GPU" : null;
             // The adapter's name and its memory are in the tooltip and in the block's line, not spelled out beside the figure. After the
             // figure: the adapter's kind where there is more than one ("dGPU"), and its temperature, " · 48 °C"; a temperature read
             // from another adapter (this one has no sensor) carries that adapter's kind instead.
@@ -289,7 +289,7 @@ internal sealed class MonitorView : Grid
         }
         else
         {
-            string reason = Loc.T("暂无读数：", "No reading: ") + snapshot.Gpu.Reason;
+            string reason = "No reading: " + snapshot.Gpu.Reason;
             _nextGpu = null;
             if (!cpuMain) _gpuGauge.Button = null;
             _gpuGauge.Set(null, "—", "", "", reason, motion);
@@ -323,13 +323,13 @@ internal sealed class MonitorView : Grid
     {
         string cores = cpu.CoreTemperatures.Count == 0 ? ""
             : cpu.CoreTemperaturesAreCcds ? " · CCD " + string.Join(" / ", cpu.CoreTemperatures.Select(Temperatures.Format)) + " °C"
-            : Loc.T(" · 各核心 ", " · cores ") + Temperatures.Format(cpu.CoreTemperatures.Min()) + "–" + Temperatures.Format(cpu.CoreTemperatures.Max()) + " °C";
+            : " · cores " + Temperatures.Format(cpu.CoreTemperatures.Min()) + "–" + Temperatures.Format(cpu.CoreTemperatures.Max()) + " °C";
         return cpu.TemperatureSource switch
         {
-            CpuTemperatureSource.Processor => Loc.T($"温度 {temperature}（处理器传感器）", $"Temperature {temperature} (processor sensors)") + cores,
-            CpuTemperatureSource.HwInfo => Loc.T($"温度 {temperature}（HWiNFO）", $"Temperature {temperature} (HWiNFO)"),
-            CpuTemperatureSource.LibreHardwareMonitor => Loc.T($"温度 {temperature}（LibreHardwareMonitor）", $"Temperature {temperature} (LibreHardwareMonitor)"),
-            _ => Loc.T($"温度 {temperature}（ACPI 热区 {cpu.TemperatureZone}，可能是主板而非 CPU 本身）", $"Temperature {temperature} (ACPI thermal zone {cpu.TemperatureZone}, possibly the board rather than the CPU itself)")
+            CpuTemperatureSource.Processor => $"Temperature {temperature} (processor sensors)" + cores,
+            CpuTemperatureSource.HwInfo => $"Temperature {temperature} (HWiNFO)",
+            CpuTemperatureSource.LibreHardwareMonitor => $"Temperature {temperature} (LibreHardwareMonitor)",
+            _ => $"Temperature {temperature} (ACPI thermal zone {cpu.TemperatureZone}, possibly the board rather than the CPU itself)"
         };
     }
 
@@ -337,7 +337,7 @@ internal sealed class MonitorView : Grid
     {
         string kind = core.Tier switch
         {
-            CoreTier.Performance => Loc.T("性能核", "Performance core"), CoreTier.Efficiency => Loc.T("能效核", "Efficiency core"), _ => Loc.T("逻辑处理器", "Logical processor")
+            CoreTier.Performance => "Performance core", CoreTier.Efficiency => "Efficiency core", _ => "Logical processor"
         };
         string frequency = core.FrequencyMhz.TryGet(out var mhz) ? " · " + MonitorFormat.Gigahertz(mhz) + " GHz" : "";
         return $"{kind} {core.Number} · {MonitorFormat.Percent(core.Usage)}%{frequency}";

@@ -109,10 +109,8 @@ public sealed class AppUpdates
         RestartFailed = failure is not null;
         Error = failure switch
         {
-            RestartFailure.Declined => Loc.T("未获得管理员权限，已保留当前版本。可以前往 GitHub 下载新的免安装版本，解压后替换当前文件夹。",
-                "Administrator rights were not granted, so this version was kept. You can download the new portable version from GitHub and replace this folder with it."),
-            RestartFailure.Failed => Loc.T("无法替换程序文件，已保留当前版本。可以前往 GitHub 下载新的免安装版本，解压后替换当前文件夹。",
-                "The program files could not be replaced, so this version was kept. You can download the new portable version from GitHub and replace this folder with it."),
+            RestartFailure.Declined => "Administrator rights were not granted, so this version was kept. You can download the new portable version from GitHub and replace this folder with it.",
+            RestartFailure.Failed => "The program files could not be replaced, so this version was kept. You can download the new portable version from GitHub and replace this folder with it.",
             _ => null
         };
     }
@@ -222,7 +220,7 @@ public sealed class AppUpdates
             _failures++; _lastFailure = _clock();
             if (ex is UpdateCheckException { RetryAfter: { } wait } && wait > TimeSpan.Zero)
                 _retryUntil = _lastFailure + (wait < UpdateSchedule.MaxRetryAfter ? wait : UpdateSchedule.MaxRetryAfter);
-            if (!_quiet) Error = Loc.T("暂时无法检查更新，请检查网络后重试。", "Updates cannot be checked right now. Check the network and try again.");
+            if (!_quiet) Error = "Updates cannot be checked right now. Check the network and try again.";
         }
         finally { Stage = HasUpdate ? AppUpdateStage.Available : AppUpdateStage.Idle; Notify(); }
     }
@@ -254,7 +252,7 @@ public sealed class AppUpdates
             Progress = 100; Stage = AppUpdateStage.Ready;
         }
         catch (OperationCanceledException) when (download.IsCancellationRequested) { Stage = AppUpdateStage.Available; }
-        catch (Exception) { Stage = AppUpdateStage.Available; Error = Loc.T("更新包下载或校验失败，请重试。", "The update package could not be downloaded or verified. Try again."); }
+        catch (Exception) { Stage = AppUpdateStage.Available; Error = "The update package could not be downloaded or verified. Try again."; }
         finally { _download = null; Notify(); }
     }
 
@@ -266,7 +264,7 @@ public sealed class AppUpdates
         if (Stage != AppUpdateStage.Ready || !CanInstall) return false;
         Stage = AppUpdateStage.Installing; Error = null; Notify();
         try { saveSettings(); _backend.PrepareRestart(); return true; }
-        catch (Exception) { Stage = AppUpdateStage.Ready; Error = Loc.T("暂时无法安装更新，请重试。", "The update cannot be installed right now. Try again."); Notify(); return false; }
+        catch (Exception) { Stage = AppUpdateStage.Ready; Error = "The update cannot be installed right now. Try again."; Notify(); return false; }
     }
 
     // The old update-prompt.txt is read once: its version moves into update-state.json and the file is removed.

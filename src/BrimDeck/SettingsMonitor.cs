@@ -40,10 +40,10 @@ public sealed partial class SettingsWindow
                 content.Children.Add(new Ellipse { Width = 7, Height = 7, Fill = UI.Brush(color), Margin = new Thickness(0, 0, 3, 0), VerticalAlignment = VerticalAlignment.Center });
             content.Children.Add(new TextBlock { Text = MonitorColors.Name(palette), Margin = new Thickness(3, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
             string help = palette == MonitorPalette.Theme
-                ? Loc.T("使用当前面板主题的颜色，切换主题时随之改变。", "Takes the colors of the panel theme in use, and changes with it.")
-                : Loc.T($"将各项颜色设为“{MonitorColors.Name(palette)}”配色。", $"Sets every color to the {MonitorColors.Name(palette)} scheme.");
+                ? "Takes the colors of the panel theme in use, and changes with it."
+                : $"Sets every color to the {MonitorColors.Name(palette)} scheme.";
             var choice = new RadioButton { Style = (Style)FindResource("SettingsSegment"), Content = content, GroupName = "MonitorPalette" };
-            AutomationProperties.SetName(choice, Loc.T("颜色预设 ", "Color preset ") + MonitorColors.Name(palette)); AutomationProperties.SetHelpText(choice, help);
+            AutomationProperties.SetName(choice, "Color preset " + MonitorColors.Name(palette)); AutomationProperties.SetHelpText(choice, help);
             // Choosing a preset shows it on the open monitor page, as a size change does.
             choice.Checked += (_, _) =>
             {
@@ -56,46 +56,42 @@ public sealed partial class SettingsWindow
         }
         Refresh();
         // The options stay available while the page is off, so they can be set before it is shown.
-        SectionTitle(Loc.T("通用", "General"));
-        Group(Row(Loc.T("各项颜色", "Reading colors"), roles),
-            QuickRow(Loc.T("快捷预设", "Presets"), presets),
+        SectionTitle("General");
+        Group(Row("Reading colors", roles),
+            QuickRow("Presets", presets),
             GpuChoiceRow());
         CompactMonitorOptions();
-        SectionTitle(Loc.T("展开时", "When expanded"));
+        SectionTitle("When expanded");
         // The choices that show themselves on the monitor page keep its preview open, so switching between them does not collapse it first.
-        Group(MusicChoice(Loc.T("主视图", "Large gauge"), S.MonitorMain, [(MonitorMain.Cpu, "CPU"), (MonitorMain.Gpu, "GPU")], v => Resize(s => s.MonitorMain = v, DeckPage.Monitor), keepPreview: true),
-            MusicChoice(Loc.T("刷新间隔", "Update interval"), S.MonitorInterval, [(1, Loc.T("1 秒", "1 s")), (2, Loc.T("2 秒", "2 s"))], v => Change(s => s.MonitorInterval = v)),
-            MusicChoice(Loc.T("进程行", "Process rows"), S.MonitorProcessView,
-                [(MonitorProcessView.Auto, Loc.T("自动", "Auto")), (MonitorProcessView.Compact, Loc.T("简略", "Compact")), (MonitorProcessView.Detailed, Loc.T("详细", "Detailed"))],
+        Group(MusicChoice("Large gauge", S.MonitorMain, [(MonitorMain.Cpu, "CPU"), (MonitorMain.Gpu, "GPU")], v => Resize(s => s.MonitorMain = v, DeckPage.Monitor), keepPreview: true),
+            MusicChoice("Update interval", S.MonitorInterval, [(1, "1 s"), (2, "2 s")], v => Change(s => s.MonitorInterval = v)),
+            MusicChoice("Process rows", S.MonitorProcessView,
+                [(MonitorProcessView.Auto, "Auto"), (MonitorProcessView.Compact, "Compact"), (MonitorProcessView.Detailed, "Detailed")],
                 v => Resize(s => s.MonitorProcessView = v, DeckPage.Monitor), keepPreview: true),
-            Toggle(Loc.T("显示进程列表", "Show the process list"), S.MonitorProcesses, v => Resize(s => s.MonitorProcesses = v, DeckPage.Monitor),
+            Toggle("Show the process list", S.MonitorProcesses, v => Resize(s => s.MonitorProcesses = v, DeckPage.Monitor),
                 help:
-                Loc.T("按 CPU 或内存列出占用最高的应用。", "Lists the apps using the most CPU or memory."),
+                "Lists the apps using the most CPU or memory.",
                 keepPreview: true),
-            Toggle(Loc.T("显示硬盘", "Show drives"), S.MonitorStorage, v => Resize(s => s.MonitorStorage = v, DeckPage.Monitor),
+            Toggle("Show drives", S.MonitorStorage, v => Resize(s => s.MonitorStorage = v, DeckPage.Monitor),
                 help:
-                Loc.T("不含 U 盘、移动硬盘、网络盘和光驱。", "USB, external, network and optical drives are not included."),
+                "USB, external, network and optical drives are not included.",
                 keepPreview: true),
-            Toggle(Loc.T("显示功耗与电池", "Show power and battery"), S.MonitorPower, v => Resize(s => s.MonitorPower = v, DeckPage.Monitor),
+            Toggle("Show power and battery", S.MonitorPower, v => Resize(s => s.MonitorPower = v, DeckPage.Monitor),
                 help:
-                Loc.T("在硬盘下方显示整机功耗和本机电池。只在面板展开到系统监控页时读取。",
-                    "Shows system power and this PC's battery under the drives. Read only while the panel is open on the system monitor page."),
+                "Shows system power and this PC's battery under the drives. Read only while the panel is open on the system monitor page.",
                 keepPreview: true),
-            WithFrameAccess(Toggle(Loc.T("显示帧率", "Show the frame rate"), S.MonitorFrames, v => { Resize(s => s.MonitorFrames = v, DeckPage.Monitor); if (v) AskFrameAccess(); else FrameAccessChanged?.Invoke(); },
+            WithFrameAccess(Toggle("Show the frame rate", S.MonitorFrames, v => { Resize(s => s.MonitorFrames = v, DeckPage.Monitor); if (v) AskFrameAccess(); else FrameAccessChanged?.Invoke(); },
                 help:
-                Loc.T("在网速下方显示前台程序的帧率、程序名称和所在显示器的刷新率；前台程序不在绘制时，显示最近一个在绘制的程序。只在面板展开到系统监控页时读取。首次开启时需要授权。",
-                    "Shows the frame rate of the program in front under the network rates, with its name and its display's refresh rate; while it draws nothing, the last program that did. Read only while the panel is open on the system monitor page. Needs permission the first time."),
+                "Shows the frame rate of the program in front under the network rates, with its name and its display's refresh rate; while it draws nothing, the last program that did. Read only while the panel is open on the system monitor page. Needs permission the first time.",
                 keepPreview: true), () => S.MonitorFrames && !Reading(S, CompactMonitorItems.Frames).Visible),
-            WithSensorStops(Toggle(Loc.T("显示温度", "Show temperatures"), S.MonitorTemperatures, v => Resize(s => s.MonitorTemperatures = v, DeckPage.Monitor),
+            WithSensorStops(Toggle("Show temperatures", S.MonitorTemperatures, v => Resize(s => s.MonitorTemperatures = v, DeckPage.Monitor),
                 help:
-                Loc.T("读不到的温度不显示。CPU 温度由主板固件提供，许多电脑没有这项数据；有的电脑读到的是主板的温度，不是 CPU 本身的温度。",
-                    "Temperatures that cannot be read are not shown. The CPU temperature comes from the motherboard firmware. Many PCs do not provide it, and on some it is the motherboard's temperature rather than the CPU's."),
+                "Temperatures that cannot be read are not shown. The CPU temperature comes from the motherboard firmware. Many PCs do not provide it, and on some it is the motherboard's temperature rather than the CPU's.",
                 keepPreview: true)));
-        SectionTitle(Loc.T("来源", "Sources"));
-        Group(MusicChoice(Loc.T("显卡占用率", "GPU usage"), S.MonitorGpuUsage,
-            [(GpuUsageSource.Driver, Loc.T("显卡驱动", "GPU driver")), (GpuUsageSource.Windows, "Windows")], v => Change(s => s.MonitorGpuUsage = v),
-            help: Loc.T("显卡驱动：与 nvidia-smi、HWiNFO 一致；驱动没有读数时使用 Windows。Windows：与任务管理器一致，驱动读数不正确时选择。",
-                "GPU driver: matches nvidia-smi and HWiNFO; Windows is used where the driver gives no reading. Windows: matches Task Manager; choose it when the driver's reading is wrong.")));
+        SectionTitle("Sources");
+        Group(MusicChoice("GPU usage", S.MonitorGpuUsage,
+            [(GpuUsageSource.Driver, "GPU driver"), (GpuUsageSource.Windows, "Windows")], v => Change(s => s.MonitorGpuUsage = v),
+            help: "GPU driver: matches nvidia-smi and HWiNFO; Windows is used where the driver gives no reading. Windows: matches Task Manager; choose it when the driver's reading is wrong."));
     }
 
     // Under the last row of "": a line in amber for every reading stopped because its driver did not answer (SensorGuard),
@@ -114,9 +110,9 @@ public sealed partial class SettingsWindow
                 line.ColumnDefinitions.Add(new ColumnDefinition()); line.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 var notice = TextLine(SensorStops.Notice(stop), 12.5, CautionColor);
                 notice.TextWrapping = TextWrapping.Wrap; notice.VerticalAlignment = VerticalAlignment.Center; notice.Margin = new Thickness(0, 0, 12, 0);
-                var resume = ActionButton(Loc.T("重新开启", "Turn on again"), () => Native.SensorGuard.Resume(stop));
-                resume.ToolTip = Loc.T("重新开启后如果电脑再次卡住，BrimDeck 会再次自动停止读取。", "Should the PC freeze again, BrimDeck stops the reading again by itself.");
-                AutomationProperties.SetName(resume, Loc.T("重新开启：", "Turn on again: ") + SensorStops.Notice(stop));
+                var resume = ActionButton("Turn on again", () => Native.SensorGuard.Resume(stop));
+                resume.ToolTip = "Should the PC freeze again, BrimDeck stops the reading again by itself.";
+                AutomationProperties.SetName(resume, "Turn on again: " + SensorStops.Notice(stop));
                 resume.VerticalAlignment = VerticalAlignment.Center; Grid.SetColumn(resume, 1);
                 line.Children.Add(notice); line.Children.Add(resume);
                 lines.Children.Add(line);
@@ -143,8 +139,8 @@ public sealed partial class SettingsWindow
         line.ColumnDefinitions.Add(new ColumnDefinition()); line.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var note = TextLine("", 12.5, CautionColor);
         note.TextWrapping = TextWrapping.Wrap; note.VerticalAlignment = VerticalAlignment.Center; note.Margin = new Thickness(0, 0, 12, 0);
-        var grant = ActionButton(Loc.T("授权", "Allow"), () => _ = GrantFrameAccessAsync());
-        AutomationProperties.SetName(grant, Loc.T("授权读取帧率", "Allow reading frame rates"));
+        var grant = ActionButton("Allow", () => _ = GrantFrameAccessAsync());
+        AutomationProperties.SetName(grant, "Allow reading frame rates");
         grant.VerticalAlignment = VerticalAlignment.Center; Grid.SetColumn(grant, 1);
         line.Children.Add(note); line.Children.Add(grant);
         void Update()
@@ -152,10 +148,10 @@ public sealed partial class SettingsWindow
             var access = Native.FramePermission.Current();
             line.Visibility = wanted() && access != Native.FrameAccess.Allowed ? Visibility.Visible : Visibility.Collapsed;
             bool missing = access == Native.FrameAccess.Missing;
-            note.Text = _grantingFrames ? Loc.T("正在授权…", "Allowing…")
-                : !missing ? Loc.T("已授权，重新登录 Windows 后显示帧率", "Allowed; the frame rate shows after you sign in to Windows again")
-                : _framesGrantFailure is { } failure ? Loc.T("授权失败：", "Could not allow: ") + failure
-                : Loc.T("读取帧率需要授权", "Reading the frame rate needs permission");
+            note.Text = _grantingFrames ? "Allowing…"
+                : !missing ? "Allowed; the frame rate shows after you sign in to Windows again"
+                : _framesGrantFailure is { } failure ? "Could not allow: " + failure
+                : "Reading the frame rate needs permission";
             note.Foreground = UI.Brush(_framesGrantFailure is not null && missing ? _palette.Negative : !missing ? TextTertiary : CautionColor);
             grant.Visibility = missing && !_grantingFrames ? Visibility.Visible : Visibility.Collapsed;
         }
@@ -170,10 +166,9 @@ public sealed partial class SettingsWindow
     private void AskFrameAccess()
     {
         if (!_grantingFrames && Native.FramePermission.Current() == Native.FrameAccess.Missing
-            && Confirm(Loc.T("授权读取帧率", "Allow reading frame rates"),
-                Loc.T("读取帧率需要把当前用户加入 Windows 的“Performance Log Users”组。授权时 Windows 会请求管理员确认，重新登录 Windows 后生效。",
-                    "Reading frame rates needs the user in Windows' Performance Log Users group. Windows asks an administrator to confirm, and it works from the next sign-in."),
-                Loc.T("授权", "Allow"), danger: false))
+            && Confirm("Allow reading frame rates",
+                "Reading frame rates needs the user in Windows' Performance Log Users group. Windows asks an administrator to confirm, and it works from the next sign-in.",
+                "Allow", danger: false))
             _ = GrantFrameAccessAsync();
         else FrameAccessChanged?.Invoke();
     }
@@ -182,7 +177,7 @@ public sealed partial class SettingsWindow
         if (_grantingFrames) return;
         _grantingFrames = true; _framesGrantFailure = null; FrameAccessChanged?.Invoke();
         try { await Native.FramePermission.GrantAsync(); }
-        catch (OperationCanceledException) { _framesGrantFailure = Loc.T("管理员确认超时", "The administrator prompt timed out"); }
+        catch (OperationCanceledException) { _framesGrantFailure = "The administrator prompt timed out"; }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { _framesGrantFailure = ex.Message; }
         finally { _grantingFrames = false; FrameAccessChanged?.Invoke(); }
     }
@@ -195,19 +190,19 @@ public sealed partial class SettingsWindow
         var found = _app.Monitor?.Latest?.Gpus is { Count: > 0 } read ? read.Select(gpu => (gpu.Key, gpu.LegacyKey, gpu.Name, gpu.Luid, gpu.Kind, gpu.NoReadings)).ToList()
             : Native.GpuAdapters.Read().Adapters.Values.Where(adapter => !adapter.Software).OrderBy(adapter => GpuReadings.Rank(adapter.Kind))
                 .ThenBy(adapter => adapter.Name, StringComparer.Ordinal).Select(adapter => (adapter.Key, adapter.LegacyKey, Name: (string?)adapter.Name, adapter.Luid, adapter.Kind, NoReadings: false)).ToList();
-        var options = new List<(string? Key, string? Name, string Label)> { (null, null, Loc.T("自动", "Auto")) };
+        var options = new List<(string? Key, string? Name, string Label)> { (null, null, "Auto") };
         // An adapter without readings at the moment stays in the list, marked.
-        options.AddRange(found.Select(gpu => ((string?)gpu.Key, gpu.Name, GpuChoice.Describe(gpu.Name, gpu.Kind) + (gpu.NoReadings ? Loc.T("（暂无读数）", " (no reading)") : ""))));
+        options.AddRange(found.Select(gpu => ((string?)gpu.Key, gpu.Name, GpuChoice.Describe(gpu.Name, gpu.Kind) + (gpu.NoReadings ? " (no reading)" : ""))));
         // The saved card is found as the monitor finds it (GpuChoice.Find): while it is not connected, another card of the same model
         // is never shown as chosen; the saved one is listed as not connected instead, and the monitor shows Auto meanwhile.
         int selected = S.MonitorGpu is not { } saved ? 0 : GpuChoice.Find(found, gpu => (gpu.Key, gpu.LegacyKey, gpu.Name, gpu.Luid), saved, S.MonitorGpuName) is var at and >= 0 ? at + 1 : -1;
         if (selected < 0)
         {
-            options.Add((S.MonitorGpu, S.MonitorGpuName, Loc.T($"{S.MonitorGpuName ?? "GPU"}（未连接，暂按自动显示）", $"{S.MonitorGpuName ?? "GPU"} (not connected; showing Auto meanwhile)")));
+            options.Add((S.MonitorGpu, S.MonitorGpuName, $"{S.MonitorGpuName ?? "GPU"} (not connected; showing Auto meanwhile)"));
             selected = options.Count - 1;
         }
         var choice = new ComboBox { Width = 292, Style = (Style)FindResource("SettingsCombo"), ItemsSource = options.Select(option => option.Label).ToList(), SelectedIndex = selected };
-        AutomationProperties.SetName(choice, Loc.T("显卡", "GPU")); PopupMotion.Attach(choice);
+        AutomationProperties.SetName(choice, "GPU"); PopupMotion.Attach(choice);
         choice.SelectionChanged += (_, _) =>
         {
             if (choice.SelectedIndex < 0) return;
@@ -217,9 +212,7 @@ public sealed partial class SettingsWindow
             // The open page and the collapsed readings show the new adapter at once.
             _app.Monitor?.ShowGpuChoice();
         };
-        return Row(Loc.T("显卡", "GPU"), choice, help: () => Loc.T(
-            "自动：优先显示独显，有多块独显时显示显存最大的一块；没有独显时显示占用最高的一块。选定后不随占用切换。以 GPU 为主视图时，点击 GPU 读数可切换显卡。",
-            "Auto: prefers the discrete GPU, and with several, the one with the most memory; without one, the busiest GPU. It does not switch as the load changes. Click the GPU reading while the GPU is the large gauge to switch GPUs."));
+        return Row("GPU", choice, help: () => "Auto: prefers the discrete GPU, and with several, the one with the most memory; without one, the busiest GPU. It does not switch as the load changes. Click the GPU reading while the GPU is the large gauge to switch GPUs.");
     }
 
     // A color circle with its name beside it. refresh builds the circle again, so it shows the color the settings hold. The note
@@ -256,8 +249,8 @@ public sealed partial class SettingsWindow
         string? own = S.MonitorPalette == MonitorPalette.Custom ? S.MonitorCustomColors.Get(role) : null;
         string color = RoleColor(MonitorThemeColors.For(S), role), name = RoleName(role);
         var button = new Button { Style = (Style)FindResource("SettingsColorButton"), Foreground = UI.Brush(color) };
-        AutomationProperties.SetName(button, Loc.T($"{name}颜色", $"{name} color"));
-        AutomationProperties.SetHelpText(button, color + (own is null ? Loc.T("（默认）", " (default)") : ""));
+        AutomationProperties.SetName(button, $"{name} color");
+        AutomationProperties.SetHelpText(button, color + (own is null ? " (default)" : ""));
         var popup = new Popup { PlacementTarget = button, Placement = PlacementMode.Bottom, StaysOpen = false, AllowsTransparency = true, VerticalOffset = 4 };
         popup.Child = ColorPicker(own ?? color, own is null, value =>
         {
@@ -276,8 +269,8 @@ public sealed partial class SettingsWindow
         string? own = critical ? S.CompactCriticalColor : S.CompactWarningColor;
         string color = critical ? MonitorThemeColors.Critical(S) : MonitorThemeColors.Warning(S), name = LevelName(level);
         var button = new Button { Style = (Style)FindResource("SettingsColorButton"), Foreground = UI.Brush(color) };
-        AutomationProperties.SetName(button, Loc.T($"收起时{name}颜色", $"Collapsed {name} color"));
-        AutomationProperties.SetHelpText(button, color + (own is null ? Loc.T("（默认）", " (default)") : ""));
+        AutomationProperties.SetName(button, $"Collapsed {name} color");
+        AutomationProperties.SetHelpText(button, color + (own is null ? " (default)" : ""));
         var popup = new Popup { PlacementTarget = button, Placement = PlacementMode.Bottom, StaysOpen = false, AllowsTransparency = true, VerticalOffset = 4 };
         popup.Child = ColorPicker(own ?? (critical ? PanelTheme.CriticalDefault : PanelTheme.WarningDefault), own is null, value =>
         {
@@ -298,17 +291,17 @@ public sealed partial class SettingsWindow
 
     private static string RoleName(MonitorRole role) => role switch
     {
-        MonitorRole.Efficiency => Loc.T("能效核", "Efficiency cores"), MonitorRole.Memory => Loc.T("内存", "Memory"), MonitorRole.Gpu => "GPU",
-        MonitorRole.Download => Loc.T("下载", "Download"), MonitorRole.Upload => Loc.T("上传", "Upload"), MonitorRole.Storage => Loc.T("硬盘", "Drives"),
-        MonitorRole.Power => Loc.T("整机功耗", "System power"), MonitorRole.Battery => Loc.T("本机电池", "Battery"), MonitorRole.Frames => Loc.T("帧率", "Frame rate"), _ => "CPU"
+        MonitorRole.Efficiency => "Efficiency cores", MonitorRole.Memory => "Memory", MonitorRole.Gpu => "GPU",
+        MonitorRole.Download => "Download", MonitorRole.Upload => "Upload", MonitorRole.Storage => "Drives",
+        MonitorRole.Power => "System power", MonitorRole.Battery => "Battery", MonitorRole.Frames => "Frame rate", _ => "CPU"
     };
-    private static string LevelName(MemoryLevel level) => level == MemoryLevel.Critical ? Loc.T("告警", "Critical") : Loc.T("预警", "Warning");
+    private static string LevelName(MemoryLevel level) => level == MemoryLevel.Critical ? "Critical" : "Warning";
 
     // Only CPU and the efficiency cores say where they show, as both color the core columns; the others' names say it.
     private static string? RoleHelp(MonitorRole role) => role switch
     {
-        MonitorRole.Cpu => Loc.T("CPU 读数与核心柱中性能核的颜色。", "The color of the CPU readings and of the performance cores in the core columns."),
-        MonitorRole.Efficiency => Loc.T("核心柱中能效核的颜色。", "The color of the efficiency cores in the core columns."),
+        MonitorRole.Cpu => "The color of the CPU readings and of the performance cores in the core columns.",
+        MonitorRole.Efficiency => "The color of the efficiency cores in the core columns.",
         _ => null
     };
 
@@ -326,7 +319,7 @@ public sealed partial class SettingsWindow
         void Refresh() { syncing = true; try { foreach (var update in refresh) update(); } finally { syncing = false; } }
         _refreshReadings = Refresh;
         void Edit(Action<DeckSettings> edit) { if (syncing) return; Change(edit); Refresh(); }
-        SectionTitle(Loc.T("收起时", "When collapsed"));
+        SectionTitle("When collapsed");
 
         var rows = new StackPanel();
         foreach (var reading in S.CompactReadings) rows.Children.Add(ReadingRow(reading.Item, rows, refresh, Edit));
@@ -334,9 +327,9 @@ public sealed partial class SettingsWindow
         var headings = ReadingColumns(); headings.Height = 34;
         AddHeadings(headings, new[]
         {
-            (Loc.T("监控项", "Item"), 2, ""),
-            (Loc.T("显示数值", "Value"), 3, ""),
-            (Loc.T("显示", "Show"), 4, "")
+            ("Item", 2, ""),
+            ("Value", 3, ""),
+            ("Show", 4, "")
         });
         // The names in the rows start at the left of their column, so their heading does too rather than floating in its middle.
         var nameHeading = headings.Children.OfType<FrameworkElement>().First(heading => Grid.GetColumn(heading) == 2);
@@ -350,26 +343,25 @@ public sealed partial class SettingsWindow
         var presets = new UniformGrid { Columns = 2, Width = 196 };
         foreach (var (mode, label, help) in new[]
         {
-            (CompactMonitorMode.Full, Loc.T("完整", "Full"), Loc.T("显示全部监控项和全部数值。不改变硬盘的盘符、顺序和颜色。", "Shows every reading with every figure. The drive letters, the order and the colors stay.")),
-            (CompactMonitorMode.Brief, Loc.T("简洁", "Brief"), Loc.T("只显示 CPU、内存和 GPU 的圆环，不带数值，隐藏硬盘。不改变顺序和颜色。", "Shows only the CPU, memory and GPU rings, without figures, and hides the drives. The order and the colors stay."))
+            (CompactMonitorMode.Full, "Full", "Shows every reading with every figure. The drive letters, the order and the colors stay."),
+            (CompactMonitorMode.Brief, "Brief", "Shows only the CPU, memory and GPU rings, without figures, and hides the drives. The order and the colors stay.")
         })
         {
             var choice = new RadioButton { Style = (Style)FindResource("SettingsSegment"), Content = label, GroupName = "CompactMonitorPreset" };
-            AutomationProperties.SetName(choice, Loc.T("快捷预设 ", "Preset ") + label); AutomationProperties.SetHelpText(choice, help);
+            AutomationProperties.SetName(choice, "Preset " + label); AutomationProperties.SetHelpText(choice, help);
             choice.Checked += (_, _) => { if (!syncing) Edit(s => CompactMonitor.Apply(s.CompactReadings, mode)); };
             refresh.Add(() => choice.IsChecked = CompactMonitor.Preset(S.CompactReadings) == mode);
             presets.Children.Add(choice);
         }
-        var quick = QuickRow(Loc.T("快捷预设", "Presets"), presets);
+        var quick = QuickRow("Presets", presets);
         // The readings' colors when usage is high; the expanded page does not change color by level, except for its temperatures.
         var levels = KeepPreview(new UniformGrid { Columns = 2, Width = Loc.IsEnglish ? 300 : 220, Margin = new Thickness(0, 6, 0, 6) });
         foreach (var level in new[] { MemoryLevel.Elevated, MemoryLevel.Critical })
             levels.Children.Add(SwatchCell(LevelName(level), LevelHelp(level), () => LevelSwatch(level, Refresh), refresh, info: true));
-        var status = Row(Loc.T("状态颜色", "Level colors"), levels, help: () => Loc.T("用于收起时的读数；展开时只有温度会变色，占用不变色。",
-            "Used by the collapsed readings; on the expanded page only temperatures change color, usage does not."));
+        var status = Row("Level colors", levels, help: () => "Used by the collapsed readings; on the expanded page only temperatures change color, usage does not.");
         // How the dials and the core columns move to a new reading; the figures always take it at once.
-        var smoothing = MusicChoice(Loc.T("平滑过渡", "Smoothing"), S.CompactSmoothing,
-            [(CompactSmoothing.Off, Loc.T("不平滑", "Off")), (CompactSmoothing.Ten, Loc.T("10 帧", "10 fps")), (CompactSmoothing.Thirty, Loc.T("30 帧", "30 fps"))],
+        var smoothing = MusicChoice("Smoothing", S.CompactSmoothing,
+            [(CompactSmoothing.Off, "Off"), (CompactSmoothing.Ten, "10 fps"), (CompactSmoothing.Thirty, "30 fps")],
             v => Change(s => s.CompactSmoothing = v));
         Refresh();
         Group(WithFrameAccess(table, () => Reading(S, CompactMonitorItems.Frames).Visible), quick, status, smoothing);
@@ -395,19 +387,18 @@ public sealed partial class SettingsWindow
         // The memory commit charge is always named: by its own threshold where it differs from the shares', else as part of memory.
         bool apart = commit != share;
         double cpu = critical ? Temperatures.CpuCritical : Temperatures.CpuWarning, gpu = critical ? Temperatures.GpuCritical : Temperatures.GpuWarning;
-        return Loc.T($"占用达到 {share * 100:0}%{(apart ? $"（内存提交量为 {commit * 100:0}%）" : "（内存包括内存提交量）")}、网速达到 {rate:0} MB/s，或 CPU 温度达到 {cpu:0} °C、GPU 温度达到 {gpu:0} °C 时的颜色；硬盘按其自身报告的{(critical ? "临界" : "警告")}温度。",
-            $"The color when usage reaches {share * 100:0}%{(apart ? $" ({commit * 100:0}% for the memory commit charge)" : " (for memory, including the commit charge)")}, the network rate reaches {rate:0} MB/s, or the CPU temperature reaches {cpu:0} °C and the GPU's {gpu:0} °C; drives by the {(critical ? "critical" : "warning")} temperature they report.");
+        return $"The color when usage reaches {share * 100:0}%{(apart ? $" ({commit * 100:0}% for the memory commit charge)" : " (for memory, including the commit charge)")}, the network rate reaches {rate:0} MB/s, or the CPU temperature reaches {cpu:0} °C and the GPU's {gpu:0} °C; drives by the {(critical ? "critical" : "warning")} temperature they report.";
     }
 
     private const double ReadingDot = 10;
 
     private static string ReadingName(CompactMonitorItems item) => item switch
     {
-        CompactMonitorItems.Columns => Loc.T("核心柱", "Core columns"), CompactMonitorItems.Memory => Loc.T("内存", "Memory"), CompactMonitorItems.Gpu => "GPU",
-        CompactMonitorItems.Download => Loc.T("下载", "Download"), CompactMonitorItems.Upload => Loc.T("上传", "Upload"),
-        CompactMonitorItems.Storage => Loc.T("硬盘", "Drives"), CompactMonitorItems.Power => Loc.T("整机功耗", "System power"),
-        CompactMonitorItems.Charge => Loc.T("本机电池", "This PC's battery"), CompactMonitorItems.Frames => Loc.T("帧率", "Frame rate"),
-        CompactMonitorItems.Battery => Loc.T("设备电量", "Device batteries"), _ => "CPU"
+        CompactMonitorItems.Columns => "Core columns", CompactMonitorItems.Memory => "Memory", CompactMonitorItems.Gpu => "GPU",
+        CompactMonitorItems.Download => "Download", CompactMonitorItems.Upload => "Upload",
+        CompactMonitorItems.Storage => "Drives", CompactMonitorItems.Power => "System power",
+        CompactMonitorItems.Charge => "This PC's battery", CompactMonitorItems.Frames => "Frame rate",
+        CompactMonitorItems.Battery => "Device batteries", _ => "CPU"
     };
     private static CompactReading Reading(DeckSettings settings, CompactMonitorItems item) => settings.CompactReadings.First(reading => reading.Item == item);
 
@@ -435,7 +426,7 @@ public sealed partial class SettingsWindow
         // The reading's colors in the normal state as the scheme gives them, one per channel (the core columns: one per kind of
         // core). They are set under "", so they only show here.
         var dots = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Background = Brushes.Transparent,
-            ToolTip = Loc.T("颜色在上方“各项颜色”中设置。", "Set under Reading colors above.") };
+            ToolTip = "Set under Reading colors above." };
         var fills = Enumerable.Range(0, CompactMonitor.Channels(item)).Select(channel =>
             new Ellipse { Width = ReadingDot, Height = ReadingDot, Margin = new Thickness(channel == 0 ? 0 : 3, 0, 0, 0) }).ToArray();
         foreach (var fill in fills) dots.Children.Add(fill);
@@ -450,19 +441,18 @@ public sealed partial class SettingsWindow
         bool choice = CompactMonitor.HasValueChoice(item);
         var value = new CheckBox { Style = (Style)FindResource("SettingsToggle"), Padding = new Thickness(0), HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center, IsEnabled = choice, IsChecked = item is CompactMonitorItems.Download or CompactMonitorItems.Upload or CompactMonitorItems.Storage or CompactMonitorItems.Power or CompactMonitorItems.Charge or CompactMonitorItems.Battery or CompactMonitorItems.Frames };
-        AutomationProperties.SetName(value, Loc.T("显示数值 ", "Show figure ") + name);
+        AutomationProperties.SetName(value, "Show figure " + name);
         if (!choice)
         {
             value.ToolTip = item switch
             {
-                CompactMonitorItems.Columns => Loc.T("核心柱没有数值。", "The core columns have no figure."),
-                CompactMonitorItems.Storage => Loc.T("硬盘始终显示数值，在左侧的菜单中选择显示什么。", "The drives always show figures; choose which in the menu at the left."),
-                CompactMonitorItems.Power => Loc.T("整机功耗，单位 W；是否为估算见悬停提示。无读数的电脑不显示。", "System power in W; the tooltip says whether it is an estimate. Hidden on PCs with no reading."),
-                CompactMonitorItems.Charge => Loc.T("本机电池电量，以电池图形显示。无电池的电脑不显示。", "This PC's battery charge, shown as a battery icon. Hidden on PCs without a battery."),
-                CompactMonitorItems.Battery => Loc.T("在“设置 › 设备”中选择显示哪些设备、是否显示数字和顺序。", "Choose which devices show, with or without figures, and their order under Settings › Devices."),
-                CompactMonitorItems.Frames => Loc.T("前台程序每秒绘制的帧数；前台程序不在绘制时，显示最近一个在绘制的程序。首次开启时需要授权，未授权时不显示。",
-                    "The frames the program in front draws each second; while it draws nothing, the last program that did. Needs permission the first time; hidden until then."),
-                _ => Loc.T("下载和上传始终显示速率。", "Download and upload always show their rate.")
+                CompactMonitorItems.Columns => "The core columns have no figure.",
+                CompactMonitorItems.Storage => "The drives always show figures; choose which in the menu at the left.",
+                CompactMonitorItems.Power => "System power in W; the tooltip says whether it is an estimate. Hidden on PCs with no reading.",
+                CompactMonitorItems.Charge => "This PC's battery charge, shown as a battery icon. Hidden on PCs without a battery.",
+                CompactMonitorItems.Battery => "Choose which devices show, with or without figures, and their order under Settings › Devices.",
+                CompactMonitorItems.Frames => "The frames the program in front draws each second; while it draws nothing, the last program that did. Needs permission the first time; hidden until then.",
+                _ => "Download and upload always show their rate."
             };
             ToolTipService.SetShowOnDisabled(value, true);
         }
@@ -474,7 +464,7 @@ public sealed partial class SettingsWindow
         Grid.SetColumn(value, 3); row.Children.Add(value);
 
         var shown = new CheckBox { Style = (Style)FindResource("SettingsToggle"), Padding = new Thickness(0), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-        AutomationProperties.SetName(shown, Loc.T("显示 ", "Show ") + name);
+        AutomationProperties.SetName(shown, "Show " + name);
         shown.Checked += (_, _) =>
         {
             // Only a frame rate the user turns on asks for permission, not one the table shows as on.
@@ -502,7 +492,7 @@ public sealed partial class SettingsWindow
     private Button FiguresMenu(CompactMonitorItems item, List<Action> refresh, Action<Action<DeckSettings>> edit)
     {
         bool drives = item == CompactMonitorItems.Storage;
-        string name = ReadingName(item), role = Loc.T($"{name}显示的数值", $"Figures shown for {name}");
+        string name = ReadingName(item), role = $"Figures shown for {name}";
         const double Wide = 150;
         var select = ActionButton("", () => { });
         var content = new DockPanel();
@@ -516,15 +506,15 @@ public sealed partial class SettingsWindow
         ToolTipService.SetShowOnDisabled(select, true);
         AutomationProperties.SetName(select, role);
 
-        static string FigureName(string figure) => figure == CompactFigures.Usage ? Loc.T("占用", "Usage") : Loc.T("温度", "Temperature");
+        static string FigureName(string figure) => figure == CompactFigures.Usage ? "Usage" : "Temperature";
         refresh.Add(() =>
         {
             var reading = Reading(S, item);
-            var figures = string.Join(Loc.T("、", ", "), CompactFigures.Of(reading).Select(FigureName));
+            var figures = string.Join(", ", CompactFigures.Of(reading).Select(FigureName));
             summary.Text = drives ? string.Join(" ", CompactSources.Of(reading)) + " · " + figures : figures;
             // A ring set to show no figure shows none of these either.
             select.IsEnabled = drives || reading.ShowValue;
-            select.ToolTip = select.IsEnabled ? role + Loc.T("：", ": ") + summary.Text : Loc.T("先打开“显示数值”。", "Switch Value on first.");
+            select.ToolTip = select.IsEnabled ? role + ": " + summary.Text : "Switch Value on first.";
         });
 
         IReadOnlyList<StorageDrive>? listed = _app.Monitor?.Latest?.Storage is { Count: > 0 } latest ? latest : null;
@@ -535,7 +525,7 @@ public sealed partial class SettingsWindow
             foreach (var volume in (listed ?? []).SelectMany(drive => drive.Volumes))
                 options.Add((volume.Letter.ToUpperInvariant(), volume.Label.Length > 0 ? volume.Letter + " " + volume.Label : volume.Letter));
             foreach (var letter in chosen.Where(letter => options.All(option => option.Item1 != letter)))
-                options.Add((letter, listed is null ? letter : letter + Loc.T("（未连接）", " (not connected)")));
+                options.Add((letter, listed is null ? letter : letter + " (not connected)"));
             return [.. options.OrderBy(option => CompactSources.Rank(option.Item1))];
         }
 
@@ -566,9 +556,9 @@ public sealed partial class SettingsWindow
             var entry = ActionButton("", () => { }); entry.Content = line;
             entry.HorizontalContentAlignment = HorizontalAlignment.Stretch; entry.Padding = new Thickness(7, 3, 7, 3);
             entry.IsEnabled = !last && blocked is null;
-            entry.ToolTip = last ? Loc.T("至少保留一项。", "At least one stays.") : blocked ?? help;
+            entry.ToolTip = last ? "At least one stays." : blocked ?? help;
             ToolTipService.SetShowOnDisabled(entry, true);
-            AutomationProperties.SetName(entry, label); AutomationProperties.SetHelpText(entry, on ? Loc.T("已选", "Chosen") : Loc.T("未选", "Not chosen"));
+            AutomationProperties.SetName(entry, label); AutomationProperties.SetHelpText(entry, on ? "Chosen" : "Not chosen");
             entry.Click += (_, _) => { toggle(); Fill(); };
             items.Children.Add(entry);
         }
@@ -582,13 +572,13 @@ public sealed partial class SettingsWindow
             items.Children.Clear();
             var reading = Reading(S, item);
             var figures = CompactFigures.Of(reading);
-            Header(Loc.T("数值", "Figures"));
+            Header("Figures");
             foreach (var figure in new[] { CompactFigures.Usage, CompactFigures.Temperature })
             {
                 bool on = figures.Contains(figure);
                 string? help = figure == CompactFigures.Temperature
-                    ? drives ? Loc.T("固态硬盘的温度，显示在已用空间下方；机械硬盘不显示。", "A solid-state drive's temperature, under its space in use; not shown for hard disks.")
-                        : Loc.T("显示在占用下方；读不到温度的电脑上不显示。", "Shown under the usage; not shown on a PC whose temperature cannot be read.")
+                    ? drives ? "A solid-state drive's temperature, under its space in use; not shown for hard disks."
+                        : "Shown under the usage; not shown on a PC whose temperature cannot be read."
                     : null;
                 Entry(FigureName(figure), on, on && figures.Count == 1, help, () =>
                 {
@@ -597,16 +587,16 @@ public sealed partial class SettingsWindow
                     edit(s => Reading(s, item).Figures = CompactFigures.Normalize(item, next));
                 });
             }
-            Header(Loc.T("排列", "Layout"));
-            string? single = figures.Count < 2 ? Loc.T("同时选择占用和温度时可用。", "Available when both usage and temperature are chosen.") : null;
+            Header("Layout");
+            string? single = figures.Count < 2 ? "Available when both usage and temperature are chosen." : null;
             foreach (var inLine in new[] { false, true })
             {
                 bool on = reading.FiguresInLine == inLine;
-                Entry(inLine ? Loc.T("同一行", "One line") : Loc.T("分两行", "Two lines"), on, false, null,
+                Entry(inLine ? "One line" : "Two lines", on, false, null,
                     () => edit(s => Reading(s, item).FiguresInLine = inLine), single);
             }
             if (!drives) return;
-            Header(Loc.T("盘符", "Letters"));
+            Header("Letters");
             var chosen = CompactSources.Of(reading);
             foreach (var (letter, label) in Letters())
             {
@@ -620,7 +610,7 @@ public sealed partial class SettingsWindow
             }
             if (listed is null)
             {
-                var note = TextLine(Loc.T("正在读取硬盘…", "Reading the drives…"), 11.5, TextTertiary); note.Margin = new Thickness(8, 4, 8, 4);
+                var note = TextLine("Reading the drives…", 11.5, TextTertiary); note.Margin = new Thickness(8, 4, 8, 4);
                 items.Children.Add(note);
             }
         }
@@ -651,13 +641,12 @@ public sealed partial class SettingsWindow
     {
         var options = new (string[] Parts, string Label)[]
         {
-            ([CompactFrames.Icon], Loc.T("显示程序图标", "Program icon")), ([], Loc.T("不显示图标", "No program icon"))
+            ([CompactFrames.Icon], "Program icon"), ([], "No program icon")
         };
         var choice = new ComboBox { Width = 150, Height = 30, Style = (Style)FindResource("SettingsCombo"), ItemsSource = options.Select(option => option.Label).ToList(),
             HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 6, 0),
-            ToolTip = Loc.T("在帧率前显示所统计程序的图标；不显示时用显示器图标。程序名称在展开页显示。",
-                "Shows the icon of the program counted before the frame rate; without it, a screen. The program's name shows on the expanded page.") };
-        AutomationProperties.SetName(choice, Loc.T("帧率前的程序图标", "Program icon before the frame rate")); PopupMotion.Attach(choice);
+            ToolTip = "Shows the icon of the program counted before the frame rate; without it, a screen. The program's name shows on the expanded page." };
+        AutomationProperties.SetName(choice, "Program icon before the frame rate"); PopupMotion.Attach(choice);
         bool syncing = false;
         refresh.Add(() =>
         {
@@ -678,15 +667,15 @@ public sealed partial class SettingsWindow
     private void MonitorSizeControls()
     {
         var dimensions = new Grid { Margin = new Thickness(0, 8, 0, 0) }; dimensions.ColumnDefinitions.Add(new()); dimensions.ColumnDefinitions.Add(new());
-        var width = Dimension(Loc.T("宽度", "Width"), S.MonitorWidth, 440, 1200, value => Resize(s => s.MonitorWidth = value, DeckPage.Monitor)); width.Margin = new Thickness(0, 0, 20, 0); dimensions.Children.Add(width);
-        var height = Dimension(Loc.T("高度", "Height"), S.MonitorHeight, 140, 400, value => Resize(s => s.MonitorHeight = value, DeckPage.Monitor)); height.Margin = new Thickness(20, 0, 0, 0); Grid.SetColumn(height, 1); dimensions.Children.Add(height);
+        var width = Dimension("Width", S.MonitorWidth, 440, 1200, value => Resize(s => s.MonitorWidth = value, DeckPage.Monitor)); width.Margin = new Thickness(0, 0, 20, 0); dimensions.Children.Add(width);
+        var height = Dimension("Height", S.MonitorHeight, 140, 400, value => Resize(s => s.MonitorHeight = value, DeckPage.Monitor)); height.Margin = new Thickness(20, 0, 0, 0); Grid.SetColumn(height, 1); dimensions.Children.Add(height);
         Target.Children.Add(dimensions);
         var sizes = KeepPreview(new UniformGrid { Columns = 3, Width = 292 });
         foreach (var size in Enum.GetValues<PanelSize>())
         {
             var (w, h) = MonitorSizes.For(size);
             var choice = new RadioButton { Style = (Style)FindResource("SettingsSegment"), Content = PanelSizes.Name(size), GroupName = "MonitorSize", IsChecked = (S.MonitorWidth, S.MonitorHeight) == (w, h) };
-            AutomationProperties.SetName(choice, Loc.T("系统监控快捷尺寸 ", "System monitor quick size ") + PanelSizes.Name(size));
+            AutomationProperties.SetName(choice, "System monitor quick size " + PanelSizes.Name(size));
             choice.Checked += (_, _) => { Resize(s => { s.MonitorWidth = w; s.MonitorHeight = h; }, DeckPage.Monitor); ShowPage(2); };
             sizes.Children.Add(choice);
         }

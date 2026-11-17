@@ -16,8 +16,7 @@ public sealed partial class SettingsWindow
         var input = new TextBox { Style = (Style)FindResource("SettingsNumber"), TextAlignment = TextAlignment.Left,
             FontSize = 12.5, MaxLength = 64, VerticalAlignment = VerticalAlignment.Center, IsEnabled = entry is not null };
         AutomationProperties.SetAutomationId(input, "display-name-" + entry?.InstanceId.ToString("N"));
-        string help = Loc.T("显示在看板上的名称；浅色文字为默认名称，点击后可直接输入，留空恢复配额来源名称",
-            "The name shown on the panel. Light text is the default name; click to type a new one, or leave it empty to use the quota source's name");
+        string help = "The name shown on the panel. Light text is the default name; click to type a new one, or leave it empty to use the quota source's name";
         AutomationProperties.SetHelpText(input, help);
         var field = new Border { Child = input, Height = 34, CornerRadius = new CornerRadius(6), Padding = new Thickness(10, 0, 10, 0),
             Margin = new Thickness(6, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center, Background = UI.Brush(_palette.Input),
@@ -29,7 +28,7 @@ public sealed partial class SettingsWindow
             showingDefault = !input.IsKeyboardFocused && string.IsNullOrWhiteSpace(current?.DisplayName);
             input.Text = input.IsKeyboardFocused ? current?.DisplayName ?? "" : current?.Name ?? "";
             input.Foreground = UI.Brush(showingDefault ? TextTertiary : TextPrimary);
-            AutomationProperties.SetName(input, Loc.T("显示名称 ", "Display name ") + (current?.Name ?? Loc.T("未配置应用", "unconfigured app")));
+            AutomationProperties.SetName(input, "Display name " + (current?.Name ?? "unconfigured app"));
         }
         void Commit()
         {
@@ -133,7 +132,7 @@ public sealed partial class SettingsWindow
     // handle's spoken name.
     private void AttachDrag(Border handle, string name, Func<Panel?> list, double height, Action<Panel> reordered, Action? starting = null)
     {
-        AutomationProperties.SetName(handle, Loc.T($"{name}：拖动，或在本行按 Alt+↑/↓ 调整顺序", $"{name}: drag, or press Alt+Up/Down in its row, to reorder"));
+        AutomationProperties.SetName(handle, $"{name}: drag, or press Alt+Up/Down in its row, to reorder");
         // Focusable so that pressing it commits a name being edited. Tab skips it: the keyboard moves a row from any control in it.
         handle.Focusable = true; KeyboardNavigation.SetIsTabStop(handle, false); handle.FocusVisualStyle = null;
         // WCAG 2.5.7, the keyboard's way to reorder (SW-03): with the focus anywhere in the row, Alt+Up or Alt+Down moves the row one
@@ -144,7 +143,7 @@ public sealed partial class SettingsWindow
             var items = rows.Children.OfType<Border>().Where(b => b.Tag is not null).ToArray();
             int from = Array.IndexOf(items, row), to = from + delta;
             if (from < 0) return;
-            if (to < 0 || to >= items.Length) { Announce(to < 0 ? Loc.T("已在最前", "Already first") : Loc.T("已在最后", "Already last")); return; }
+            if (to < 0 || to >= items.Length) { Announce(to < 0 ? "Already first" : "Already last"); return; }
             starting?.Invoke();
             RowFocus.Keep(row, handle);
             var other = items[to];
@@ -154,7 +153,7 @@ public sealed partial class SettingsWindow
             SetRowOffset(row, -delta * height); AnimateRow(row, 0);
             SetRowOffset(other, delta * height); AnimateRow(other, 0);
             reordered(rows);
-            Announce(Loc.T($"已移到第 {to + 1} 位，共 {items.Length} 项", $"Moved to position {to + 1} of {items.Length}"));
+            Announce($"Moved to position {to + 1} of {items.Length}");
         }
         void Announce(string text)
         {

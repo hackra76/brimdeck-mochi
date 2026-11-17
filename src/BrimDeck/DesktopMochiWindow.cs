@@ -77,9 +77,9 @@ public sealed class DesktopMochiWindow : Window
         Content = host;
 
         var menu = new ContextMenu();
-        var returnItem = new MenuItem { Header = Loc.T("回到灵动岛", "Return to Island") };
+        var returnItem = new MenuItem { Header = "Return to Island" };
         returnItem.Click += (_, _) => ReturnToIslandRequested?.Invoke();
-        var settingsItem = new MenuItem { Header = Loc.T("Mochi 设置", "Mochi Settings") };
+        var settingsItem = new MenuItem { Header = "Mochi Settings" };
         settingsItem.Click += (_, _) => OpenSettingsRequested?.Invoke();
         menu.Items.Add(returnItem);
         menu.Items.Add(settingsItem);

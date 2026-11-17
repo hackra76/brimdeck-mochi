@@ -108,11 +108,11 @@ internal sealed class ModelDatePicker : Border
             var content = new Grid();
             content.RowDefinitions.Add(new RowDefinition { Height = new GridLength(15) });
             content.RowDefinitions.Add(new RowDefinition { Height = new GridLength(21) });
-            content.Children.Add(UI.Centered(end ? Loc.T("结束", "End") : Loc.T("开始", "Start"), 10, Hex("textTertiary")));
+            content.Children.Add(UI.Centered(end ? "End" : "Start", 10, Hex("textTertiary")));
             var value = UI.Centered("", 12, Hex("textPrimary"));
             Grid.SetRow(value, 1); content.Children.Add(value);
             bool chosen = end;
-            var field = Control(content, end ? Loc.T("选择结束日期", "Choose the end date") : Loc.T("选择开始日期", "Choose the start date"), () => ChooseField(chosen));
+            var field = Control(content, end ? "Choose the end date" : "Choose the start date", () => ChooseField(chosen));
             field.Padding = new Thickness(7, 2, 7, 2); field.Background = Brush("input"); field.BorderBrush = Brush("outline");
             field.FocusVisualStyle = TryFindResource("PanelOutsetKeyboardFocus") as Style;
             Grid.SetColumn(field, end ? 2 : 0); fields.Children.Add(field);
@@ -136,7 +136,7 @@ internal sealed class ModelDatePicker : Border
         _body.Children.Add(navigation);
 
         var weekdays = new UniformGrid { Columns = DatePickerMotion.Columns, Rows = 1, Height = 18 };
-        foreach (var day in Loc.IsEnglish ? new[] { "Mo", "Tu", "We", "Th", "Fr", "Sa", "Su" } : new[] { "一", "二", "三", "四", "五", "六", "日" })
+        foreach (var day in new[] { "Mo", "Tu", "We", "Th", "Fr", "Sa", "Su" })
         { var label = UI.Centered(day, 10, Hex("textTertiary")); label.TextAlignment = TextAlignment.Center; weekdays.Children.Add(label); }
         _body.Children.Add(weekdays);
 
@@ -183,16 +183,16 @@ internal sealed class ModelDatePicker : Border
         _body.Children.Add(_calendar);
 
         // The message has a slot that opens to its height, so the buttons below move on the shared curve rather than jump.
-        _message = UI.Line(Loc.T("开始日期不能晚于结束日期。", "The start date cannot be later than the end date."), 11, Hex("danger"));
+        _message = UI.Line("The start date cannot be later than the end date.", 11, Hex("danger"));
         _message.TextWrapping = TextWrapping.Wrap; _message.TextTrimming = TextTrimming.None;
         _message.Margin = new Thickness(0, MessageGap, 0, 0); _message.VerticalAlignment = VerticalAlignment.Top; _message.RenderTransform = _messageShift; _message.Opacity = 0;
         _messageSlot.Child = _message;
         _body.Children.Add(_messageSlot);
 
         var actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 7, 0, 0) };
-        var cancel = Control(Text(Loc.T("取消", "Cancel")), Loc.T("取消日期筛选", "Cancel the date filter"), () => Cancelled?.Invoke());
+        var cancel = Control(Text("Cancel"), "Cancel the date filter", () => Cancelled?.Invoke());
         cancel.Padding = new Thickness(10, 1, 10, 1); cancel.Margin = new Thickness(0, 0, 6, 0); actions.Children.Add(cancel);
-        _apply = Control(Text(Loc.T("应用", "Apply")), Loc.T("应用日期筛选", "Apply the date filter"), ApplySelection);
+        _apply = Control(Text("Apply"), "Apply the date filter", ApplySelection);
         _apply.Padding = new Thickness(10, 1, 10, 1); _apply.Background = Brush("accent"); _apply.Foreground = Brush("onAccent");
         // The focus ring is drawn in the accent, so on an accent button it stands outside it.
         _apply.FocusVisualStyle = TryFindResource("PanelOutsetKeyboardFocus") as Style;
@@ -238,7 +238,7 @@ internal sealed class ModelDatePicker : Border
     {
         var icon = UI.Centered(next ? "" : "", 10, Hex("textPrimary"), font: Fonts.IconMdl2);
         icon.ClearValue(TextBlock.ForegroundProperty);
-        return Control(icon, next ? Loc.T("下个月", "Next month") : Loc.T("上个月", "Previous month"), () => ShowMonth(_month.AddMonths(next ? 1 : -1), true));
+        return Control(icon, next ? "Next month" : "Previous month", () => ShowMonth(_month.AddMonths(next ? 1 : -1), true));
     }
 
     // A day's figure, with the dot that marks today under it.
@@ -342,7 +342,7 @@ internal sealed class ModelDatePicker : Border
             _days[i].Opacity = day <= today ? 1 : Unavailable;
             AutomationProperties.SetName(_days[i], day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         }
-        _monthText.Text = Loc.IsEnglish ? _month.ToString("MMMM yyyy", Loc.Culture) : _month.ToString("yyyy 年 M 月", CultureInfo.InvariantCulture);
+        _monthText.Text = _month.ToString("MMMM yyyy", Loc.Culture);
     }
 
     // Brings everything that shows the choice to it: gliding and easing when motion is true, at once otherwise. A month

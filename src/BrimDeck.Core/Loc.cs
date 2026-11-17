@@ -9,21 +9,19 @@ namespace BrimDeck.Core;
 // are shown, by Label.
 public static class Loc
 {
-    public const string Chinese = "zh-CN", English = "en-US";
-    public static bool IsEnglish { get; private set; }
-    public static string Language => IsEnglish ? English : Chinese;
-    public static CultureInfo Culture => CultureInfo.GetCultureInfo(Language);
+    public const string English = "en-US";
+    public static bool IsEnglish => true;
+    public static string Language => English;
+    public static CultureInfo Culture => CultureInfo.GetCultureInfo(English);
 
-    public static void Use(string language) => IsEnglish = Normalize(language) == English;
-    public static string Normalize(string? language) => language == Chinese ? Chinese : English;
-    public static string T(string chinese, string english) => IsEnglish ? english : chinese;
+    public static void Use(string language) { }
+    public static string Normalize(string? language) => English;
+    public static string T(string _, string english) => english;
     // An English count with its noun: "1 item", "2 items".
     public static string Count(long count, string one, string many) => $"{count} {(count == 1 ? one : many)}";
 
-    // The Windows display language decides the language of a first start and of "Reset to default". Every Chinese variant,
-    // Traditional included, shows Simplified Chinese; any other language shows English.
-    public static string SystemLanguage() => SystemLanguage(CultureInfo.CurrentUICulture);
-    public static string SystemLanguage(CultureInfo culture) => culture.TwoLetterISOLanguageName == "zh" ? Chinese : English;
+    public static string SystemLanguage() => English;
+    public static string SystemLanguage(CultureInfo culture) => English;
 
     private static readonly Dictionary<string, string> Labels = new(StringComparer.Ordinal)
     {

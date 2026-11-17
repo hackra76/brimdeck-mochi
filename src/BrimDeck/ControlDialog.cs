@@ -56,7 +56,7 @@ internal abstract class ControlDialog : Window
                 VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center } };
         info.ToolTip = new ToolTip { Content = new TextBlock { Text = how, TextWrapping = TextWrapping.Wrap, MaxWidth = 320 } };
         ToolTipService.SetInitialShowDelay(info, 0);
-        AutomationProperties.SetName(info, Loc.T("修改方式说明", "How the file is changed")); AutomationProperties.SetHelpText(info, how);
+        AutomationProperties.SetName(info, "How the file is changed"); AutomationProperties.SetHelpText(info, how);
         Body.Children.Add(new HelpHeading(label, info) { HorizontalAlignment = HorizontalAlignment.Left });
     }
 
@@ -80,9 +80,9 @@ internal abstract class ControlDialog : Window
     protected void Finish(string confirm)
     {
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 22, 0, 0) };
-        var cancel = new Button { Content = Loc.T("取消", "Cancel"), Style = (Style)FindResource("ControlDialogButton"), IsCancel = true, Margin = new Thickness(0, 0, 10, 0) };
+        var cancel = new Button { Content = "Cancel", Style = (Style)FindResource("ControlDialogButton"), IsCancel = true, Margin = new Thickness(0, 0, 10, 0) };
         var enable = new Button { Content = confirm, Style = (Style)FindResource("ControlDialogPrimaryButton") };
-        AutomationProperties.SetName(cancel, Loc.T("取消", "Cancel")); AutomationProperties.SetName(enable, confirm);
+        AutomationProperties.SetName(cancel, "Cancel"); AutomationProperties.SetName(enable, confirm);
         cancel.Click += (_, _) => DialogResult = false; enable.Click += (_, _) => DialogResult = true;
         buttons.Children.Add(cancel); buttons.Children.Add(enable); Body.Children.Add(buttons);
         Content = new Border { Background = UI.Brush(Palette.Surface), Padding = new Thickness(28, 24, 28, 24), Child = Body };

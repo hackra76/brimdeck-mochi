@@ -9,8 +9,8 @@ namespace BrimDeck.Core;
 public static partial class PanelThemes
 {
     // The placeholders of the template that a new file replaces.
-    private const string TemplateId = "my-theme", TemplateName = "我的主题", TemplateNameEn = "My theme",
-        TemplateDescription = "一句话描述这个主题。", TemplateDescriptionEn = "One sentence about this theme.";
+    private const string TemplateId = "my-theme", TemplateName = "My theme", TemplateNameEn = "My theme",
+        TemplateDescription = "One sentence about this theme.", TemplateDescriptionEn = "One sentence about this theme.";
     private static string? _template;
     // The template a new custom theme starts from: every token and effect, each with its meaning.
     public static string Template => _template ??= Resource(typeof(PanelThemes).Assembly.GetManifestResourceNames()

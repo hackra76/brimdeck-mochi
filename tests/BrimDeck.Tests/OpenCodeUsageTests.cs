@@ -177,12 +177,12 @@ static class OpenCodeUsageTests
 
         var snapshot = await Refresh();
         check("Without a sign-in OpenCode asks to sign in to the Console and sends nothing, but still counts tokens",
-            handler.Calls.Count == 0 && snapshot.StatusLabel == Loc.T("未连接", "Not connected") && snapshot.Status.Contains("OpenCode Console") &&
+            handler.Calls.Count == 0 && snapshot.StatusLabel == "Not connected" && snapshot.Status.Contains("OpenCode Console") &&
             snapshot.Entries.Count == 1 && snapshot.Entries[0].ReportedCostUsd == 0.001m);
 
         desktop.Credentials = [[OAuth("fixture-access", now.AddMinutes(-1))]];
         snapshot = await Refresh();
-        check("An expired sign-in sends nothing and is never renewed", handler.Calls.Count == 0 && snapshot.StatusLabel == Loc.T("登录已过期", "Sign-in expired"));
+        check("An expired sign-in sends nothing and is never renewed", handler.Calls.Count == 0 && snapshot.StatusLabel == "Sign-in expired");
 
         desktop.Credentials = [[OAuth("fixture-access", now.AddDays(20))]];
         handler.Respond = _ => Reply("""{"usage":{"rolling":{"status":"ok","percent":4,"resetsAt":"2026-10-26T19:30:00.000Z"},"weekly":{"status":"ok","percent":1,"resetsAt":"2026-11-02T00:00:00.000Z"},"monthly":{"status":"ok","percent":0,"resetsAt":"2026-11-26T00:00:00.000Z"}}}""");
@@ -191,7 +191,7 @@ static class OpenCodeUsageTests
         check("The Go allowance is read with the Console sign-in, its workspace and a user agent Cloudflare accepts",
             call.Uri == "https://opencode.ai/zen/go/v1/usage" && call.Authorization == "Bearer fixture-access" && call.Workspace == "org_fixture" && call.UserAgent.StartsWith("BrimDeck/", StringComparison.Ordinal));
         check("The Go allowance shows as three windows from the account", snapshot.LiveQuota && snapshot.Scope == "account" && snapshot.Source == "OpenCode Go" &&
-            snapshot.Quotas.Select(q => q.Minutes).SequenceEqual(new int?[] { 300, 10080, null }) && snapshot.StatusLabel == Loc.T("已连接", "Connected"));
+            snapshot.Quotas.Select(q => q.Minutes).SequenceEqual(new int?[] { 300, 10080, null }) && snapshot.StatusLabel == "Connected");
         check("The token is not written to the snapshot", new[] { snapshot.Status, snapshot.StatusLabel, snapshot.Source, snapshot.Plan, snapshot.UsageNote }.All(text => !text.Contains("fixture")));
 
         handler.Respond = _ => Reply("""{"usage":{"rolling":{"status":"rate-limited","percent":100},"weekly":{"status":"ok","percent":40},"monthly":{"status":"ok","percent":20}}}""");
@@ -200,16 +200,16 @@ static class OpenCodeUsageTests
 
         handler.Respond = _ => new HttpResponseMessage(HttpStatusCode.Forbidden) { Content = new StringContent("""{"type":"error","error":{"type":"AuthError","message":"No subscription"}}""") };
         snapshot = await Refresh();
-        check("OpenCode's own 403 means the workspace has no Go plan", !snapshot.LiveQuota && snapshot.StatusLabel == Loc.T("未订阅 Go", "No Go plan") && snapshot.Quotas.Count == 0);
+        check("OpenCode's own 403 means the workspace has no Go plan", !snapshot.LiveQuota && snapshot.StatusLabel == "No Go plan" && snapshot.Quotas.Count == 0);
         handler.Respond = _ => new HttpResponseMessage(HttpStatusCode.Forbidden) { Content = new StringContent("""{"title":"Error 1010","cloudflare_error":true,"error_code":1010}""") };
         snapshot = await Refresh();
-        check("A Cloudflare refusal is a passing failure, not a missing plan", !snapshot.LiveQuota && snapshot.StatusLabel == Loc.T("暂不可用", "Unavailable"));
+        check("A Cloudflare refusal is a passing failure, not a missing plan", !snapshot.LiveQuota && snapshot.StatusLabel == "Unavailable");
         handler.Respond = _ => new HttpResponseMessage(HttpStatusCode.Unauthorized) { Content = new StringContent("{}") };
         snapshot = await Refresh();
-        check("A rejected sign-in asks to sign in again", snapshot.StatusLabel == Loc.T("登录已失效", "Sign-in expired"));
+        check("A rejected sign-in asks to sign in again", snapshot.StatusLabel == "Sign-in expired");
         handler.Respond = _ => Reply("""{"usage":{}}""");
         snapshot = await Refresh();
-        check("An answer without windows is a format change", snapshot.StatusLabel == Loc.T("数据不可用", "Data unavailable"));
+        check("An answer without windows is a format change", snapshot.StatusLabel == "Data unavailable");
 
         desktop.Credentials = [[OAuth("fixture-access", now.AddDays(20), server: "http://opencode.ai/console")]];
         handler.Calls.Clear();
