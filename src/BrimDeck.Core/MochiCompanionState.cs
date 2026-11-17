@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.IO.Pipes;
 using System.Text;
 using System.Text.Json;
@@ -214,65 +215,212 @@ public static class MochiCompanionLogic
     }
 }
 
+public sealed record MochiHookEvent(
+    MochiState State,
+    string? Detail,
+    string? SessionId,
+    string? RequestId,
+    IReadOnlyList<string> Options);
+
 /// <summary>
-/// Lightweight named-pipe listener (\\.\pipe\brimdeck-mochi-agent) so external hooks
-/// can push live Antigravity agent state transitions directly to Mochi.
+/// Bidirectional named-pipe listener (\\.\pipe\brimdeck-mochi-agent) so external hooks
+/// can push live Antigravity agent state transitions and optionally await user decisions.
 /// </summary>
 public sealed class MochiAgentPipeListener : IDisposable
 {
     public const string PipeName = "brimdeck-mochi-agent";
     private readonly CancellationTokenSource _cts = new();
-    private readonly Action<MochiState, string?, string?> _onState;
+    private readonly Action<MochiHookEvent> _onEvent;
+    private readonly ConcurrentDictionary<string, TaskCompletionSource<string>> _pendingReplies = new(StringComparer.Ordinal);
 
     public MochiAgentPipeListener(Action<MochiState, string?> onState)
-        : this((state, detail, _) => onState(state, detail)) { }
+        : this(ev => onState(ev.State, ev.Detail)) { }
 
     public MochiAgentPipeListener(Action<MochiState, string?, string?> onState)
+        : this(ev => onState(ev.State, ev.Detail, ev.SessionId)) { }
+
+    public MochiAgentPipeListener(Action<MochiHookEvent> onEvent)
     {
-        _onState = onState;
+        _onEvent = onEvent;
         _ = Task.Run(() => ListenLoopAsync(_cts.Token));
+    }
+
+    public bool TryRespond(string requestId, string decision)
+    {
+        if (string.IsNullOrWhiteSpace(requestId)) return false;
+        return _pendingReplies.TryRemove(requestId, out var tcs) && tcs.TrySetResult(decision);
     }
 
     private async Task ListenLoopAsync(CancellationToken ct)
     {
         while (!ct.IsCancellationRequested)
         {
+            NamedPipeServerStream? server = null;
             try
             {
-                await using var server = new NamedPipeServerStream(
+                server = new NamedPipeServerStream(
                     PipeName,
-                    PipeDirection.In,
+                    PipeDirection.InOut,
                     NamedPipeServerStream.MaxAllowedServerInstances,
                     PipeTransmissionMode.Byte,
                     PipeOptions.Asynchronous);
 
                 await server.WaitForConnectionAsync(ct).ConfigureAwait(false);
-                using var reader = new StreamReader(server, Encoding.UTF8, leaveOpen: true);
-                while (!ct.IsCancellationRequested && await reader.ReadLineAsync(ct).ConfigureAwait(false) is { } line)
-                {
-                    if (MochiCompanionLogic.ParseHookEvent(line) is { } state)
-                    {
-                        string? detail = null;
-                        string? sessionId = null;
-                        try
-                        {
-                            using var doc = JsonDocument.Parse(line);
-                            if (doc.RootElement.TryGetProperty("tool_name", out var t))
-                                detail = t.GetString();
-                            if (doc.RootElement.TryGetProperty("session_id", out var sid))
-                                sessionId = sid.GetString();
-                            else if (doc.RootElement.TryGetProperty("conversation_id", out var cid))
-                                sessionId = cid.GetString();
-                        }
-                        catch (JsonException) { }
-                        _onState(state, detail, sessionId);
-                    }
-                }
+                var client = server;
+                server = null;
+                _ = Task.Run(() => HandleClientAsync(client, ct), ct);
             }
-            catch (OperationCanceledException) { break; }
-            catch (Exception) { await Task.Delay(500, ct).ConfigureAwait(false); }
+            catch (OperationCanceledException)
+            {
+                server?.Dispose();
+                break;
+            }
+            catch (Exception)
+            {
+                server?.Dispose();
+                await Task.Delay(500, ct).ConfigureAwait(false);
+            }
         }
     }
 
-    public void Dispose() => _cts.Cancel();
+    private async Task HandleClientAsync(NamedPipeServerStream server, CancellationToken ct)
+    {
+        await using (server)
+        {
+            try
+            {
+                using var reader = new StreamReader(server, Encoding.UTF8, leaveOpen: true);
+                using var writer = new StreamWriter(server, new UTF8Encoding(false), leaveOpen: true) { AutoFlush = true };
+
+                while (!ct.IsCancellationRequested && await reader.ReadLineAsync(ct).ConfigureAwait(false) is { } line)
+                {
+                    if (MochiCompanionLogic.ParseHookEvent(line) is not { } state) continue;
+
+                    var hookEvent = ParseDetails(line, state);
+                    TaskCompletionSource<string>? replyTcs = null;
+                    if (!string.IsNullOrWhiteSpace(hookEvent.RequestId)
+                        && state is MochiState.Approval or MochiState.Question)
+                    {
+                        replyTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        _pendingReplies[hookEvent.RequestId] = replyTcs;
+                    }
+
+                    _onEvent(hookEvent);
+
+                    if (replyTcs is not null && hookEvent.RequestId is { } reqId)
+                    {
+                        try
+                        {
+                            string decision = await replyTcs.Task.WaitAsync(TimeSpan.FromSeconds(120), ct).ConfigureAwait(false);
+                            string payload = JsonSerializer.Serialize(new { request_id = reqId, decision });
+                            await writer.WriteLineAsync(payload).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException) { break; }
+                        catch (TimeoutException)
+                        {
+                            string payload = JsonSerializer.Serialize(new { request_id = reqId, decision = "timeout" });
+                            try { await writer.WriteLineAsync(payload).ConfigureAwait(false); } catch { }
+                        }
+                        finally
+                        {
+                            _pendingReplies.TryRemove(reqId, out _);
+                        }
+                    }
+                }
+            }
+            catch (OperationCanceledException) { }
+            catch (IOException) { }
+        }
+    }
+
+    private static MochiHookEvent ParseDetails(string line, MochiState state)
+    {
+        string? detail = null;
+        string? sessionId = null;
+        string? requestId = null;
+        List<string> options = [];
+        try
+        {
+            using var doc = JsonDocument.Parse(line);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("tool_name", out var t)) detail = t.GetString();
+            else if (root.TryGetProperty("question", out var q)) detail = q.GetString();
+            else if (root.TryGetProperty("message", out var m)) detail = m.GetString();
+
+            if (root.TryGetProperty("session_id", out var sid)) sessionId = sid.GetString();
+            else if (root.TryGetProperty("conversation_id", out var cid)) sessionId = cid.GetString();
+
+            if (root.TryGetProperty("request_id", out var rid)) requestId = rid.GetString();
+            else if (root.TryGetProperty("id", out var idProp)) requestId = idProp.GetString();
+
+            if (root.TryGetProperty("options", out var opts) && opts.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var opt in opts.EnumerateArray())
+                {
+                    if (opt.ValueKind == JsonValueKind.String && opt.GetString() is { Length: > 0 } s)
+                        options.Add(s);
+                }
+            }
+        }
+        catch (JsonException) { }
+
+        return new MochiHookEvent(state, detail, sessionId, requestId, options);
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        foreach (var kv in _pendingReplies)
+            kv.Value.TrySetCanceled();
+        _pendingReplies.Clear();
+    }
+}
+
+/// <summary>
+/// Tracks Antigravity remaining quota samples over a rolling window to estimate
+/// burn-rate time-to-depletion and detect quota window resets.
+/// </summary>
+public sealed class MochiQuotaTracker
+{
+    private readonly List<(DateTimeOffset Time, double Remaining)> _samples = [];
+    private double? _lastRemaining;
+
+    public (bool JustReset, TimeSpan? EstimatedTimeLeft) Update(double? remainingPercent, DateTimeOffset nowUtc)
+    {
+        if (remainingPercent is not { } rem || !double.IsFinite(rem))
+            return (false, null);
+
+        rem = Math.Clamp(rem, 0, 100);
+        bool justReset = false;
+
+        if (_lastRemaining is { } prev && prev < 30.0 && rem >= 50.0 && (rem - prev) >= 25.0)
+        {
+            justReset = true;
+            _samples.Clear();
+        }
+        _lastRemaining = rem;
+
+        if (_samples.Count == 0 || Math.Abs(_samples[^1].Remaining - rem) >= 0.05 || (nowUtc - _samples[^1].Time).TotalSeconds >= 60)
+            _samples.Add((nowUtc, rem));
+
+        var cutoff = nowUtc - TimeSpan.FromMinutes(30);
+        while (_samples.Count > 2 && _samples[0].Time < cutoff)
+            _samples.RemoveAt(0);
+
+        TimeSpan? eta = null;
+        if (_samples.Count >= 2 && rem > 0.5)
+        {
+            var oldest = _samples[0];
+            var elapsed = nowUtc - oldest.Time;
+            double burned = oldest.Remaining - rem;
+            if (elapsed >= TimeSpan.FromMinutes(2) && burned >= 1.0)
+            {
+                double hoursLeft = rem / (burned / elapsed.TotalHours);
+                if (hoursLeft > 0 && hoursLeft <= 24)
+                    eta = TimeSpan.FromHours(hoursLeft);
+            }
+        }
+
+        return (justReset, eta);
+    }
 }

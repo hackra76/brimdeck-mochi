@@ -13,7 +13,6 @@ var root = Path.Combine(Path.GetTempPath(), "BrimDeck-Tests-" + Guid.NewGuid().T
 Directory.CreateDirectory(root);
 try
 {
-    await PiUsageTests.Run(root, Check);
     ModelUsageTests.Run(Check);
     AntigravityUsageTests.Run(root, Check);
     BrimDeck.Tests.MochiCompanionTests.Run(Check);
@@ -53,7 +52,6 @@ try
     DeviceProtocolTests.Run(Check);
     DeviceSafetyTests.Run(Check);
     PowerTests.Run(Check);
-    DevicesPageTests.Run(Check);
     FrameRateTests.Run(Check);
     ResizeMotionTests.Run(Check);
     CurvesTests.Run(Check);
@@ -84,12 +82,7 @@ try
     OffPeakTests.Run(root, Check);
     FullscreenRuleTests.Run(Check);
     LanguageTests.Run(root, Check);
-    await ConfiguredProviderTests.Run(Check);
-    await ZCodeUsageTests.Run(root, Check);
-    await DshUsageTests.Run(root, Check);
-    await KimiUsageTests.Run(root, Check);
     await ClaudeRateLimitTests.Run(root, Check);
-    await OpenCodeUsageTests.Run(root, Check);
     await OfficialPriceTests.Run(root, Check);
     await GrokBotUsageTests.Run(root, Check);
     await CursorUsageTests.Run(root, Check);

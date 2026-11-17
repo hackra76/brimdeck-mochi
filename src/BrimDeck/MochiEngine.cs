@@ -102,6 +102,7 @@ public sealed class MochiEngine
 
     private readonly Random _rng = new();
     private readonly Dictionary<MochiPropKey, MochiTween> _tweens = new();
+    private readonly HashSet<MochiPropKey> _locks = new();
     private readonly List<MochiParticle> _particles = new();
     private readonly List<double> _slapTimes = new();
 
@@ -115,14 +116,27 @@ public sealed class MochiEngine
     private double _sx = 1, _sy = 1, _oy, _ox;
     private double _tint, _hands, _blush, _es = 1, _badgeS;
 
+    // Soft-part spring physics (lags behind head turns, hops, and rolls)
+    private double _physDx, _physDy, _physVx, _physVy;
+    private double _prevYaw, _prevOy, _prevRoll;
+
+    // Mouth slot spring (gulp / chew)
+    private double _slotH, _slotHTarget, _slotHVel;
+    private bool _isChewing;
+
     // Targets
     private double _tgYaw, _tgPitch, _tgTilt, _tgSx = 1, _tgSy = 1;
+    private double _lookX, _lookY;
     private Color _col = StateConfigs[MochiState.Idle].Color;
     private Color _colT = StateConfigs[MochiState.Idle].Color;
     private MochiStateCfg _cfg = StateConfigs[MochiState.Idle];
 
     private MochiEyeShape? _eyeOverride;
     private double _eyeOverrideUntil;
+    private MochiEyeShape? _permanentEye;
+    private MochiEmote? _permanentEmote;
+    private double _miniNextBehavior;
+    private double _miniLookX, _miniLookY, _miniLookNextTime;
     private MochiBadge? _badge;
     private string _badgeKey = "none";
     private int _badgeToken;
@@ -144,10 +158,51 @@ public sealed class MochiEngine
     private double _launchGreetingStart;
     private double _launchGreetingUntil;
 
+    /// <summary>True when Mochi is resting (Idle/Sleeping) with no active tweens, particles, or dance.</summary>
+    public bool IsLowRateIdle =>
+        _tweens.Count == 0
+        && _particles.Count == 0
+        && !_isDancing
+        && _dancingLevel <= 0.001
+        && _eyeOverride is null
+        && (State == MochiState.Idle || State == MochiState.Sleeping);
+
     public void SetDancing(bool dancing) => _isDancing = dancing;
     public void SetOutfit(MochiOutfit outfit) => _outfit = outfit;
     public void SetMailbox(bool mailbox) => _mailbox = mailbox;
     public void SetUpdateHint(Color? color) => _updateHintColor = color;
+
+    public void SetPermanentEmote(MochiEmote? emote)
+    {
+        _permanentEmote = emote;
+        double n = NowSec();
+        if (emote == MochiEmote.Wink)
+        {
+            _miniNextBehavior = n + 0.8 + _rng.NextDouble() * 1.7;
+            return;
+        }
+        _permanentEye = emote switch
+        {
+            MochiEmote.Love => MochiEyeShape.Heart,
+            MochiEmote.Surprised => MochiEyeShape.Dot,
+            MochiEmote.Proud => MochiEyeShape.Star,
+            MochiEmote.Yawn => MochiEyeShape.Tired,
+            MochiEmote.Happy => MochiEyeShape.Happy,
+            MochiEmote.Annoyed => MochiEyeShape.Line,
+            _ => null
+        };
+        if (_permanentEye is not null)
+        {
+            _eyeOverride = _permanentEye;
+            _eyeOverrideUntil = double.PositiveInfinity;
+        }
+        else if (double.IsPositiveInfinity(_eyeOverrideUntil))
+        {
+            _eyeOverride = null;
+            _eyeOverrideUntil = 0;
+        }
+        _miniNextBehavior = n + 0.8 + _rng.NextDouble() * 1.7;
+    }
 
     public void StartLaunchGreeting()
     {
@@ -216,20 +271,36 @@ public sealed class MochiEngine
 
     public void SetLook(double x, double y, bool holdBriefly = true)
     {
-        _tgYaw = Math.Clamp(x, -1, 1) * 0.48;
-        _tgPitch = Math.Clamp(y, -1, 1) * 0.36;
+        _lookX = Math.Clamp(x, -1, 1);
+        _lookY = Math.Clamp(y, -1, 1);
         if (holdBriefly) _externalLookUntil = NowSec() + 2.5;
     }
 
     public void Blink()
     {
+        if (_locks.Contains(MochiPropKey.Open)) return;
         Anim(MochiPropKey.Open, [new(0.06, 70, MochiEase.InOut), new(1, 130, MochiEase.Out)]);
     }
 
     public void Squash()
     {
+        _physVy += 0.6;
         Anim(MochiPropKey.Sy, [new(0.78, 70, MochiEase.Out), new(1.1, 130, MochiEase.Out), new(1, 170, MochiEase.InOut)]);
         Anim(MochiPropKey.Sx, [new(1.16, 70, MochiEase.Out), new(0.95, 130, MochiEase.Out), new(1, 170, MochiEase.InOut)]);
+    }
+
+    public void Gulp()
+    {
+        _slotHTarget = 0.42;
+        _ = Task.Delay(460).ContinueWith(_ =>
+        {
+            _slotHTarget = 0;
+            _isChewing = true;
+            _ = Task.Delay(800).ContinueWith(__ => _isChewing = false);
+        });
+        Anim(MochiPropKey.Sy, [new(0.78, 80, MochiEase.Out), new(1.18, 130, MochiEase.Out), new(1, 220, MochiEase.Back)]);
+        Anim(MochiPropKey.Sx, [new(1.28, 80, MochiEase.Out), new(0.92, 130, MochiEase.Out), new(1, 220, MochiEase.Back)]);
+        Blink();
     }
 
     public void Slap()
@@ -240,6 +311,8 @@ public sealed class MochiEngine
         _slapTimes.RemoveAll(s => t - s >= 1.7);
         _slapTimes.Add(t);
         Squash();
+        _physVy -= 1.2;
+        _physVx += _rng.NextDouble() < 0.5 ? 0.7 : -0.7;
         if (_slapTimes.Count >= 3)
         {
             _slapTimes.Clear();
@@ -264,23 +337,34 @@ public sealed class MochiEngine
     {
         double t = NowSec();
         int tok = ++_greetToken;
-        _waveStart = t + 0.25;
+        _waveStart = t + 0.45;
         _waveUntil = t + 1.55;
+        _physVx += 0.2;
         _eyeOverride = MochiEyeShape.Happy;
-        _eyeOverrideUntil = t + 1.9;
-        MochiSound.Play(MochiSoundKind.Greet);
-        Anim(MochiPropKey.Oy, [new(-0.08, 200, MochiEase.Out), new(0, 220, MochiEase.Back)]);
-        Anim(MochiPropKey.Hands, [new(1, 240, MochiEase.Out)]);
-        Anim(MochiPropKey.Sy, [new(0.94, 100, MochiEase.Out), new(1, 260, MochiEase.Back)]);
-        Anim(MochiPropKey.Sx, [new(1.06, 100, MochiEase.Out), new(1, 260, MochiEase.Back)]);
+        _eyeOverrideUntil = t + 2.0;
+        Anim(MochiPropKey.Oy, [new(-0.06, 220, MochiEase.Out), new(0, 220, MochiEase.Back)]);
 
+        _ = Task.Delay(250).ContinueWith(_ =>
+        {
+            if (_greetToken != tok) return;
+            Anim(MochiPropKey.Hands, [new(1, 280, MochiEase.Out)]);
+            Anim(MochiPropKey.Sy, [new(0.95, 100, MochiEase.Out), new(1, 260, MochiEase.Back)]);
+            Anim(MochiPropKey.Sx, [new(1.04, 100, MochiEase.Out), new(1, 260, MochiEase.Back)]);
+            MochiSound.Play(MochiSoundKind.Greet);
+        });
+        _ = Task.Delay(550).ContinueWith(_ => { if (_greetToken == tok) Blink(); });
+        _ = Task.Delay(1500).ContinueWith(_ => { if (_greetToken == tok) Blink(); });
         _ = Task.Delay(1550).ContinueWith(_ =>
         {
-            if (_greetToken == tok)
-            {
-                _waveUntil = 0;
-                Anim(MochiPropKey.Hands, [new(0, 200, MochiEase.InOut)]);
-            }
+            if (_greetToken != tok) return;
+            _waveUntil = 0;
+            Anim(MochiPropKey.Hands, [new(0, 200, MochiEase.InOut)]);
+        });
+        _ = Task.Delay(1750).ContinueWith(_ =>
+        {
+            if (_greetToken != tok) return;
+            _eyeOverride = MochiEyeShape.Happy;
+            _eyeOverrideUntil = NowSec() + 0.3;
         });
     }
 
@@ -331,6 +415,11 @@ public sealed class MochiEngine
             case MochiEmote.Yawn:
                 Anim(MochiPropKey.Sy, [new(1.12, 500, MochiEase.InOut), new(1, 500, MochiEase.InOut)]);
                 Anim(MochiPropKey.Sx, [new(0.94, 500, MochiEase.InOut), new(1, 500, MochiEase.InOut)]);
+                _ = Task.Delay(700).ContinueWith(_ =>
+                {
+                    _eyeOverride = MochiEyeShape.Closed;
+                    Emit("z", 2);
+                });
                 break;
             case MochiEmote.Happy:
                 Anim(MochiPropKey.Blush, [new(0.6, 200, MochiEase.Out), new(0, 600, MochiEase.InOut)]);
@@ -372,7 +461,10 @@ public sealed class MochiEngine
 
         // Eye override expiry
         if (_eyeOverride is not null && n >= _eyeOverrideUntil)
-            _eyeOverride = null;
+        {
+            _eyeOverride = _permanentEye;
+            if (_permanentEye is not null) _eyeOverrideUntil = double.PositiveInfinity;
+        }
 
         // Smooth 112-BPM music dance fade-in (0.3 s) and fade-out (0.5 s)
         double danceTarget = _isDancing ? 1.0 : 0.0;
@@ -384,64 +476,132 @@ public sealed class MochiEngine
         if (_mailboxLevel < mailboxTarget) _mailboxLevel = Math.Min(mailboxTarget, _mailboxLevel + dt / 0.25);
         else if (_mailboxLevel > mailboxTarget) _mailboxLevel = Math.Max(mailboxTarget, _mailboxLevel - dt / 0.25);
 
-        // Auto blink
-        if (n >= _nextBlink && _cfg.Eye != MochiEyeShape.Closed)
+        // Auto blink (suppressed while sleeping or dizzy; 22% chance of a double-blink)
+        if (n >= _nextBlink)
         {
-            Blink();
-            _nextBlink = n + 2.2 + _rng.NextDouble() * 3.0;
+            if (State != MochiState.Sleeping && State != MochiState.Dizzy)
+            {
+                Blink();
+                if (_rng.NextDouble() < 0.22)
+                    _ = Task.Delay(230).ContinueWith(_ => Blink());
+            }
+            _nextBlink = n + 2.2 + _rng.NextDouble() * 3.2;
         }
 
-        // State-driven motion
+        // State-driven gaze & motion (matching Coucou BotEngine.update)
         double elapsed = n - _t0;
+        double ty = _lookX * 0.62;
+        double tp = _lookY * 0.5;
+
         if (_cfg.Look is { } look)
         {
-            _tgYaw = look.Yaw;
-            _tgPitch = look.Pitch;
+            ty = ty * 0.35 + look.Yaw * 0.55;
+            tp = tp * 0.3 + look.Pitch * 0.5;
         }
-        else if (_cfg.Scans)
+        if (_cfg.Scans)
         {
-            _tgYaw = Math.Sin(elapsed * 2.2) * 0.52;
-            _tgPitch = Math.Cos(elapsed * 1.4) * 0.16;
+            ty = Math.Sin(elapsed * 2.6) * 0.6;
+            tp = -0.06;
         }
-        else if (State == MochiState.Idle && n >= _nextAmbient && n >= _externalLookUntil)
+        if (State == MochiState.Sleeping) { ty = 0; tp = -0.14; }
+        if (State == MochiState.Dizzy) { ty = Math.Sin(elapsed * 9) * 0.25; tp = 0; }
+
+        if (IsMini && _cfg.Look is null && !_cfg.Scans && State != MochiState.Sleeping && State != MochiState.Dizzy)
         {
-            _tgYaw = (_rng.NextDouble() - 0.5) * 0.45;
-            _tgPitch = (_rng.NextDouble() - 0.5) * 0.24;
+            if (n > _miniLookNextTime)
+            {
+                _miniLookX = -0.88 + _rng.NextDouble() * 1.76;
+                _miniLookY = -0.55 + _rng.NextDouble() * 1.0;
+                _miniLookNextTime = n + 0.5 + _rng.NextDouble() * 1.5;
+            }
+            ty = _miniLookX * 0.62;
+            tp = _miniLookY * 0.5;
+        }
+        else if (State == MochiState.Idle && !IsMini && n >= _nextAmbient && n >= _externalLookUntil && Math.Abs(_lookX) < 0.05 && Math.Abs(_lookY) < 0.05)
+        {
+            ty = (_rng.NextDouble() - 0.5) * 0.45;
+            tp = (_rng.NextDouble() - 0.5) * 0.24;
             _nextAmbient = n + 2.4 + _rng.NextDouble() * 2.8;
-            if (QuotaMood == MochiQuotaMood.Energetic && _rng.NextDouble() < 0.25 && !IsMini)
+            if (QuotaMood == MochiQuotaMood.Energetic && _rng.NextDouble() < 0.25)
                 TriggerEmote(MochiEmote.Happy, 1.2);
         }
 
-        if (_cfg.Bounces && !_tweens.ContainsKey(MochiPropKey.Oy))
-            _oy = -Math.Abs(Math.Sin(elapsed * 4.5)) * 0.12;
+        _tgYaw = ty;
+        _tgPitch = tp;
+        _tgTilt = _cfg.Tilt;
 
-        if (_cfg.Breathes && !_tweens.ContainsKey(MochiPropKey.Sy))
+        if (n > _waveStart && n < _waveUntil)
         {
-            double breath = Math.Sin(elapsed * 1.8) * 0.035;
-            _tgSy = 1 + breath;
-            _tgSx = 1 - breath * 0.6;
+            double wt = n - _waveStart;
+            _tgTilt = -0.06 + Math.Sin(2 * Math.PI * 1.2 * wt) * 0.07;
         }
-        else if (!_tweens.ContainsKey(MochiPropKey.Sy))
+
+        double bounce = _cfg.Bounces ? -Math.Abs(Math.Sin(elapsed * 5.2)) * 0.07 : 0;
+        double kGen = 1 - Math.Pow(0.0008, dt);
+        if (!_locks.Contains(MochiPropKey.Oy)) _oy += (bounce - _oy) * kGen;
+
+        if (_cfg.Breathes)
+        {
+            double amp = IsMini ? 0.07 : 0.035;
+            double breath = Math.Sin(elapsed * 1.8) * amp;
+            _tgSy = 1 + breath;
+            _tgSx = 1 - breath * 0.57;
+        }
+        else if (IsMini)
+        {
+            _tgSy = 1 + Math.Sin(elapsed * 2.2) * 0.04;
+            _tgSx = 1 - Math.Sin(elapsed * 2.2) * 0.02;
+        }
+        else
         {
             _tgSy = 1;
             _tgSx = 1;
         }
 
+        if (IsMini && n > _miniNextBehavior) DoMiniBehaviorLoop();
+
         // Periodic ambient particles
         if ((_cfg.Zz || _cfg.Sweat) && n >= _nextParticle)
         {
             if (_cfg.Zz) Emit("z", 1);
-            if (_cfg.Sweat) Emit("sweat", 1);
-            _nextParticle = n + (_cfg.Zz ? 1.4 : 1.8);
+            if (_cfg.Sweat && !IsMini && _rng.NextDouble() < 0.5) Emit("sweat", 1);
+            _nextParticle = n + (_cfg.Zz ? 1.3 : 1.5);
         }
 
-        // Smooth follow for look / scale / tilt
-        double k = 1 - Math.Exp(-10 * dt);
-        _yaw = Lerp(_yaw, _tgYaw, k);
-        _pitch = Lerp(_pitch, _tgPitch, k);
-        if (!_tweens.ContainsKey(MochiPropKey.Tilt)) _tilt = Lerp(_tilt, _tgTilt, k);
-        if (!_tweens.ContainsKey(MochiPropKey.Sx)) _sx = Lerp(_sx, _tgSx, k);
-        if (!_tweens.ContainsKey(MochiPropKey.Sy)) _sy = Lerp(_sy, _tgSy, k);
+        // Smooth follow for look / scale / tilt (respecting active tween locks)
+        double kLook = 1 - Math.Pow(0.0025, dt);
+        if (!_locks.Contains(MochiPropKey.Yaw)) _yaw = Lerp(_yaw, _tgYaw, kLook);
+        if (!_locks.Contains(MochiPropKey.Pitch)) _pitch = Lerp(_pitch, _tgPitch, kLook);
+        if (!_locks.Contains(MochiPropKey.Tilt)) _tilt = Lerp(_tilt, _tgTilt, kGen);
+        if (!_locks.Contains(MochiPropKey.Sx)) _sx = Lerp(_sx, _tgSx, kGen);
+        if (!_locks.Contains(MochiPropKey.Sy)) _sy = Lerp(_sy, _tgSy, kGen);
+
+        // Mouth slot spring (omega = 2pi / 0.25, zeta = 0.6)
+        const double omega = (2 * Math.PI) / 0.25;
+        const double zeta = 0.6;
+        double acc = omega * omega * (_slotHTarget - _slotH) - 2 * zeta * omega * _slotHVel;
+        _slotHVel += acc * dt;
+        _slotH = Math.Max(0, _slotH + _slotHVel * dt);
+
+        // Soft-part spring: lags behind head turns, hops, and rolls (stiffness 60, damping 9)
+        if (dt > 0)
+        {
+            double yawVel = (_yaw - _prevYaw) / dt;
+            double oyVel = (_oy - _prevOy) / dt;
+            double dRoll = _roll - _prevRoll;
+            double rollVel = Math.Abs(dRoll) > Math.PI ? 0 : dRoll / dt;
+            bool rigidRoll = !IsMini && MochiOutfits.ResolveOutfit(_outfit, DateTime.Now) != MochiOutfit.None;
+            double centrifugal = rigidRoll ? rollVel * 0.18 : 0;
+            double tDx = Math.Clamp(-yawVel * 0.35 - _tilt * 2 + centrifugal, -1, 1);
+            double tDy = Math.Clamp(oyVel * 0.5, -1, 1);
+            _physVx += (60 * (tDx - _physDx) - 9 * _physVx) * dt;
+            _physVy += (60 * (tDy - _physDy) - 9 * _physVy) * dt;
+            _physDx += _physVx * dt;
+            _physDy += _physVy * dt;
+        }
+        _prevYaw = _yaw;
+        _prevOy = _oy;
+        _prevRoll = _roll;
 
         // Step particles
         for (int i = _particles.Count - 1; i >= 0; i--)
@@ -486,21 +646,24 @@ public sealed class MochiEngine
 
         var resolvedOutfit = MochiOutfits.ResolveOutfit(_outfit, DateTime.Now);
         double outfitAlpha = Math.Max(0.0, 1.0 - _mailboxLevel * 1.4);
+        bool rigidRoll = !IsMini && resolvedOutfit != MochiOutfit.None && outfitAlpha > 0.05;
 
         dc.PushTransform(new TranslateTransform(cx, cy));
-        if (Math.Abs(_tilt) > 0.001) dc.PushTransform(new RotateTransform(_tilt * 180.0 / Math.PI));
+        double totalTilt = _tilt + (rigidRoll ? _roll : 0);
+        if (Math.Abs(totalTilt) > 0.001) dc.PushTransform(new RotateTransform(totalTilt * 180.0 / Math.PI));
         if (Math.Abs(_sx - 1) > 0.001 || Math.Abs(_sy - 1) > 0.001) dc.PushTransform(new ScaleTransform(_sx, _sy));
 
-        MochiOutfits.DrawBehind(dc, resolvedOutfit, r, _yaw, _pitch, outfitAlpha);
+        MochiOutfits.DrawBehind(dc, resolvedOutfit, r, _yaw, _pitch, outfitAlpha, _physDx, _physDy);
 
         var body = BuildBodyGeometry(rx, ry, _mailboxLevel);
         DrawBody(dc, body, r, rx, ry, MochiOutfits.IsPumpkin(resolvedOutfit) && outfitAlpha > 0.1);
         DrawBlush(dc, body, r, rx, ry);
-        DrawEyes(dc, body, r, rx, ry);
-        MochiOutfits.DrawFront(dc, resolvedOutfit, r, _yaw, _pitch, outfitAlpha);
+        DrawEyes(dc, body, r, rx, ry, rigidRoll ? 0 : _roll);
+        DrawMouthSlot(dc, r, rx, ry);
+        MochiOutfits.DrawFront(dc, resolvedOutfit, r, _yaw, _pitch, outfitAlpha, _physDx, _physDy);
 
         if (Math.Abs(_sx - 1) > 0.001 || Math.Abs(_sy - 1) > 0.001) dc.Pop();
-        if (Math.Abs(_tilt) > 0.001) dc.Pop();
+        if (Math.Abs(totalTilt) > 0.001) dc.Pop();
         dc.Pop();
 
         if (_badge is { } badge && _badgeS > 0.01)
@@ -600,7 +763,7 @@ public sealed class MochiEngine
         dc.Pop();
     }
 
-    private void DrawEyes(DrawingContext dc, Geometry body, double r, double rx, double ry)
+    private void DrawEyes(DrawingContext dc, Geometry body, double r, double rx, double ry, double eyeRoll = 0)
     {
         var shape = _mailboxLevel > 0.5
             ? MochiEyeShape.Cup
@@ -614,7 +777,7 @@ public sealed class MochiEngine
         foreach (int sd in new[] { -1, 1 })
         {
             double eyeYaw = sd * EyeSp + _yaw;
-            double eyePitch = EyeP + _pitch + _roll;
+            double eyePitch = EyeP + _pitch + eyeRoll;
             eyePitch = (((eyePitch + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
             double cp = Math.Cos(eyePitch);
             if (Math.Cos(eyeYaw) * cp <= 0.04) continue;
@@ -926,6 +1089,55 @@ public sealed class MochiEngine
         dc.DrawGeometry(brush, null, geo);
     }
 
+    private void DrawMouthSlot(DrawingContext dc, double r, double rx, double ry)
+    {
+        double h = _slotH * r;
+        if (h < 0.5 && !_isChewing) return;
+        double chew = _isChewing ? Math.Max(0, Math.Sin(NowSec() * 18)) * r * 0.08 : 0;
+        double mouthH = Math.Max(1.0, h + chew);
+        double mouthW = r * 0.52;
+        double mx = _yaw * rx * 0.55;
+        double my = ry * 0.34 + _pitch * ry * 0.3;
+        dc.DrawRoundedRectangle(new SolidColorBrush(InkColor), null, new Rect(mx - mouthW / 2, my - mouthH / 2, mouthW, mouthH), mouthW / 2, mouthH / 2);
+    }
+
+    private void DoMiniBehaviorLoop()
+    {
+        double n = NowSec();
+        switch (_permanentEmote)
+        {
+            case MochiEmote.Happy:
+                if (_locks.Contains(MochiPropKey.Oy)) { _miniNextBehavior = n + 0.4; return; }
+                Anim(MochiPropKey.Oy, [new(-0.3, 120, MochiEase.Out), new(0.03, 200, MochiEase.InOut), new(0, 160, MochiEase.Back)]);
+                Anim(MochiPropKey.Sy, [new(0.82, 80, MochiEase.Out), new(1.18, 130, MochiEase.Out), new(0.88, 160, MochiEase.InOut), new(1, 200, MochiEase.Back)]);
+                Anim(MochiPropKey.Sx, [new(1.15, 80, MochiEase.Out), new(0.88, 130, MochiEase.Out), new(1.06, 160, MochiEase.InOut), new(1, 200, MochiEase.Back)]);
+                _miniNextBehavior = n + 2.2 + _rng.NextDouble() * 1.2;
+                break;
+            case MochiEmote.Annoyed:
+                if (_locks.Contains(MochiPropKey.Yaw)) { _miniNextBehavior = n + 0.5; return; }
+                Anim(MochiPropKey.Yaw, [
+                    new(-0.65, 50, MochiEase.Out), new(0.65, 90, MochiEase.InOut), new(-0.5, 80, MochiEase.InOut),
+                    new(0.4, 75, MochiEase.InOut), new(-0.2, 70, MochiEase.InOut), new(0, 140, MochiEase.Out)
+                ]);
+                _miniNextBehavior = n + 3.0 + _rng.NextDouble() * 2.5;
+                break;
+            case MochiEmote.Wink:
+                _eyeOverride = MochiEyeShape.Wink;
+                _eyeOverrideUntil = n + 0.55;
+                Anim(MochiPropKey.Tilt, [new(0.13, 100, MochiEase.Out), new(0.13, 320, MochiEase.Linear), new(0, 200, MochiEase.InOut)]);
+                _miniNextBehavior = n + 2.2 + _rng.NextDouble() * 2.0;
+                break;
+            case MochiEmote.Love:
+                Emit("heart", 2);
+                Anim(MochiPropKey.Tilt, [new(-0.1, 180, MochiEase.Out), new(0.1, 340, MochiEase.InOut), new(0, 220, MochiEase.InOut)]);
+                _miniNextBehavior = n + 2.6 + _rng.NextDouble() * 1.5;
+                break;
+            default:
+                _miniNextBehavior = n + 3.0 + _rng.NextDouble() * 2.0;
+                break;
+        }
+    }
+
     // ── Tween Engine ──────────────────────────────────────────────────────────
 
     private void SetBadge(MochiBadge? b)
@@ -954,6 +1166,7 @@ public sealed class MochiEngine
             StartMs = NowMs(),
             OnComplete = onComplete
         };
+        _locks.Add(prop);
     }
 
     private void StepTweens(double nowMs)
@@ -971,6 +1184,7 @@ public sealed class MochiEngine
                 if (tw.Index >= tw.Keys.Length)
                 {
                     _tweens.Remove(prop);
+                    _locks.Remove(prop);
                     tw.OnComplete?.Invoke();
                 }
                 else

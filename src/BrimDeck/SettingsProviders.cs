@@ -366,19 +366,6 @@ public sealed partial class SettingsWindow
         visible.LostKeyboardFocus += (_, _) => { if (!swapping) SaveSecret(); };
         Line(entry.QuotaSource == ProviderId.Custom ? Loc.T("API 密钥（可选）", "API key (optional)") : Loc.T("API 密钥", "API key"), Field(inputs, keyHint, reveal));
 
-        if (entry.QuotaSource == ProviderId.Custom)
-        {
-            var (frame, code) = ScriptEditor.Create(entry.Script, _palette);
-            AutomationProperties.SetAutomationId(code, "script-" + entry.InstanceId.ToString("N")); AutomationProperties.SetName(code, Loc.T("配额脚本", "Quota script"));
-            void SaveCode() { if (S.Entry(entry.InstanceId) is { } current && current.Script != code.Text) Change(s => s.Entry(entry.InstanceId)!.Script = code.Text); }
-            commitScript = SaveCode;
-            code.IsKeyboardFocusWithinChanged += (_, _) => { if (!code.IsKeyboardFocusWithin) SaveCode(); };
-            code.TextChanged += (_, _) => InvalidateTest();
-            // The code reaches across to the show switch: the switch is 38 wide and centred in its 50-wide column, so the frame stops 6 short of it.
-            var codeLabel = Line(Loc.T("代码", "Code"), frame, 7)!; codeLabel.VerticalAlignment = VerticalAlignment.Top; codeLabel.Margin = new Thickness(16, 13, 16, 0);
-            frame.Margin = new Thickness(0, 5, 6, 5);
-        }
-
         var test = ActionButton(Loc.T("测试连接", "Test connection"), () => { }); test.Style = (Style)FindResource("SettingsOutlineButton");
         test.Height = 34; test.HorizontalAlignment = HorizontalAlignment.Left;
         AutomationProperties.SetAutomationId(test, "test-source-" + entry.InstanceId.ToString("N"));

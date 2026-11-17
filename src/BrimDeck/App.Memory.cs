@@ -74,7 +74,6 @@ public partial class App
     {
         var plan = MemoryPlan;
         Monitor?.UsePlan(plan);
-        Devices?.UsePlan(plan);
         if (Media is not null) UseMediaPlan(Media, plan);
         if (plan.WarmAtStart) { WarmMonitor(); PageWarm.Start(Dispatcher); }
         UpdateCollectionLatency();
@@ -120,11 +119,6 @@ public partial class App
             // Still lingering after its last reading: once it has paused, its thread waits and ends at once.
             if (!monitor.Resting) later = true;
             else { Monitor = null; monitor.Dispose(); released = true; }
-        }
-        if (Devices is { } devices && !Settings.DevicesPage && !Settings.ShowsDevices(Settings.Style) && _devicePages.Count + _deviceStrips.Count == 0 && !_deviceSettings)
-        {
-            if (devices.Demand != DeviceDemand.None) later = true;
-            else { Devices = null; devices.Changed -= DeviceBatteriesChanged; devices.Dispose(); released = true; }
         }
         if (_restingMedia is { } media) { _restingMedia = null; media.Dispose(); released = true; }
         if (!Settings.ClipboardPage) released |= Shelf.Rest();

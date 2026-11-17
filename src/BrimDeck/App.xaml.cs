@@ -47,10 +47,6 @@ public partial class App : Application
     private readonly HashSet<MainWindow> _presentingMonitor = [], _stripMonitor = [];
     // The panels whose open monitor page shows the power line (PresentMonitor): the power is read for those, and for a row that chose it.
     private readonly HashSet<MainWindow> _presentingPower = [];
-    // The wireless devices' batteries, shared by every panel; created when first wanted (UpdateDeviceDemand).
-    internal DeviceBatteries? Devices { get; private set; }
-    internal event Action? DevicesChanged;
-    private readonly HashSet<MainWindow> _devicePages = [], _deviceStrips = [];
     // The panels whose collapsed row shows readings or is only hidden for now (the panel open, a notice in it, PresentMonitor): the
     // temperatures the row shows are read for these, so a row shown again has them in its first readings and not a dash.
     private readonly HashSet<MainWindow> _heldStrip = [];
@@ -130,7 +126,7 @@ public partial class App : Application
         Step(() => { if (Settings.MonitorPage && Settings.MonitorPower) PowerWarm.Start(Dispatcher); });
         Step(WarmSettingsWriter);
         Step(ApplyMemoryMode);
-        Step(() => { DisplayPower.Install(Dispatcher); DisplayPower.Changed += UpdateDeviceDemand; });
+        Step(() => DisplayPower.Install(Dispatcher));
         _save.Tick += (_, _) => FlushSettings();
         Step(ApplyTray);
         Step(() =>
@@ -254,7 +250,6 @@ public partial class App : Application
         ApplyTray();
         // A panel whose collapsed row changes asks again as it is built (PresentMonitor).
         UpdateMonitorExtras();
-        UpdateDeviceDemand();
         // Statuses and notes are worded when the data is read, so a new language reads the data again.
         bool languageChanged = Loc.Normalize(settings.Language) != Loc.Language;
         if (languageChanged) UseLanguage();
@@ -364,12 +359,9 @@ public partial class App : Application
         else if (!wanted && Media is not null)
         {
             Media.Changed -= RaiseMediaChanged; Media.SetPresentationActive(false, false);
-            Media.NeteaseAutoFullControl = false; Media.NeteaseFileControlWanted = false; Media.KugouFullControlWanted = false;
             _restingMedia = Media; Media = null; RaiseMediaChanged();
         }
-        // Switching the setting off leaves full control on until BrimDeck restarts.
-        if (Settings.AppleMusicFullControl && Media is { AppleMusicFullControl: false } media) media.EnableAppleMusicFullControl();
-        if (Media is not null) { Media.Ignored = Settings.IgnoredMediaApps; Media.NeteaseAutoFullControl = Settings.NeteaseAutoFullControl; Media.NeteaseFileControlWanted = Settings.NeteaseFullControl; Media.KugouFullControlWanted = Settings.KugouFullControl; }
+        if (Media is not null) Media.Ignored = Settings.IgnoredMediaApps;
     }
     private void RaiseMediaChanged() => MediaChanged?.Invoke();
     // Audio levels are read while any panel shows music: the player's while it shows a song's bars, the whole system's while
@@ -414,26 +406,6 @@ public partial class App : Application
         monitor.GpuKeyUpgraded += (old, key) => { if (Settings.MonitorGpu == old) { Settings.MonitorGpu = key; QueueSave(); } };
         return monitor;
     }
-    // The devices are read while any panel shows the devices page or the collapsed battery reading, or the settings list them;
-    // otherwise nothing runs (DeviceBatteries lets every source go after a short linger).
-    internal void PresentDevices(MainWindow deck, bool page, bool strip)
-    {
-        if (page) _devicePages.Add(deck); else _devicePages.Remove(deck);
-        if (strip) _deviceStrips.Add(deck); else _deviceStrips.Remove(deck);
-        UpdateDeviceDemand();
-    }
-    private void UpdateDeviceDemand()
-    {
-        // The settings page is not read for with the display off, as a panel is not (its own demand drops then).
-        var demand = _devicePages.Count + _deviceStrips.Count > 0 || _deviceSettings && !DisplayPower.Off ? DeviceDemand.Watch : DeviceDemand.None;
-        if (Exiting || Devices is null && demand == DeviceDemand.None) return;
-        if (Devices is null) { Devices = new DeviceBatteries(Dispatcher); Devices.UsePlan(MemoryPlan); Devices.Changed += DeviceBatteriesChanged; }
-        Devices.SetDemand(demand);
-    }
-    // The settings' devices page lists what is connected, so it reads the devices while it is open.
-    private bool _deviceSettings;
-    internal void WatchDevicesForSettings(bool open) { _deviceSettings = open; UpdateDeviceDemand(); }
-    private void DeviceBatteriesChanged() => DevicesChanged?.Invoke();
     // Temperatures and drives are read for an open page with them on; also for a collapsed row showing them: the processor's and
     // the graphics adapter's temperatures for a ring showing its own, the drives for the drive reading, and their temperatures when
     // it shows those. The processor's and the adapter's temperatures also while the row is only hidden for now, as long as the sampler
@@ -546,7 +518,7 @@ public partial class App : Application
     {
         Exiting = true; Lifetime.Cancel(); _save.Stop(); _trim?.Stop(); _release?.Stop(); FinishWriting(); StopBackgroundUpdates(); DisplayPower.Uninstall(); Microsoft.Win32.SystemEvents.UserPreferenceChanged -= SystemThemeChanged; _tray?.Dispose(); DisposeHotkeys(); WindowDrags?.Dispose(); _listener?.Unregister(null); _settingsEvent?.Dispose();
         if (Shelf is not null) { Shelf.Exit(); Shelf.Dispose(); }
-        Media?.Dispose(); _restingMedia?.Dispose(); Monitor?.Dispose(); SensorGuard.Finish(); Devices?.Dispose(); Lyrics?.Dispose(); Prices?.Dispose(); _mutex?.Dispose(); base.OnExit(e);
+        Media?.Dispose(); _restingMedia?.Dispose(); Monitor?.Dispose(); SensorGuard.Finish(); Lyrics?.Dispose(); Prices?.Dispose(); _mutex?.Dispose(); base.OnExit(e);
     }
     [DllImport("shell32", CharSet = CharSet.Unicode)] private static extern int SetCurrentProcessExplicitAppUserModelID(string id);
 }

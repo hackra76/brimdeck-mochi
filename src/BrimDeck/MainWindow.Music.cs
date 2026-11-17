@@ -141,7 +141,7 @@ public partial class MainWindow
         bool back = Settings.PageOrder.IndexOf(page) < Settings.PageOrder.IndexOf(before);
         _handover.Send(picture, place, PageContent(page), back ? Handover.Back : Handover.Forward);
     }
-    private FrameworkElement PageContent(DeckPage page) => page switch { DeckPage.Music => MusicContent, DeckPage.Monitor => MonitorContent, DeckPage.Clipboard => ShelfContent, DeckPage.Devices => DevicesContent, _ => UsageContent };
+    private FrameworkElement PageContent(DeckPage page) => page switch { DeckPage.Music => MusicContent, DeckPage.Monitor => MonitorContent, DeckPage.Clipboard => ShelfContent, _ => UsageContent };
     private void ShowPage(DeckPage page, bool animatePage)
     {
         // The music page keeps what it built while another page shows (RenderMusic's key), so switching back does not build it again.
@@ -179,7 +179,6 @@ public partial class MainWindow
     private void MusicPage_Click(object sender, RoutedEventArgs e) => SelectPage(DeckPage.Music);
     private void MonitorPage_Click(object sender, RoutedEventArgs e) => SelectPage(DeckPage.Monitor);
     private void ShelfPage_Click(object sender, RoutedEventArgs e) => SelectPage(DeckPage.Clipboard);
-    private void DevicesPage_Click(object sender, RoutedEventArgs e) => SelectPage(DeckPage.Devices);
     // Where the usage page's application tabs start: after the page switch, which holds one 28 DIP button per shown page.
     private double ApplicationPagesLeft(double side) { int pages = DeckPages.Visible(Settings).Count; return side + (pages <= 1 ? 36 : 72 + 29 * (pages - 2)); }
     // The header shared by both pages (see PanelHeader). Its row holds the page's top margin, so the clock, the switch and the
@@ -196,7 +195,7 @@ public partial class MainWindow
         Toolbar.Height = header.Height;
         PageSwitch.Margin = new Thickness(header.Side, 0, 0, 0);
         FitPageButtons(header);
-        foreach (var button in new[] { AIUsageButton, MonitorPageButton, MusicPageButton, ShelfPageButton, DevicesPageButton })
+        foreach (var button in new[] { AIUsageButton, MonitorPageButton, MusicPageButton, ShelfPageButton })
         {
             // A local corner for these two buttons only; PanelIconButton keeps its 5 DIP corner elsewhere.
             button.ApplyTemplate();
@@ -210,12 +209,12 @@ public partial class MainWindow
     private void RenderPageSwitch()
     {
         SetValue(SuppressMusicToolTipsProperty, IsMusicPage);
-        foreach (var control in new FrameworkElement[] { AIUsageButton, MonitorPageButton, MusicPageButton, ShelfPageButton, DevicesPageButton, MediaSourceButton, ClockLabel })
+        foreach (var control in new FrameworkElement[] { AIUsageButton, MonitorPageButton, MusicPageButton, ShelfPageButton, MediaSourceButton, ClockLabel })
             ToolTipService.SetIsEnabled(control, !IsMusicPage);
         PageSwitch.Visibility = _details && IsUsagePage || IsShelfPage && ShelfHidesSwitch ? Visibility.Collapsed : Visibility.Visible;
         OrderPageButtons();
         if (!IsShelfPage) { ShelfToolbar.Visibility = Visibility.Collapsed; ShelfSearchButton.Visibility = Visibility.Collapsed; }
-        foreach (var (button, page) in new[] { (AIUsageButton, DeckPage.Usage), (MusicPageButton, DeckPage.Music), (MonitorPageButton, DeckPage.Monitor), (ShelfPageButton, DeckPage.Clipboard), (DevicesPageButton, DeckPage.Devices) })
+        foreach (var (button, page) in new[] { (AIUsageButton, DeckPage.Usage), (MusicPageButton, DeckPage.Music), (MonitorPageButton, DeckPage.Monitor), (ShelfPageButton, DeckPage.Clipboard) })
         {
             bool current = CurrentPage == page;
             button.Visibility = DeckPages.Shown(Settings, page) ? Visibility.Visible : Visibility.Collapsed;
@@ -224,16 +223,15 @@ public partial class MainWindow
         PlacePageCapsule();
         ApplicationPages.Margin = new Thickness(ApplicationPagesLeft(_header.Side), 0, 0, 0);
         // With the entry switched on the source menu has one more row. Without a source that row stands alone in the button.
-        bool entry = FullControlEntryShown, alone = entry && _mediaTrack is null;
-        MediaSourceButton.Visibility = IsMusicPage && (_mediaTrack is not null || entry) ? Visibility.Visible : Visibility.Collapsed;
-        MediaSourceButton.IsEnabled = !alone || _media?.RestartingNetease != true;
+        MediaSourceButton.Visibility = IsMusicPage && _mediaTrack is not null ? Visibility.Visible : Visibility.Collapsed;
+        MediaSourceButton.IsEnabled = true;
         // An open menu keeps its rows; only the entry's availability follows the restart.
         if (MediaSourceButton.ContextMenu is { IsOpen: true } open)
-            foreach (var item in open.Items.OfType<MenuItem>().Where(item => Equals(item.Tag, "action"))) item.IsEnabled = _media?.RestartingNetease != true;
-        AutomationProperties.SetName(MediaSourceButton, alone ? FullControlButtonLabel : Loc.T("切换播放来源", "Switch playback source"));
-        MediaSourceLabel.Text = _mediaTrack is { } playing ? Loc.Label(playing.Source) : alone ? FullControlButtonLabel : "";
+            foreach (var item in open.Items.OfType<MenuItem>().Where(item => Equals(item.Tag, "action"))) item.IsEnabled = true;
+        AutomationProperties.SetName(MediaSourceButton, Loc.T("切换播放来源", "Switch playback source"));
+        MediaSourceLabel.Text = _mediaTrack is { } playing ? Loc.Label(playing.Source) : "";
         MediaSourcePin.Visibility = _pinnedMedia is not null && _pinnedMedia == _mediaTrack?.Id ? Visibility.Visible : Visibility.Collapsed;
-        MediaSourceChevron.Visibility = _mediaTrack is not null && (_mediaTracks.Count > 1 || entry) ? Visibility.Visible : Visibility.Collapsed;
+        MediaSourceChevron.Visibility = _mediaTrack is not null && _mediaTracks.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
     }
     private void MediaChanged()
     {
@@ -317,7 +315,7 @@ public partial class MainWindow
                     _lyrics = lyrics; _musicRenderKey = "";
                     if (IsMusicPage) RenderMusic(); RenderCompact();
                 }
-                if (!requested.IsAppleMusic || lyrics.Source == LyricsService.AppleSource) break;
+                break;
                 var written = (_appleLyricsWritten = new(TaskCreationOptions.RunContinuationsAsynchronously)).Task;
                 await (attempt < 2 ? Task.WhenAny(written, Task.Delay(TimeSpan.FromSeconds(attempt == 0 ? 3 : 15), request.Token)) : written.WaitAsync(request.Token));
                 request.Token.ThrowIfCancellationRequested();
@@ -343,28 +341,11 @@ public partial class MainWindow
     }
     // The heart of a liked song, in the theme's color for it (NetEase Cloud Music's red in the dark theme).
     private static string LikedColor => PanelTheme.Hex("liked");
-    internal static string FullControlEntryLabel => Loc.T("网易云音乐 · 完整控制", "NetEase Cloud Music · Full control");
-    // Alone in the toolbar the entry has at most 150 DIP; the full English name would lose "Full control" to the ellipsis.
-    internal static string FullControlButtonLabel => Loc.T("网易云音乐 · 完整控制", "NetEase full control");
-    private bool FullControlEntryShown => Settings.NeteaseFullControlEntry && _media?.NeteaseInstalled == true;
-    // Started from the source menu or the lone button. Only the disabled entry shows that it is under way;
-    // neither progress nor a failure is reported, and a later click is ignored until it ends.
-    private async Task StartNeteaseFullControl()
-    {
-        if (_media is not { RestartingNetease: false } media) return;
-        var action = !media.NeteaseRunning ? NeteaseControlAction.Start : media.NeteaseFullControl ? NeteaseControlAction.Reconnect : NeteaseControlAction.Restart;
-        var dialog = new NeteaseControlWindow(Settings.Theme, action) { Owner = this };
-        if (dialog.ShowDialog() != true || _media != media || media.RestartingNetease) return;
-        var pending = media.EnableFullControlAsync(quiet: true);
-        _musicRenderKey = ""; RenderPageSwitch(); if (IsMusicPage) RenderMusic();
-        await pending;
-        if (_media != media) return;
-        _musicRenderKey = ""; RenderPageSwitch(); if (IsMusicPage) RenderMusic();
-    }
+    private bool FullControlEntryShown => false;
     private void MediaSource_Click(object sender, RoutedEventArgs e)
     {
         if (MediaSourceButton.ContextMenu?.IsOpen == true) { CloseSourceMenu(); return; }
-        if (_mediaTrack is null) { if (FullControlEntryShown) _ = StartNeteaseFullControl(); return; }
+        if (_mediaTrack is null) return;
         var menu = new ContextMenu { Style = (Style)FindResource("MediaSourceMenu") };
         menu.SetValue(SuppressMusicToolTipsProperty, true);
         foreach (var track in _mediaTracks)
@@ -390,15 +371,6 @@ public partial class MainWindow
             // The pin button marks its click handled, so MenuItem neither selects the row nor closes the menu.
             item.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler((_, e) => { e.Handled = true; ToggleSourcePin(menu, item, track.Id); }));
             item.Click += (_, _) => _media?.Select(track.Id); menu.Items.Add(item);
-        }
-        if (FullControlEntryShown)
-        {
-            menu.Items.Add(new Separator { Style = (Style)FindResource("MediaSourceMenuSeparator") });
-            var label = new TextBlock { Text = FullControlEntryLabel, FontSize = 12.5, Foreground = UI.Brush(UI.Primary), TextWrapping = TextWrapping.NoWrap,
-                TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
-            var entry = new MenuItem { Style = (Style)FindResource("MediaSourceMenuItem"), Header = label, Tag = "action", IsEnabled = _media?.RestartingNetease != true };
-            AutomationProperties.SetName(entry, FullControlEntryLabel);
-            entry.Click += (_, _) => { CloseSourceMenu(); _ = StartNeteaseFullControl(); }; menu.Items.Add(entry);
         }
         WatchSourceMenu(menu);
         MediaSourceButton.ContextMenu = menu; menu.PlacementTarget = MediaSourceButton; menu.Placement = PlacementMode.Bottom;
@@ -434,7 +406,7 @@ public partial class MainWindow
         // Only a page that was on screen hands over; one that arrives by the page switch or with the panel opening comes in whole.
         bool shown = MusicContent.IsVisible && _expanded && !_preview;
         RefreshStatus();
-        UsageContent.Visibility = Visibility.Collapsed; MonitorContent.Visibility = Visibility.Collapsed; ShelfContent.Visibility = Visibility.Collapsed; DevicesContent.Visibility = Visibility.Collapsed; MusicContent.Visibility = Visibility.Visible;
+        UsageContent.Visibility = Visibility.Collapsed; MonitorContent.Visibility = Visibility.Collapsed; ShelfContent.Visibility = Visibility.Collapsed; MusicContent.Visibility = Visibility.Visible;
         ModelToolbar.Visibility = Visibility.Collapsed; ApplicationPages.Visibility = Visibility.Collapsed; ClockLabel.Visibility = Visibility.Visible;
         double h = ContentCanvas.Height, w = ContentCanvas.Width;
         var track = _mediaTrack;
@@ -443,18 +415,13 @@ public partial class MainWindow
         bool playerLyrics = track?.IsQqMusic == true && _lyrics.Lines.Count == 0 && !_lyrics.Instrumental;
         bool hasPlayerLyric = playerLyrics && Settings.LyricsEnabled && !string.IsNullOrWhiteSpace(track?.CurrentLyric) && track?.State != MediaState.Stopped;
         bool hasLyrics = playerLyrics ? hasPlayerLyric : (_lyrics.Lines.Count > 0 || _lyrics.Instrumental) && Settings.LyricsEnabled;
-        bool logMode = track?.IsNeteaseLog == true;
-        bool appleEntry = track is { IsAppleMusic: true } && _media?.AppleMusicFullControl == false;
-        bool kugouEntry = track is { IsKugou: true } && (_media?.CanEnableKugouFullControl == true || _media?.RestartingKugou == true);
-        bool showSmtcHint = logMode && track is { CanToggle: false, CanPrevious: false, CanNext: false }
-            && _media?.RestartingNetease != true && _media?.Error is null;
-        string message = _media?.RestartingNetease == true ? Loc.T("正在重启网易云…", "Restarting NetEase Cloud Music…")
-            : _media?.RestartingKugou == true ? Loc.T("正在重启酷狗…", "Restarting KuGou Music…")
-            : _media?.Error ?? (track is { IsKugou: true } && _media?.KugouError is { } kugouError ? Loc.T("未能启用酷狗完整控制：", "KuGou full control could not be enabled: ") + kugouError : "");
+        bool logMode = false;
+        bool showSmtcHint = false;
+        string message = _media?.Error ?? "";
         var modes = track is null ? [] : MusicPlaybackModes.Supported(track);
         // While the timeline is held (MusicTimelineHold) the bar stays in its place, empty and without times.
         bool timeline = track?.HasTimeline == true || track is not null && _timelineHold.Holds(DateTimeOffset.UtcNow);
-        var layout = MusicLayout.Calculate(w, h, hasLyrics, timeline, message.Length > 0, logMode || appleEntry || kugouEntry, transport: !showSmtcHint,
+        var layout = MusicLayout.Calculate(w, h, hasLyrics, timeline, message.Length > 0, false, transport: true,
             lyricsExpected: Settings.LyricsEnabled);
         var c = layout.Metrics;
         // With the usage page on, the controls are the usage page's, as it would lay them out now; see PanelHeader.WithControlsOf.
@@ -464,7 +431,7 @@ public partial class MainWindow
         bool animate = Settings.Animations && SystemParameters.ClientAreaAnimation;
         // Without the cover the lyrics, or a message, take a column of their own; with neither the titles have the width.
         bool lyricColumn = !Settings.MusicPageCover && (hasLyrics || message.Length > 0);
-        string key = $"{track?.Id}|{track?.SongKey}|{logMode}|{appleEntry}|{kugouEntry}|{_media?.RestartingNetease}|{_media?.RestartingKugou}|{track?.State}|{track?.CanToggle}|{track?.CanPrevious}|{track?.CanNext}|{track?.CanSeek}|{track?.CanRepeat}|{track?.CanShuffle}|{track?.Shuffle}|{track?.Repeat}|{track?.CanLike}|{track?.Liked}|{track?.HasTimeline}|{timeline}|{playerLyrics}|{hasPlayerLyric}|{w}|{h}|{_lyrics.GetHashCode()}|{_mediaCover?.GetHashCode()}|{_media?.Error}|{_media?.KugouError}|{Settings.LyricsEnabled}|{Settings.MusicPageCover}|{Settings.EqualizerColor}|{Settings.EqualizerCustomColor}|{Settings.MusicLyricColor}|{Settings.MusicLyricCustomColor}|{Settings.MusicEqualizerBars}|{Settings.UiFont}|{Loc.Language}|{animate}";
+        string key = $"{track?.Id}|{track?.SongKey}|{track?.State}|{track?.CanToggle}|{track?.CanPrevious}|{track?.CanNext}|{track?.CanSeek}|{track?.CanRepeat}|{track?.CanShuffle}|{track?.Shuffle}|{track?.Repeat}|{track?.CanLike}|{track?.Liked}|{track?.HasTimeline}|{timeline}|{playerLyrics}|{hasPlayerLyric}|{w}|{h}|{_lyrics.GetHashCode()}|{_mediaCover?.GetHashCode()}|{_media?.Error}|{Settings.LyricsEnabled}|{Settings.MusicPageCover}|{Settings.EqualizerColor}|{Settings.EqualizerCustomColor}|{Settings.MusicLyricColor}|{Settings.MusicLyricCustomColor}|{Settings.MusicEqualizerBars}|{Settings.UiFont}|{Loc.Language}|{animate}";
         if (_musicRenderKey == key) { UpdateMusicPosition(); return; }
         _musicRenderKey = key;
         string song = track is null ? "" : $"{track.Id}|{track.SongKey}|{track.Title}|{track.Artist}";
@@ -738,15 +705,9 @@ public partial class MainWindow
                 _musicFullControl = new Button { Style = (Style)FindResource("PanelTextButton"), FontFamily = UI.TextFont, Padding = new Thickness(6, 2, 6, 2),
                     Height = 26, HorizontalContentAlignment = HorizontalAlignment.Right };
                 AutomationProperties.SetName(_musicFullControl, MusicLayout.FullControlLabels[0]);
-                _musicFullControl.Click += async (_, _) =>
-                {
-                    if (_mediaTrack?.IsAppleMusic == true) EnableAppleMusicControl();
-                    else if (_mediaTrack?.IsKugou == true) await EnableKugouControl();
-                    else await EnableNeteaseControl();
-                };
                 controls.Children.Add(_musicFullControl);
             }
-            var enable = _musicFullControl; enable.IsEnabled = _media?.RestartingNetease != true && _media?.RestartingKugou != true;
+            var enable = _musicFullControl; enable.IsEnabled = false;
             // The app-wide TextBlock style wraps; pixel snapping must never push the last character to a second line.
             enable.Width = entryWidth;
             enable.Content = new TextBlock { Text = entryLabel, FontFamily = UI.TextFont, FontSize = c.Time, TextWrapping = TextWrapping.NoWrap };
@@ -861,44 +822,6 @@ public partial class MainWindow
             await _media.RefreshAsync();
         }
         finally { _commandBusy = false; }
-    }
-    private void EnableAppleMusicControl()
-    {
-        if (_media is not { AppleMusicFullControl: false } media) return;
-        var dialog = new AppleMusicControlWindow(Settings.Theme) { Owner = this };
-        if (dialog.ShowDialog() != true || _media != media) return;
-        media.EnableAppleMusicFullControl();
-        _musicRenderKey = ""; RenderMusic();
-    }
-    // The button beside the controls does what the settings' switch does: after the explanation, the switch is on and KuGou
-    // restarts with full control. A failure turns the switch off again and stays in the music page's message line.
-    private async Task EnableKugouControl()
-    {
-        if (_media is not { RestartingKugou: false } media || new KugouControlWindow(Settings.Theme) { Owner = this }.ShowDialog() != true
-            || _media != media || media.RestartingKugou) return;
-        var pending = media.EnableKugouFullControlAsync();
-        _musicRenderKey = ""; RenderMusic();
-        if (await pending is null) SetKugouFullControl(true);
-        if (_media != media) return;
-        await media.RefreshAsync(); _musicRenderKey = ""; RenderMusic();
-    }
-    private void SetKugouFullControl(bool on)
-    {
-        if (Settings.KugouFullControl == on) return;
-        var settings = Settings.Copy(); settings.KugouFullControl = on; _app.UpdateSettings(settings);
-    }
-    private async Task EnableNeteaseControl()
-    {
-        if (_media?.CanEnableFullControl != true || _media.RestartingNetease) return;
-        var dialog = new NeteaseControlWindow(Settings.Theme) { Owner = this };
-        if (dialog.ShowDialog() != true) return;
-        var media = _media;
-        var pending = media.EnableFullControlAsync();
-        _musicRenderKey = ""; RenderMusic();
-        bool succeeded = await pending;
-        if (_media != media) return;
-        await media.RefreshAsync(); _musicRenderKey = ""; RenderMusic();
-        if (!succeeded) ShowMusicError(media.Error ?? Loc.T("未能启用完整控制，请重试。", "Full control could not be enabled. Try again."));
     }
 
     private async Task RunMediaCommand(MediaTrack track, MediaCommand command)
@@ -1052,6 +975,17 @@ public partial class MainWindow
             UpdateMonitorDemand();
             return;
         }
+        if (IsMochiActionPill)
+        {
+            var (pill, wantedPill) = BuildMochiActionPill(scale, shape.Surface.Height - 2);
+            if (double.IsNaN(_compactWanted) || Math.Abs(wantedPill - _compactWanted) > .5 || Math.Abs(wantedPill - _compactRequired) > .5)
+            { _compactWanted = wantedPill; _compactRequired = wantedPill; Dispatcher.BeginInvoke(DispatcherPriority.Background, FitCompactToContent); }
+            CompactRings.Children.Add(pill);
+            UpdateMusicTimer();
+            _stripShowing = false;
+            UpdateMonitorDemand();
+            return;
+        }
         bool media = Settings.ShowsMusic(EffectiveStyle) && _mediaTrack is { State: not MediaState.Stopped };
         bool showCover = Settings.MusicCompactCover && !PausedHides(PausedMusicHide.Cover), hideText = PausedHides(PausedMusicHide.Text);
         bool equalizer = CompactEqualizerShown;
@@ -1073,13 +1007,10 @@ public partial class MainWindow
         // The file transfer's count keeps one width, as the clock does; with both, they are counted as one fixed part with a gap between.
         var transfer = TransferBadge(scale);
         double dpi = VisualTreeHelper.GetDpi(this).DpiScaleX;
-        // The devices' batteries keep one width too (as many devices as show, each with the room of its widest figure), counted with them.
-        var devices = CompactDevices(scale);
-        double devicesWidth = devices is null ? 0 : DevicePixels.Up(devices.PreferredWidth, dpi);
-        double transferWidth = transfer?.Width ?? 0, fixedFace = FixedFace(scale, clock?.ReservedWidth ?? 0, transferWidth, devicesWidth);
+        double transferWidth = transfer?.Width ?? 0, fixedFace = FixedFace(scale, clock?.ReservedWidth ?? 0, transferWidth, 0);
         // The system readings ask for the width of everything chosen, on whole device pixels; the whole ones that fit their region show.
         var strip = Settings.ShowsMonitor(EffectiveStyle) ? new MonitorStrip(Settings.CompactReadings, MonitorThemeColors.Strip(Settings), scale,
-            !(media && showCover) && !equalizer && apps.Count == 0 && text.Length == 0 && clock is null && transfer is null && devices is null, _stripPresence, dpi, _stripUnavailable = _stripAdmission.Hidden, _stripAdmission) : null;
+            !(media && showCover) && !equalizer && apps.Count == 0 && text.Length == 0 && clock is null && transfer is null, _stripPresence, dpi, _stripUnavailable = _stripAdmission.Hidden, _stripAdmission) : null;
         _stripLayout = _stripAdmission.Layout;
         // Readings that do not fit scroll through a window of whole readings, as the rings do (CompactSpacing.Window).
         double ringDiameter = QuotaRing.Diameter(Settings.QuotaRingStyle);
@@ -1110,15 +1041,15 @@ public partial class MainWindow
         // before the row is centred (CompactSpacing.Arrange).
         bool hasCover = media && showCover && layout.CoverWidth >= layout.CoverSize - .001, hasEqualizer = equalizer && layout.EqualizerWidth >= layout.EqualizerSize - .001;
         bool hasFixed = fixedFace > 0 && layout.ClockWidth >= fixedFace - .001;
-        bool hasClock = clock is not null && hasFixed, hasTransfer = transfer is not null && hasFixed, hasDevices = devices is not null && hasFixed, hasText = layout.TextWidth > 0 && text.Length > 0;
+        bool hasClock = clock is not null && hasFixed, hasTransfer = transfer is not null && hasFixed, hasText = layout.TextWidth > 0 && text.Length > 0;
         double titleWanted = hasText ? layout.TextWidth : 0;
         double shortest = CompactMusicLayout.Whole(CompactMusicLayout.MinimumText * scale);
         double titleShare = hasText ? Math.Min(titleWanted, Math.Max(shortest, CompactMusicLayout.Whole(CompactSpacing.TitleMax * scale))) : 0;
         double titleFloor = hasText ? Math.Min(shortest, titleWanted) : 0;
         var ringWidths = apps.Select(_ => layout.RingSize).ToList();
         bool hasRings = ringWidths.Count > 0, hasReadings = readingWidths.Count > 0;
-        int parts = 1 + (hasCover ? 1 : 0) + (hasEqualizer ? 1 : 0) + (hasClock ? 1 : 0) + (hasTransfer ? 1 : 0) + (hasDevices ? 1 : 0) + (hasText ? 1 : 0) + (hasRings ? 1 : 0) + (hasReadings ? 1 : 0);
-        double others = mochiSize + (hasCover ? layout.CoverSize : 0) + (hasEqualizer ? layout.EqualizerSize : 0) + (hasClock ? clock!.ReservedWidth : 0) + (hasTransfer ? transferWidth : 0) + (hasDevices ? devicesWidth : 0) + Math.Max(0, parts - 1) * unit;
+        int parts = 1 + (hasCover ? 1 : 0) + (hasEqualizer ? 1 : 0) + (hasClock ? 1 : 0) + (hasTransfer ? 1 : 0) + (hasText ? 1 : 0) + (hasRings ? 1 : 0) + (hasReadings ? 1 : 0);
+        double others = mochiSize + (hasCover ? layout.CoverSize : 0) + (hasEqualizer ? layout.EqualizerSize : 0) + (hasClock ? clock!.ReservedWidth : 0) + (hasTransfer ? transferWidth : 0) + Math.Max(0, parts - 1) * unit;
         double pool = SnapDown(contentWidth, dpi) - others - titleShare;
         // Too short for both narrowest windows, the title gives way down to its shortest.
         double needed = CompactSpacing.Minimum(ringWidths, layout.RingGap) + CompactSpacing.Minimum(readingWidths, strip?.Gap ?? 0);
@@ -1153,7 +1084,6 @@ public partial class MainWindow
             else if (part == CompactPart.Equalizer && hasEqualizer) shown.Add((part, new(layout.EqualizerSize)));
             else if (part == CompactPart.Clock && hasClock) shown.Add((part, new(clock!.ReservedWidth)));
             else if (part == CompactPart.Transfer && hasTransfer) shown.Add((part, new(transferWidth)));
-            else if (part == CompactPart.Devices && hasDevices) shown.Add((part, new(devicesWidth)));
         }
         int title = shown.FindIndex(entry => entry.Part is CompactPart.Music);
         // One gap between every two parts; what is left widens them evenly and then centres the row.
@@ -1177,9 +1107,6 @@ public partial class MainWindow
                     element = CompactRegion(clock!, room, clock!.ReservedWidth, clock.Height, row, RegionAnchor.Left, dpi); _compactClock = clock; break;
                 case CompactPart.Transfer:
                     element = CompactRegion(transfer!, room, transferWidth, transfer!.Height, row, RegionAnchor.Left, dpi); break;
-                case CompactPart.Devices:
-                    devices!.Width = devicesWidth;
-                    element = CompactRegion(devices, room, devicesWidth, devices.Height, row, RegionAnchor.Left, dpi); break;
                 case CompactPart.Rings:
                     element = _quotaCarousel = new QuotaCarousel(steadyItems, layout.RingSize, layout.RingThickness, layout.Scale, layout.RingGap, rings.Count, Math.Min(layout.RingEdge, place.Gap), _quotaElapsed, animate,
                         flow > 0 ? rings.Window : null, ringCut); break;

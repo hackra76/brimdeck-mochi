@@ -47,7 +47,15 @@ public sealed partial class SettingsWindow
             Toggle(Loc.T("更新提示徽章", "Show update hint on Mochi"), S.MochiUpdateHintEnabled,
                 value => Change(s => s.MochiUpdateHintEnabled = value),
                 help: Loc.T("有新版本可用时，在 Mochi 空闲或睡眠时显示提示微光（就绪后切换为信箱形态）。",
-                    "Shows a subtle update indicator on Mochi while idle or sleeping when a new release is available (and morphs into a mailbox when ready)."))
+                    "Shows a subtle update indicator on Mochi while idle or sleeping when a new release is available (and morphs into a mailbox when ready).")),
+            Toggle(Loc.T("睡眠时自动隐藏刘海", "Hide notch while sleeping"), S.MochiHideWhenIdle,
+                value => Change(s => s.MochiHideWhenIdle = value),
+                help: Loc.T("Mochi 进入睡眠且无活跃任务时淡出刘海，鼠标移至屏幕顶部或有新任务时自动恢复。",
+                    "Fades out the notch while Mochi is sleeping with no active tasks. Reappears on top-edge hover or when an agent wakes up.")),
+            Toggle(Loc.T("勿扰模式", "Do Not Disturb"), S.MochiDoNotDisturb,
+                value => Change(s => s.MochiDoNotDisturb = value),
+                help: Loc.T("静音 Mochi 提示音并屏蔽非紧急的桌面气泡提示。",
+                    "Mutes Mochi sound effects and suppresses non-urgent desktop speech bubbles."))
         );
 
         SectionTitle(Loc.T("动作与交互", "Animations & Behavior"));

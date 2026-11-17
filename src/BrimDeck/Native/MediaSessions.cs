@@ -52,9 +52,7 @@ internal sealed class MediaSessions : IDisposable
     private readonly PromptTimer _debounce, _recheck;
     private readonly DispatcherTimer _poll;
     private readonly MediaPlaybackStack _stack = new();
-    private readonly AudioLevelMeter _meter = new();
-    private readonly IMediaPlayerConnection[] _connections;
-    private readonly AppleMusicControls _appleMusic;
+    private readonly IMediaPlayerConnection[] _connections = [];
     private readonly HttpClient _coverHttp = new() { Timeout = TimeSpan.FromSeconds(6) };
     private readonly Dictionary<Session, SystemSource> _sessions = new();
     private readonly Dictionary<string, CoverCache> _covers = new();
@@ -80,122 +78,6 @@ internal sealed class MediaSessions : IDisposable
     public MediaTrack? Current { get; private set; }
     public BitmapSource? Cover { get; private set; }
     public string? Error { get; private set; }
-    public bool CanEnableFullControl => Current?.IsNeteaseLog == true && Netease?.ProcessId is not null;
-    public bool RestartingNetease => Netease?.Restarting == true;
-    public bool NeteaseInstalled => Netease?.Installed == true;
-    public bool NeteaseRunning => Netease?.ProcessId is not null;
-    public bool NeteaseFullControl => Netease is { ProcessId: not null, IsLogMode: false };
-    private NeteaseSource Netease { get; }
-    public bool NeteaseAutoFullControl { set { if (Netease is { } source) source.AutoFullControl = value; } }
-    public async Task<bool> EnableFullControlAsync(bool quiet = false)
-    {
-        var source = Netease;
-        if (source is null) return false;
-        bool manual = _selected is not null;
-        bool enabled = await source.EnableFullControlAsync(quiet);
-        if (_disposed) return false;
-        _selected = source.Identity;
-        await RefreshAsync();
-        if (!manual) _selected = null;
-        if (!enabled && !quiet) Error = source.Error;
-        Changed?.Invoke();
-        return enabled;
-    }
-    // NetEase Cloud Music's full control through its changed libcef.dll (NeteaseFullControl), kept like KuGou's: once on, every
-    // start opens the port on its own. The state is read off the UI thread by the source; the settings switch reads it here, or
-    // from NeteaseInstall directly when media is off.
-    public LibcefPatchState? NeteasePatchState => Netease?.FilePatchState;
-    public bool NeteaseFileControlWanted { set { if (Netease is { } source) source.FileFullControl = value; } }
-    public void CheckNeteaseFile() => Netease?.CheckFile();
-    public async Task<string?> EnableNeteaseFileControlAsync()
-    {
-        if (Netease is not { } source) return null;
-        var error = await source.EnableFileControlAsync();
-        if (!_disposed) { await RefreshAsync(); Changed?.Invoke(); }
-        return error;
-    }
-    public async Task<string?> DisableNeteaseFileControlAsync()
-    {
-        if (Netease is not { } source) return null;
-        var error = await source.DisableFileControlAsync();
-        if (!_disposed) { await RefreshAsync(); Changed?.Invoke(); }
-        return error;
-    }
-    // KuGou's full control. Once its libcef.dll is changed, every start of KuGou opens the debugging port, so full control is a
-    // lasting state: the setting KugouFullControl. The file's state is read off the UI thread when it is needed
-    // (CheckKugouInstall); while the setting is on, a file found unchanged (as after a KuGou update) is changed again and a
-    // running KuGou restarts, once for each start of KuGou.
-    private KugouCdpConnection Kugou { get; }
-    public bool RestartingKugou { get; private set; }
-    public LibcefPatchState? KugouState { get; private set; }
-    public bool KugouFullControl => Kugou?.Ready == true;
-    // Why the last attempt to enable full control failed; cleared by the next attempt.
-    public string? KugouError { get; private set; }
-    public bool CanEnableKugouFullControl => KugouState is LibcefPatchState.Original or LibcefPatchState.Patched or LibcefPatchState.Partial
-        && Current is { IsKugou: true } current && _routes.TryGetValue(current.Id, out var route) && route.Connection is null;
-    public bool KugouFullControlWanted
-    {
-        get => _kugouAuto;
-        set { if (_kugouAuto == value) return; _kugouAuto = value; _kugouAttempted = null; if (value) CheckKugouInstall(now: true); }
-    }
-    private bool _kugouAuto, _kugouChecking, _kugouRead;
-    private string? _kugouAttempted;
-    private long _kugouCheckedAt = long.MinValue / 2;
-    // The file is read when asked (now: the settings page, a change of the setting, the first KuGou song shown), and while the
-    // setting is on and KuGou runs without full control, as after an update left the file original: at most every 5 seconds,
-    // found by KuGou's process (its system media session may be off). The 150 MB file is searched only once it has changed
-    // (LibcefFile).
-    public void CheckKugouInstall(bool now = false)
-    {
-        if (!now && (!_kugouAuto || KugouFullControl)) return;
-        if (_kugouChecking || !now && Environment.TickCount64 - _kugouCheckedAt < 5_000) return;
-        _kugouChecking = true; _kugouCheckedAt = Environment.TickCount64;
-        _ = Task.Run(() =>
-        {
-            var processes = KugouInstall.Processes();
-            bool read = now || processes.Key.Length > 0;
-            return (Read: read, Install: read ? KugouInstall.Inspect() : default, Processes: processes);
-        }).ContinueWith(check => _dispatcher.BeginInvoke(() =>
-        {
-            _kugouChecking = false;
-            if (_disposed || !check.IsCompletedSuccessfully || !check.Result.Read) return;
-            var (_, (state, written), (processes, started)) = check.Result;
-            _kugouRead = true;
-            if (state != KugouState) { KugouState = state; Changed?.Invoke(); }
-            if (_kugouAuto && !RestartingKugou && KugouPatch.RestartDue(state, KugouFullControl, started, written) && _kugouAttempted != processes)
-            {
-                _kugouAttempted = processes;
-                _ = EnableKugouFullControlAsync(start: false);
-            }
-        }), TaskScheduler.Default);
-    }
-    // Patches KuGou (which may ask for administrator rights) and restarts it when it runs, or starts it when start asks for
-    // it, then waits for the connection. Null when it is done, otherwise what went wrong, which KugouError keeps.
-    public async Task<string?> EnableKugouFullControlAsync(bool start = true)
-    {
-        if (RestartingKugou || Kugou is not { } kugou) return null;
-        RestartingKugou = true; KugouError = null; Changed?.Invoke();
-        try
-        {
-            bool running = start || await Task.Run(KugouInstall.Running);
-            await Task.Run(() => KugouInstall.EnableAsync(start, CancellationToken.None));
-            if (!running) return null;
-            for (var deadline = Environment.TickCount64 + 30_000; Environment.TickCount64 < deadline && !_disposed;)
-            {
-                await Task.Delay(250);
-                if (kugou.Ready) return null;
-            }
-            return KugouError = Loc.T("酷狗已重启，但未能连接", "KuGou restarted, but could not be connected");
-        }
-        catch (Exception ex) { return KugouError = ex.Message; }
-        finally
-        {
-            RestartingKugou = false;
-            // The restarted KuGou is a new start; it is not changed again by the setting.
-            _kugouAttempted = (await Task.Run(KugouInstall.Processes)).Key;
-            if (!_disposed) { CheckKugouInstall(now: true); Changed?.Invoke(); Schedule(); }
-        }
-    }
     // A pinned source stays on screen whatever other players do, until it is unpinned or closes.
     public string? Pinned => _pinned;
     public event Action? Changed;
@@ -203,8 +85,6 @@ internal sealed class MediaSessions : IDisposable
     public MediaSessions(Dispatcher dispatcher)
     {
         _dispatcher = dispatcher;
-        Netease = new NeteaseSource(); Kugou = new KugouCdpConnection();
-        _connections = [Netease, new QqMediaConnection(), Kugou];
         _debounce = new PromptTimer(dispatcher, async () => { _debounce!.Stop(); await RefreshAsync(); }) { Interval = TimeSpan.FromMilliseconds(100) };
         _poll = new DispatcherTimer(TimeSpan.FromSeconds(30), DispatcherPriority.Background,
             async (_, _) => await RefreshAsync(), dispatcher);
@@ -212,28 +92,9 @@ internal sealed class MediaSessions : IDisposable
         _recheck = new PromptTimer(dispatcher, () => { _recheck!.Stop(); Schedule(); }) { Interval = TimeSpan.FromSeconds(1) };
         // The timer made with a handler starts itself; the other two start when first asked.
         _poll.Stop();
-        foreach (var connection in _connections) connection.Changed += Schedule;
-        _appleMusic = new AppleMusicControls(); _appleMusic.Changed += AppleMusicChanged;
     }
-    // Apple Music's shuffle, repeat and seeking through the controls of its window (AppleMusicControls), enabled from the
-    // music page's "Enable full control" entry after its explanation. It lasts while BrimDeck runs and is not saved, so the
-    // entry and its explanation come back after a restart, unless the setting AppleMusicFullControl enables it at start.
-    public bool AppleMusicFullControl { get; private set; }
-    public void EnableAppleMusicFullControl()
-    {
-        if (_appleMusic is null) return;
-        AppleMusicFullControl = true;
-        // The window's controls are read at once instead of at the next session event.
-        _appleMusic.Refresh(now: true); AppleMusicChanged();
-    }
-    private void AppleMusicChanged() => _dispatcher.BeginInvoke(() =>
-    {
-        foreach (var source in _sessions.Values.Where(s => MediaRouting.IsAppleMusic(s.App))) source.Dirty = true;
-        Schedule();
-    });
     public async Task StartAsync()
     {
-        foreach (var connection in _connections) await connection.StartAsync();
         _ = RequestManagerAsync();
         if (_disposed) return;
         await RefreshAsync(); _poll.Start();
@@ -445,14 +306,10 @@ internal sealed class MediaSessions : IDisposable
                 if (current is { State: MediaState.Stopped } && _stack.BrieflyStopped(current.Id, now)) current = current with { State = MediaState.Paused };
                 var cover = current is null ? null : covers.GetValueOrDefault(current.Id);
                 string? connectionError = routes.FirstOrDefault(r => r.Id == current?.Id)?.Connection?.Error;
-                // The end of a restart changes nothing else once the player is back, yet the entries it disabled must return.
-                bool restarting = RestartingNetease;
-                bool changed = Error != connectionError || !Tracks.SequenceEqual(tracks) || Current != current || Cover != cover || _announcedPin != _pinned || _announcedRestarting != restarting;
-                _announcedPin = _pinned; _announcedRestarting = restarting;
+                bool changed = Error != connectionError || !Tracks.SequenceEqual(tracks) || Current != current || Cover != cover || _announcedPin != _pinned;
+                _announcedPin = _pinned;
                 Tracks = tracks; Current = current; Cover = cover;
                 Error = connectionError;
-                // The music page's full control entry for KuGou needs the file's state once a KuGou song shows.
-                UpdateMeter(); CheckKugouInstall(now: current is { IsKugou: true } && !_kugouRead);
                 if (changed) Changed?.Invoke();
             } while (_again && !_disposed);
         }
@@ -491,25 +348,7 @@ internal sealed class MediaSessions : IDisposable
     private List<Route> BuildRoutes()
     {
         var routes = new List<Route>();
-        var consumed = new HashSet<SystemSource>();
-        var current = _manager?.GetCurrentSession();
-        foreach (var connection in _connections)
-        {
-            if (connection.ProcessId is not { } pid || connection.Snapshot is not { } snapshot) continue;
-            bool netease = connection is NeteaseSource;
-            string name = connection switch { NeteaseSource => "cloudmusic", KugouCdpConnection => "kugou", _ => "QQMusic" };
-            // KuGou's session is named "kugou", the others by their executable.
-            var systems = _sessions.Values.Where(s => connection is KugouCdpConnection
-                ? string.Equals(s.App, name, StringComparison.OrdinalIgnoreCase) : AppMatches(s, name + ".exe")).ToArray();
-            var system = systems.FirstOrDefault(s => s.Session == current) ?? systems.FirstOrDefault();
-            // A disconnected QQ pipe falls back as a whole to GSMTC. Retain its last
-            // song without capabilities only when there is no system replacement.
-            if (connection is QqMediaConnection { Ready: false } && system is not null) continue;
-            foreach (var entry in systems) consumed.Add(entry);
-            string identity = connection switch { NeteaseSource ns => ns.Identity, KugouCdpConnection kugou => kugou.Identity, _ => ((QqMediaConnection)connection).Identity };
-            routes.Add(new(identity, name, system, connection, netease && snapshot.IsNeteaseLog));
-        }
-        foreach (var source in _sessions.Values.Where(s => !consumed.Contains(s)))
+        foreach (var source in _sessions.Values)
             routes.Add(new(source.Id, source.ProcessName, source));
         foreach (var source in _departed.Values) routes.Add(new(source.Id, source.ProcessName, source, Departed: true));
         return routes;
@@ -639,19 +478,6 @@ internal sealed class MediaSessions : IDisposable
                 CanShuffle = controls.IsShuffleEnabled, CanRepeat = controls.IsRepeatEnabled, Shuffle = playback.IsShuffleActive == true,
                 Repeat = playback.AutoRepeatMode switch { MediaPlaybackAutoRepeatMode.Track => MediaRepeat.Track, MediaPlaybackAutoRepeatMode.List => MediaRepeat.List, _ => MediaRepeat.None }
             };
-            if (MediaRouting.IsAppleMusic(source.App))
-            {
-                var now = DateTimeOffset.UtcNow;
-                if (source.Track is { } settling && MediaRouting.SettlingAfterSeek(settling, read, source.SeekAt, now))
-                    read = read with { State = MediaState.Playing, Start = settling.Start, ReportedPosition = settling.ReportedPosition, PositionAt = settling.PositionAt };
-                else (read, source.WholeSeconds) = MediaRouting.FromWholeSeconds(source.WholeSeconds, read);
-                // The session offers no shuffle, repeat or seeking; with full control the window's controls stand in while
-                // they are found.
-                if (AppleMusicFullControl) _appleMusic?.Refresh();
-                if (AppleMusicFullControl && _appleMusic?.Latest is { } window)
-                    read = read with { CanShuffle = true, Shuffle = window.Shuffle, CanRepeat = true, Repeat = window.Repeat,
-                        CanSeek = read.HasTimeline && window.CanSeek, SeparateModes = true };
-            }
             source.Track = read;
         }
         catch (Exception ex)
@@ -708,8 +534,6 @@ internal sealed class MediaSessions : IDisposable
         var state = current.State;
         try
         {
-            if (command is MediaCommand.Shuffle or MediaCommand.Repeat && current.SeparateModes && _appleMusic is { } apple)
-                return await (command == MediaCommand.Shuffle ? apple.ToggleShuffleAsync() : apple.CycleRepeatAsync()).WaitAsync(TimeSpan.FromSeconds(3));
             return await MediaRouting.DispatchAsync(async () => route.Connection is { } connection
                 ? DispatchResult(await connection.CommandAsync(command, state))
                 : MediaDispatchResult.Unavailable,
@@ -779,9 +603,7 @@ internal sealed class MediaSessions : IDisposable
                 ? DispatchResult(await connection.SeekAsync(TimeSpan.FromTicks(current.SeekTicks(fraction))))
                 : MediaDispatchResult.Unavailable,
                 async () => route.Connection is null && route.System?.Track is { CanSeek: true } system && MediaRouting.SameSong(track, system) &&
-                    (MediaRouting.IsAppleMusic(route.System.App) && _appleMusic is { } apple
-                        ? await apple.SeekAsync(TimeSpan.FromTicks(system.SeekTicks(fraction)) - system.Start).WaitAsync(TimeSpan.FromSeconds(3))
-                        : await route.System.Session.TryChangePlaybackPositionAsync(system.SeekTicks(fraction)).AsTask().WaitAsync(TimeSpan.FromSeconds(2))));
+                    await route.System.Session.TryChangePlaybackPositionAsync(system.SeekTicks(fraction)).AsTask().WaitAsync(TimeSpan.FromSeconds(2)));
         }
         catch { return false; }
         finally { Invalidate(route); }
@@ -795,17 +617,10 @@ internal sealed class MediaSessions : IDisposable
     }
     private static MediaDispatchResult DispatchResult(DesktopCommandResult result) => result switch
     { DesktopCommandResult.Unavailable => MediaDispatchResult.Unavailable, DesktopCommandResult.Sent => MediaDispatchResult.Sent, _ => MediaDispatchResult.Uncertain };
-    public float Peak() => _meter.Peak;
-    // How long the bars' capture keeps running after nothing shows them (MemoryPlan.MediaLinger).
-    public TimeSpan MeterLinger { set => _meter.Linger = value; }
-    // The bars' levels from the player's captured audio, flowing along the bars or as the spectrum, one band for each of the levels.Length bars; false when only the peak meter is available.
-    public bool FlowLevels(Span<double> levels, EqualizerMode mode) => _meter.TryFill(levels, mode);
-    // The playing player's sound while its bars are seen; otherwise the whole system's, while bars shown at all times ask for it.
-    private void UpdateMeter()
-    {
-        bool player = _visible && Current?.State == MediaState.Playing;
-        _meter.SetSource(CurrentOwner, player, !player && _systemVisible);
-    }
+    public float Peak() => 0f;
+    public TimeSpan MeterLinger { set { } }
+    public bool FlowLevels(Span<double> levels, EqualizerMode mode) => false;
+    private void UpdateMeter() { }
 
     // The application playing the current song, for bringing its window forward and for the bars' sound.
     public MediaAppOwner? CurrentOwner => Current is not null && _routes.TryGetValue(Current.Id, out var route)
@@ -820,6 +635,5 @@ internal sealed class MediaSessions : IDisposable
         _sessions.Clear(); _covers.Clear(); _routes.Clear(); _departed.Clear();
         foreach (var connection in _connections) { connection.Changed -= Schedule; connection.Dispose(); }
         _coverHttp.Dispose();
-        _meter.Dispose();
     }
 }

@@ -61,7 +61,7 @@ internal static class MochiOutfits
 
     public static bool IsPumpkin(MochiOutfit resolved) => resolved == MochiOutfit.Pumpkin;
 
-    public static void DrawBehind(DrawingContext dc, MochiOutfit outfit, double r, double yaw, double pitch, double alpha)
+    public static void DrawBehind(DrawingContext dc, MochiOutfit outfit, double r, double yaw, double pitch, double alpha, double physDx = 0, double physDy = 0)
     {
         if (outfit == MochiOutfit.None || alpha <= 0.01) return;
         if (outfit == MochiOutfit.Pumpkin)
@@ -84,7 +84,7 @@ internal static class MochiOutfits
         }
     }
 
-    public static void DrawFront(DrawingContext dc, MochiOutfit outfit, double r, double yaw, double pitch, double alpha)
+    public static void DrawFront(DrawingContext dc, MochiOutfit outfit, double r, double yaw, double pitch, double alpha, double physDx = 0, double physDy = 0)
     {
         if (outfit == MochiOutfit.None || alpha <= 0.01) return;
 
@@ -92,13 +92,13 @@ internal static class MochiOutfits
         switch (outfit)
         {
             case MochiOutfit.SantaHat:
-                DrawSantaHat(dc, r, yaw, pitch);
+                DrawSantaHat(dc, r, yaw, pitch, physDx, physDy);
                 break;
             case MochiOutfit.PartyHat:
-                DrawPartyHat(dc, r, yaw, pitch);
+                DrawPartyHat(dc, r, yaw, pitch, physDx, physDy);
                 break;
             case MochiOutfit.WitchHat:
-                DrawWitchHat(dc, r, yaw, pitch);
+                DrawWitchHat(dc, r, yaw, pitch, physDx, physDy);
                 break;
             case MochiOutfit.Sunglasses:
                 DrawSunglasses(dc, r, yaw, pitch);
@@ -107,10 +107,10 @@ internal static class MochiOutfits
                 DrawRoundGlasses(dc, r, yaw, pitch);
                 break;
             case MochiOutfit.Bow:
-                DrawBow(dc, r, yaw, pitch);
+                DrawBow(dc, r, yaw, pitch, physDx, physDy);
                 break;
             case MochiOutfit.Scarf:
-                DrawScarf(dc, r, yaw, pitch);
+                DrawScarf(dc, r, yaw, pitch, physDx, physDy);
                 break;
             case MochiOutfit.Pumpkin:
                 DrawPumpkinRibs(dc, r, yaw, pitch);
@@ -119,16 +119,18 @@ internal static class MochiOutfits
         dc.Pop();
     }
 
-    private static void DrawSantaHat(DrawingContext dc, double r, double yaw, double pitch)
+    private static void DrawSantaHat(DrawingContext dc, double r, double yaw, double pitch, double physDx, double physDy)
     {
         double hx = yaw * r * 0.26;
         double hy = -r * 0.72 + pitch * r * 0.14;
+        double tipX = hx + r * 0.56 + physDx * r * 0.22;
+        double tipY = hy - r * 0.42 + physDy * r * 0.18;
         var cone = new StreamGeometry();
         using (var ctx = cone.Open())
         {
             ctx.BeginFigure(new Point(hx - r * 0.62, hy + r * 0.12), true, true);
-            ctx.QuadraticBezierTo(new Point(hx - r * 0.10, hy - r * 0.75), new Point(hx + r * 0.56, hy - r * 0.42), true, false);
-            ctx.QuadraticBezierTo(new Point(hx + r * 0.50, hy - r * 0.08), new Point(hx + r * 0.62, hy + r * 0.12), true, false);
+            ctx.QuadraticBezierTo(new Point(hx - r * 0.10 + physDx * r * 0.10, hy - r * 0.75 + physDy * r * 0.10), new Point(tipX, tipY), true, false);
+            ctx.QuadraticBezierTo(new Point(hx + r * 0.50 + physDx * r * 0.10, hy - r * 0.08), new Point(hx + r * 0.62, hy + r * 0.12), true, false);
         }
         cone.Freeze();
         dc.DrawGeometry(new SolidColorBrush(Color.FromRgb(220, 38, 38)), null, cone);
@@ -137,18 +139,20 @@ internal static class MochiOutfits
         var trimBrush = new SolidColorBrush(Color.FromRgb(248, 250, 252));
         dc.DrawRoundedRectangle(trimBrush, null, new Rect(hx - r * 0.66, hy + r * 0.02, r * 1.32, r * 0.24), r * 0.12, r * 0.12);
         // Pom-pom
-        dc.DrawEllipse(trimBrush, null, new Point(hx + r * 0.58, hy - r * 0.40), r * 0.16, r * 0.16);
+        dc.DrawEllipse(trimBrush, null, new Point(tipX + r * 0.02, tipY + r * 0.02), r * 0.16, r * 0.16);
     }
 
-    private static void DrawPartyHat(DrawingContext dc, double r, double yaw, double pitch)
+    private static void DrawPartyHat(DrawingContext dc, double r, double yaw, double pitch, double physDx, double physDy)
     {
         double hx = yaw * r * 0.28;
         double hy = -r * 0.76 + pitch * r * 0.14;
+        double tipX = hx + r * 0.04 + physDx * r * 0.16;
+        double tipY = hy - r * 0.85 + physDy * r * 0.12;
         var cone = new StreamGeometry();
         using (var ctx = cone.Open())
         {
             ctx.BeginFigure(new Point(hx - r * 0.44, hy + r * 0.08), true, true);
-            ctx.LineTo(new Point(hx + r * 0.04, hy - r * 0.85), true, false);
+            ctx.LineTo(new Point(tipX, tipY), true, false);
             ctx.LineTo(new Point(hx + r * 0.44, hy + r * 0.08), true, false);
         }
         cone.Freeze();
@@ -158,12 +162,12 @@ internal static class MochiOutfits
         // Festive polka dots
         var gold = new SolidColorBrush(Color.FromRgb(250, 204, 21));
         var mint = new SolidColorBrush(Color.FromRgb(52, 211, 153));
-        dc.DrawEllipse(gold, null, new Point(hx - r * 0.08, hy - r * 0.22), r * 0.07, r * 0.07);
-        dc.DrawEllipse(mint, null, new Point(hx + r * 0.14, hy - r * 0.12), r * 0.06, r * 0.06);
-        dc.DrawEllipse(gold, null, new Point(hx + r * 0.04, hy - r * 0.85), r * 0.11, r * 0.11);
+        dc.DrawEllipse(gold, null, new Point(hx - r * 0.08 + physDx * r * 0.05, hy - r * 0.22), r * 0.07, r * 0.07);
+        dc.DrawEllipse(mint, null, new Point(hx + r * 0.14 + physDx * r * 0.03, hy - r * 0.12), r * 0.06, r * 0.06);
+        dc.DrawEllipse(gold, null, new Point(tipX, tipY), r * 0.11, r * 0.11);
     }
 
-    private static void DrawWitchHat(DrawingContext dc, double r, double yaw, double pitch)
+    private static void DrawWitchHat(DrawingContext dc, double r, double yaw, double pitch, double physDx, double physDy)
     {
         double hx = yaw * r * 0.26;
         double hy = -r * 0.68 + pitch * r * 0.14;
@@ -179,8 +183,8 @@ internal static class MochiOutfits
         using (var ctx = crown.Open())
         {
             ctx.BeginFigure(new Point(hx - r * 0.48, hy + r * 0.06), true, true);
-            ctx.QuadraticBezierTo(new Point(hx - r * 0.16, hy - r * 0.56), new Point(hx + r * 0.22, hy - r * 0.90), true, false);
-            ctx.QuadraticBezierTo(new Point(hx + r * 0.34, hy - r * 0.35), new Point(hx + r * 0.48, hy + r * 0.06), true, false);
+            ctx.QuadraticBezierTo(new Point(hx - r * 0.16 + physDx * r * 0.10, hy - r * 0.56), new Point(hx + r * 0.22 + physDx * r * 0.20, hy - r * 0.90 + physDy * r * 0.16), true, false);
+            ctx.QuadraticBezierTo(new Point(hx + r * 0.34 + physDx * r * 0.08, hy - r * 0.35), new Point(hx + r * 0.48, hy + r * 0.06), true, false);
         }
         crown.Freeze();
         dc.DrawGeometry(hatBrush, null, crown);
@@ -227,10 +231,10 @@ internal static class MochiOutfits
         dc.DrawLine(rimPen, new Point(ex - spread + rad, ey), new Point(ex + spread - rad, ey));
     }
 
-    private static void DrawBow(DrawingContext dc, double r, double yaw, double pitch)
+    private static void DrawBow(DrawingContext dc, double r, double yaw, double pitch, double physDx, double physDy)
     {
-        double bx = yaw * r * 0.32 + r * 0.48;
-        double by = -r * 0.66 + pitch * r * 0.16;
+        double bx = yaw * r * 0.32 + r * 0.48 + physDx * r * 0.08;
+        double by = -r * 0.66 + pitch * r * 0.16 + physDy * r * 0.06;
         var pink = new SolidColorBrush(Color.FromRgb(244, 114, 182));
         var center = new SolidColorBrush(Color.FromRgb(219, 39, 119));
 
@@ -257,7 +261,7 @@ internal static class MochiOutfits
         dc.DrawEllipse(center, null, new Point(bx, by), r * 0.08, r * 0.08);
     }
 
-    private static void DrawScarf(DrawingContext dc, double r, double yaw, double pitch)
+    private static void DrawScarf(DrawingContext dc, double r, double yaw, double pitch, double physDx, double physDy)
     {
         double sx = yaw * r * 0.25;
         double sy = r * 0.62 + pitch * r * 0.10;
@@ -265,9 +269,11 @@ internal static class MochiOutfits
         var stripe = new SolidColorBrush(Color.FromRgb(254, 240, 138));
 
         dc.DrawRoundedRectangle(red, null, new Rect(sx - r * 0.72, sy - r * 0.12, r * 1.44, r * 0.24), r * 0.10, r * 0.10);
-        // Hanging tail
-        dc.DrawRoundedRectangle(red, null, new Rect(sx + r * 0.18, sy + r * 0.04, r * 0.26, r * 0.42), r * 0.07, r * 0.07);
-        dc.DrawRectangle(stripe, null, new Rect(sx + r * 0.18, sy + r * 0.34, r * 0.26, r * 0.06));
+        // Hanging tail lags behind motion
+        double tx = sx + r * 0.18 + physDx * r * 0.18;
+        double ty = sy + r * 0.04 + physDy * r * 0.10;
+        dc.DrawRoundedRectangle(red, null, new Rect(tx, ty, r * 0.26, r * 0.42), r * 0.07, r * 0.07);
+        dc.DrawRectangle(stripe, null, new Rect(tx, ty + r * 0.30, r * 0.26, r * 0.06));
     }
 
     private static void DrawPumpkinRibs(DrawingContext dc, double r, double yaw, double pitch)

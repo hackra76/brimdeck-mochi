@@ -23,6 +23,7 @@ public partial class MochiCompanion
     private readonly MochiEngine _engine = new();
     private readonly MochiSurface _surface;
     private bool _renderingHooked;
+    private long _lastRenderTicks;
     private Point? _dragStartScreen;
     private bool _dragTriggered;
 
@@ -79,7 +80,9 @@ public partial class MochiCompanion
     public void Greet() => _engine.Greet();
     public void StartLaunchGreeting() => _engine.StartLaunchGreeting();
     public void Poke() => _engine.Poke();
+    public void Gulp() => _engine.Gulp();
     public void TriggerEmote(MochiEmote emote, double duration = 1.8) => _engine.TriggerEmote(emote, duration);
+    public void SetPermanentEmote(MochiEmote? emote) => _engine.SetPermanentEmote(emote);
     public void SetGlobalLook(double nx, double ny) => _engine.SetLook(nx, ny);
     public void SetDancing(bool dancing) => _engine.SetDancing(dancing);
     public void SetOutfit(MochiOutfit outfit) => _engine.SetOutfit(outfit);
@@ -97,6 +100,8 @@ public partial class MochiCompanion
             return;
         }
         TriggerTapReaction(e.ClickCount);
+        Clicked?.Invoke();
+        e.Handled = true;
     }
 
     private void OnMochiMouseUp(object sender, MouseButtonEventArgs e)
@@ -113,7 +118,7 @@ public partial class MochiCompanion
         }
     }
 
-    private void TriggerTapReaction(int clickCount)
+    public void TriggerTapReaction(int clickCount = 1)
     {
         if (IsMini)
         {
@@ -169,6 +174,19 @@ public partial class MochiCompanion
 
     private void OnRendering(object? sender, EventArgs e)
     {
+        if (_engine.IsLowRateIdle)
+        {
+            long now = System.Diagnostics.Stopwatch.GetTimestamp();
+            // Throttle resting Idle/Sleeping frames to ~30 fps instead of 60-240 Hz vsync.
+            if (_lastRenderTicks != 0 && (now - _lastRenderTicks) * 1000.0 / System.Diagnostics.Stopwatch.Frequency < 33.0)
+                return;
+            _lastRenderTicks = now;
+        }
+        else
+        {
+            _lastRenderTicks = 0;
+        }
+
         _engine.Tick();
         _surface.InvalidateVisual();
     }

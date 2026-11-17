@@ -33,7 +33,6 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
     // ZCode's own service (Start Plan and MCP allowances) can take tens of seconds; those requests finish in the background.
     private readonly HttpClient _zcodeHttp = http ?? new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(45) };
     private readonly LatestResponse _zcodeStart = new(), _zcodeMcp = new();
-    private (string Account, ProviderResult Result, DateTimeOffset Time)? _zcodeCoding;
     private readonly DataLocations _locations = locations ?? DataLocations.Detect();
     private readonly Func<DateTimeOffset> _clock = clock ?? (() => DateTimeOffset.Now);
     private readonly LogReader _logs = new();
@@ -135,8 +134,11 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         return _claudeLimits[key] = new();
     }
     private static string Clock(DateTimeOffset time, DateTimeOffset now) => time.LocalDateTime.ToString(time.LocalDateTime.Date == now.LocalDateTime.Date ? "HH:mm" : "MM-dd HH:mm");
-    private readonly ConfiguredProviders _configured = new(secrets, http, clock);
-    public Task<ProviderTestResult> TestProviderAsync(AppEntry entry, CancellationToken ct = default) => _configured.TestAsync(entry, ct);
+    public Task<ProviderTestResult> TestProviderAsync(AppEntry entry, CancellationToken ct = default)
+    {
+        _ = secrets;
+        return Task.FromResult(new ProviderTestResult(new ProviderSnapshot(entry.QuotaSource) { StatusLabel = Loc.T("未启用", "Disabled") }, 0, []));
+    }
 
     public async Task<List<ProviderSnapshot>> RefreshAsync(DeckSettings settings, CancellationToken cancellation = default, DateTime? usageStart = null)
     {
@@ -158,8 +160,7 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
             var sources = ProviderCatalog.UsageSources.Where(required.Contains);
             if (grokBotOnline) sources = sources.Append(ProviderId.GrokBot);
             var tasks = sources.Select(id => FetchAsync(id, usageStart, claudeOnline, deadline.Token, cancellation));
-            var configured = _configured.RefreshAsync(settings.EnabledApps, deadline.Token);
-            List<ProviderSnapshot> results = [.. await Task.WhenAll(tasks), .. await configured];
+            List<ProviderSnapshot> results = [.. await Task.WhenAll(tasks)];
             if (claudeLocal) results.Add(ReadClaudeLocal(usageStart));
             if (grokBotLocal) results.Add(ReadGrokBotLocal(usageStart));
             return results;
@@ -1073,24 +1074,10 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
             ? Latest(_zcodeStart, root => root.Get("code").Number() == 0 && root.Get("data").Get("plans").ValueKind == JsonValueKind.Array,
                 "https://zcode.z.ai/api/v1/zcode-plan/billing/balance", ("X-Device-Mid", account.DeviceMid))
             : Task.FromResult<JsonElement?>(null);
-        ScriptSession? session = null; ProviderResult? coding = null; Exception? failure = null;
+        ProviderResult? coding = null; Exception? failure = null;
         var codingOwner = Owner(account.Family + ":" + account.ApiKey);
-        if (account.ApiKey.Length > 0)
-        {
-            session = new ScriptSession(_http, new AppEntry { QuotaSource = account.Family == "zai" ? ProviderId.GlmGlobal : ProviderId.GlmChina }, account.ApiKey, now, deadline.Token);
-            try { coding = await Task.Run(session.RunAsync, deadline.Token); _zcodeCoding = (codingOwner, coding, now); }
-            catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested) { failure = ex; }
-        }
-        (string Label, string Status)? codingFailure = failure is null || session is null ? null : session.FailureStatus switch
-        {
-            401 => (Loc.T("登录已失效", "Sign-in expired"), Loc.T("ZCode 的 Coding Plan 凭据已失效，请在 ZCode 中重新登录", "The Coding Plan credentials of ZCode have expired. Sign in again in ZCode.")),
-            403 => (Loc.T("访问受限", "Access denied"), Loc.T("账户接口拒绝访问", "The account API refused access.")),
-            429 => (Loc.T("请求频繁", "Too many requests"), Loc.T("请求频繁，稍后自动重试", "Too many requests. Retrying automatically later.")),
-            _ => deadline.IsCancellationRequested ? (Loc.T("读取超时", "Timed out"), Loc.T("读取超时，稍后重试", "Reading timed out. Retrying later."))
-                : (Loc.T("读取失败", "Read failed"), session.Redact(failure.Message))
-        };
+        (string Label, string Status)? codingFailure = null;
         DateTimeOffset? codingTime = coding is null ? null : now;
-        if (coding is null && failure is not null && _zcodeCoding is { } kept && kept.Account == codingOwner) (coding, codingTime) = (kept.Result, kept.Time);
         var startRoot = await startTask; var mcpRoot = await mcpTask;
         ct.ThrowIfCancellationRequested();
         var start = startRoot is { } root ? ZCodeUsage.StartPlan(root, now) : (Metrics: new List<UsageMetric>(), Plan: "");
@@ -1134,24 +1121,7 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
         snapshot.Scope = "account";
         if (account.Token.Length == 0)
         {
-            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct); deadline.CancelAfter(TimeSpan.FromSeconds(10));
-            var session = new ScriptSession(_http, new AppEntry { QuotaSource = ProviderId.DeepSeek }, account.ApiKey, now, deadline.Token);
-            ProviderResult result;
-            try { result = await Task.Run(session.RunAsync, deadline.Token); }
-            catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
-            {
-                (snapshot.StatusLabel, snapshot.Status) = session.FailureStatus switch
-                {
-                    401 => (Loc.T("密钥无效", "Invalid key"), Loc.T("DeepSeek 拒绝了 DeepSeek Harness 中保存的 API 密钥，请在 DeepSeek Harness 中更新", "DeepSeek rejected the API key saved in DeepSeek Harness. Update it in DeepSeek Harness.")),
-                    429 => (Loc.T("请求频繁", "Too many requests"), Loc.T("请求频繁，稍后自动重试", "Too many requests. Retrying automatically later.")),
-                    _ => deadline.IsCancellationRequested ? (Loc.T("读取超时", "Timed out"), Loc.T("读取超时，稍后重试", "Reading timed out. Retrying later."))
-                        : (Loc.T("读取失败", "Read failed"), session.Redact(ex.Message))
-                };
-                return;
-            }
-            snapshot.Metrics = result.Metrics;
-            Connected(snapshot, Loc.T("DeepSeek Harness · DeepSeek API 密钥", "DeepSeek Harness · DeepSeek API key"), now);
-            if (result.Warnings.Count > 0) snapshot.Status += Loc.T("；", "; ") + string.Join(Loc.T("；", "; "), result.Warnings);
+            snapshot.StatusLabel = Loc.T("未启用", "Disabled");
             return;
         }
         using var request = new HttpRequestMessage(HttpMethod.Get, DshUsage.Platform + "/api/v0/users/get_user_summary");
@@ -1388,5 +1358,5 @@ public sealed class UsageService(IDesktopSources desktop, DataLocations? locatio
     private static JsonDocument? ReadJson(string path) => SharedFile.ReadJson(path);
     private static void Connected(ProviderSnapshot snapshot, string source, DateTimeOffset now)
     { snapshot.LiveQuota = true; snapshot.QuotaTime = now; snapshot.Source = source; snapshot.Status = Loc.T("已连接", "Connected"); snapshot.StatusLabel = Loc.T("已连接", "Connected"); }
-    public void Dispose() { _configured.Dispose(); if (http is null) { _http.Dispose(); _zcodeHttp.Dispose(); } _gate.Dispose(); }
+    public void Dispose() { if (http is null) { _http.Dispose(); _zcodeHttp.Dispose(); } _gate.Dispose(); }
 }

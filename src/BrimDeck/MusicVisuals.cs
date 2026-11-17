@@ -769,9 +769,6 @@ internal sealed class ReadingsCarousel : GlideCarousel
     // this many DIPs inside it (CompactSpacing.CutFade). A window narrower than the readings that cuts none still clips them.
     public ReadingsCarousel(MonitorStrip strip, double window, double travel, double edge, TimeSpan elapsed, bool animate, double cut = 0)
         : this(strip, strip.PreferredWidth, window, travel, edge, elapsed, animate, cut) { }
-    // The devices' batteries on a column line too wide for it scroll the same way.
-    public ReadingsCarousel(DeviceStrip strip, double window, double travel, double edge, TimeSpan elapsed, bool animate)
-        : this(strip, strip.PreferredWidth, window, travel, edge, elapsed, animate, 0) { }
     private ReadingsCarousel(FrameworkElement strip, double width, double window, double travel, double edge, TimeSpan elapsed, bool animate, double cut)
     {
         window = Math.Max(0, window); travel = Math.Max(0, travel); cut = Math.Max(0, cut);

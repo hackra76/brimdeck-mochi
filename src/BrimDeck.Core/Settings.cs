@@ -185,8 +185,6 @@ public sealed class AppEntry
         UsageSource = ProviderCatalog.IsUsageSource(UsageSource) ? UsageSource : ProviderId.Claude;
         Site = ProviderCatalog.NormalizeSite(Site ?? "", QuotaSource != ProviderId.Custom);
         Script ??= "";
-        // A custom row always starts from the template, which is the only place its return format is described.
-        if (QuotaSource == ProviderId.Custom && Script.Trim().Length == 0) Script = ProviderScripts.Example;
         DisplayName = Regex.Replace(DisplayName ?? "", @"\s+", " ").Trim();
         if (DisplayName.Length > 64) DisplayName = DisplayName[..64];
         ThemeColor = AppPresets.NormalizeColor(ThemeColor);
@@ -561,6 +559,8 @@ public sealed class DeckSettings
     public double? MochiDesktopY { get; set; }
     public bool MochiMiniBotsEnabled { get; set; } = true;
     public bool MochiUpdateHintEnabled { get; set; } = true;
+    public bool MochiHideWhenIdle { get; set; }
+    public bool MochiDoNotDisturb { get; set; }
     public int CloseDelay { get; set; } = 0;
     public int AnimationDuration { get; set; } = 360;
     public bool Animations { get; set; } = true;

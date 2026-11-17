@@ -2,6 +2,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Threading;
 using BrimDeck.Core;
 
 namespace BrimDeck;
@@ -15,15 +17,19 @@ public sealed class DesktopMochiWindow : Window
     public event Action<double, double>? PositionCommitted;
     public event Action? ReturnToIslandRequested;
     public event Action? OpenSettingsRequested;
+    public event Action? Clicked;
 
     private Point? _pressScreen;
     private Point _windowAtPress;
     private bool _dragging;
+    private readonly Border _bubble;
+    private readonly TextBlock _bubbleText;
+    private readonly DispatcherTimer _bubbleTimer;
 
     public DesktopMochiWindow()
     {
-        Width = 140;
-        Height = 140;
+        Width = 200;
+        Height = 184;
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
         Background = Brushes.Transparent;
@@ -32,7 +38,41 @@ public sealed class DesktopMochiWindow : Window
         ResizeMode = ResizeMode.NoResize;
         SizeToContent = SizeToContent.Manual;
 
+        _bubbleText = new TextBlock
+        {
+            FontSize = 11.5,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = new SolidColorBrush(Color.FromRgb(244, 244, 248)),
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            MaxWidth = 176
+        };
+        _bubble = new Border
+        {
+            Background = new SolidColorBrush(Color.FromArgb(228, 22, 24, 30)),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(72, 255, 255, 255)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(9, 4, 9, 4),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(0, 6, 0, 0),
+            Opacity = 0,
+            IsHitTestVisible = false,
+            Child = _bubbleText
+        };
+        _bubbleTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(3500) };
+        _bubbleTimer.Tick += (_, _) =>
+        {
+            _bubbleTimer.Stop();
+            _bubble.BeginAnimation(OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(220)));
+        };
+
+        Mochi.HorizontalAlignment = HorizontalAlignment.Center;
+        Mochi.VerticalAlignment = VerticalAlignment.Bottom;
+        Mochi.Margin = new Thickness(0, 0, 0, 6);
+
         var host = new Grid { Background = Brushes.Transparent };
+        host.Children.Add(_bubble);
         host.Children.Add(Mochi);
         Content = host;
 
@@ -48,6 +88,16 @@ public sealed class DesktopMochiWindow : Window
         PreviewMouseLeftButtonDown += OnPreviewMouseDown;
         PreviewMouseMove += OnPreviewMouseMove;
         PreviewMouseLeftButtonUp += OnPreviewMouseUp;
+    }
+
+    public void ShowBubble(string text, int durationMs = 3500)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return;
+        _bubbleText.Text = text;
+        _bubbleTimer.Stop();
+        _bubbleTimer.Interval = TimeSpan.FromMilliseconds(Math.Max(1000, durationMs));
+        _bubble.BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(160)));
+        _bubbleTimer.Start();
     }
 
     public void BeginExternalDrag(Point cursorScreen)
@@ -97,7 +147,8 @@ public sealed class DesktopMochiWindow : Window
         }
         else if (_pressScreen is not null)
         {
-            Mochi.Poke();
+            Clicked?.Invoke();
+            Mochi.TriggerTapReaction(1);
         }
         _pressScreen = null;
         _dragging = false;
