@@ -13,6 +13,9 @@ public sealed class IslandBorder : Border
     public static readonly DependencyProperty ShoulderRadiusProperty = DependencyProperty.Register(
         nameof(ShoulderRadius), typeof(double), typeof(IslandBorder),
         new FrameworkPropertyMetadata(0d, FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.AffectsArrange));
+    public static readonly DependencyProperty TaperProperty = DependencyProperty.Register(
+        nameof(Taper), typeof(double), typeof(IslandBorder),
+        new FrameworkPropertyMetadata(0d, FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.AffectsArrange));
     public static readonly DependencyProperty MaterialOpacityProperty = DependencyProperty.Register(
         nameof(MaterialOpacity), typeof(double), typeof(IslandBorder),
         new FrameworkPropertyMetadata(0d, FrameworkPropertyMetadataOptions.AffectsRender));
@@ -52,7 +55,7 @@ public sealed class IslandBorder : Border
         nameof(BevelBrush), typeof(Brush), typeof(IslandBorder), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
 
     private Pen? _rim;
-    private (Size Size, double Shoulder, CornerRadius Corners, double Inset, double Step, double Rim)? _outlineKey;
+    private (Size Size, double Shoulder, double Taper, CornerRadius Corners, double Inset, double Step, double Rim)? _outlineKey;
     private Geometry _outline = Geometry.Empty;
     private (Geometry Light, Geometry Shade)? _bevel;
 
@@ -63,6 +66,12 @@ public sealed class IslandBorder : Border
     {
         get => (double)GetValue(ShoulderRadiusProperty);
         set => SetValue(ShoulderRadiusProperty, value);
+    }
+
+    public double Taper
+    {
+        get => (double)GetValue(TaperProperty);
+        set => SetValue(TaperProperty, value);
     }
 
     public double MaterialOpacity
@@ -184,27 +193,27 @@ public sealed class IslandBorder : Border
     private Geometry Outline()
     {
         double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip, step = PixelStairs.Step(Pixel, dpi);
-        var key = (RenderSize, ShoulderRadius, CornerRadius, Inset, step, RimWidth);
+        var key = (RenderSize, ShoulderRadius, Taper, CornerRadius, Inset, step, RimWidth);
         if (_outlineKey == key) return _outline;
         _outlineKey = key;
         // Stepped, the inset (the shadow caster's) is whole device pixels too, so its steps stay on them at 125 % or 175 %.
         double inset = step > 0 ? Math.Round(Inset * dpi, MidpointRounding.AwayFromZero) / dpi : Inset;
-        (_outline, _bevel) = Shape(RenderSize.Width, RenderSize.Height, ShoulderRadius, CornerRadius, inset, step, RimWidth, dpi);
+        (_outline, _bevel) = Shape(RenderSize.Width, RenderSize.Height, ShoulderRadius, Taper, CornerRadius, inset, step, RimWidth, dpi);
         return _outline;
     }
 
     // The outline, stepped for a pixel theme, and then its bevel, a whole number of device pixels thick and never thinner than one.
-    private static (Geometry Outline, (Geometry Light, Geometry Shade)? Bevel) Shape(double w, double h, double shoulder, CornerRadius corners, double inset, double step, double rimWidth, double dpi)
+    private static (Geometry Outline, (Geometry Light, Geometry Shade)? Bevel) Shape(double w, double h, double shoulder, double taper, CornerRadius corners, double inset, double step, double rimWidth, double dpi)
     {
-        if (step <= 0) return (BuildOutline(w, h, shoulder, corners, inset), null);
-        var stairs = BuildStairs(w, h, shoulder, corners, inset, step);
+        if (step <= 0) return (BuildOutline(w, h, shoulder, corners, inset, taper), null);
+        var stairs = BuildStairs(w, h, shoulder, taper, corners, inset, step);
         return (Polygon(stairs), rimWidth > 0 && stairs.Count >= 3 ? Bevel(stairs, PixelStairs.Step(rimWidth, dpi)) : null);
     }
 
     // The smooth outline flattened into straight edges, turned into steps (PixelStairs.Build).
-    private static IReadOnlyList<Point> BuildStairs(double w, double h, double shoulderRadius, CornerRadius corners, double insetBy, double step)
+    private static IReadOnlyList<Point> BuildStairs(double w, double h, double shoulderRadius, double taper, CornerRadius corners, double insetBy, double step)
     {
-        var smooth = BuildOutline(w, h, shoulderRadius, corners, insetBy);
+        var smooth = BuildOutline(w, h, shoulderRadius, corners, insetBy, taper);
         if (smooth.IsEmpty()) return [];
         // The flattened copy keeps the inset as its own transform (or has it applied already, leaving none): only that transform
         // is applied, as applying the smooth outline's as well would move the shadow's copy in twice.
@@ -261,20 +270,22 @@ public sealed class IslandBorder : Border
         return (light, shade);
     }
 
-    // The island's smooth outline for a size, shoulder and corners; insetBy draws it that far inside the bounds (Inset). Frozen.
-    internal static Geometry BuildOutline(double w, double h, double shoulderRadius, CornerRadius corners, double insetBy)
+    // The island's smooth outline for a size, shoulder, corners and taper; insetBy draws it that far inside the bounds (Inset). Frozen.
+    internal static Geometry BuildOutline(double w, double h, double shoulderRadius, CornerRadius corners, double insetBy, double taperBy = 0)
     {
         if (!(w > 0) || !(h > 0)) return Geometry.Empty;
         // The shoulders are sized on the full bounds, so an inset outline has the same shoulders moved in by the inset: its
         // curves then lie inside the full outline's. The corners keep their centres and lose the inset from their radii.
-        double shoulder = Math.Clamp(shoulderRadius, 0, Math.Min(w / 4, h / 2));
+        double shoulder = Math.Clamp(shoulderRadius, 0, Math.Min(w / 3, h * 0.85));
         double shoulderDepth = shoulder * (7d / 16);
         double inset = Math.Clamp(insetBy, 0, Math.Min(w, h) / 4), top = shoulder > 0 ? 0 : inset;
         w -= 2 * inset; h -= top + inset;
         double left = shoulder, right = w - shoulder;
+        double taper = Math.Clamp(taperBy, 0, Math.Max(0, (right - left) / 2 - 4));
+        double leftBot = left + taper, rightBot = right - taper;
         // With shoulders the bottom corners also stay within half the height, so the limit does not jump when a shoulder
         // shrinking to nothing on a low surface (a notch becoming the line) ends; a notch at rest never reaches either bound.
-        double limit = Math.Max(0, Math.Min(shoulder > 0 ? Math.Min(h - shoulderDepth, h / 2) : h / 2, (right - left) / 2));
+        double limit = Math.Max(0, Math.Min(shoulder > 0 ? Math.Min(h - shoulderDepth, h / 2) : h / 2, (rightBot - leftBot) / 2));
         double bl = Math.Clamp(corners.BottomLeft - inset, 0, limit);
         double br = Math.Clamp(corners.BottomRight - inset, 0, limit);
         double tl = Math.Clamp(corners.TopLeft - inset, 0, Math.Min(w, h) / 2);
@@ -297,12 +308,12 @@ public sealed class IslandBorder : Border
             else
                 path.BezierTo(new Point(w - tr * (1 - k), 0), new Point(w, tr * (1 - k)),
                     new Point(w, tr), true, true);
-            path.LineTo(new Point(right, h - br), true, false);
-            path.BezierTo(new Point(right, h - br * (1 - k)), new Point(right - br * (1 - k), h),
-                new Point(right - br, h), true, true);
-            path.LineTo(new Point(left + bl, h), true, false);
-            path.BezierTo(new Point(left + bl * (1 - k), h), new Point(left, h - bl * (1 - k)),
-                new Point(left, h - bl), true, true);
+            path.LineTo(new Point(rightBot, h - br), true, false);
+            path.BezierTo(new Point(rightBot, h - br * (1 - k)), new Point(rightBot - br * (1 - k), h),
+                new Point(rightBot - br, h), true, true);
+            path.LineTo(new Point(leftBot + bl, h), true, false);
+            path.BezierTo(new Point(leftBot + bl * (1 - k), h), new Point(leftBot, h - bl * (1 - k)),
+                new Point(leftBot, h - bl), true, true);
             path.LineTo(new Point(left, shoulder > 0 ? shoulderDepth : tl), true, false);
             if (shoulder > 0)
             {

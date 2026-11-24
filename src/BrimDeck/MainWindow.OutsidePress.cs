@@ -20,7 +20,7 @@ public partial class MainWindow
 
     private void OutsidePressed(Point point)
     {
-        if (!_expanded || _preview || _app.Exiting) return;
+        if (!_expanded || _preview || _app.Exiting || MochiHoldsMenu) return;
         // The panel, the collapsed surface's area and this app's own windows (menus, popups, the settings) are not outside.
         if (InsideOpenPanel(point) || WindowsHost.OwnWindowAt(point)) return;
         _pressedOutside = true;

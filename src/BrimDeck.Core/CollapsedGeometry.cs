@@ -30,6 +30,9 @@ public static class CollapsedLimits
     // The notch's bottom corners and the curved shoulders that join it to the screen edge keep these sizes at every
     // width and height.
     public const double NotchCorner = 12, NotchShoulder = 16;
+    public const double NotchShoulderDefault = 16, NotchShoulderMin = 0, NotchShoulderMax = 42;
+    public const double NotchCornerDefault = 12, NotchCornerMin = 2, NotchCornerMax = 24;
+    public const double NotchTaperDefault = 0, NotchTaperMin = 0, NotchTaperMax = 22;
     // A notch on a side edge stands across the screen (EdgeFrame.Across): its content is a column (CompactColumn), with this much
     // free on either side of it at scale 1. The notch is as deep as the column needs, and never less than its height setting.
     public const double ColumnPad = 8;
@@ -52,7 +55,7 @@ public static class CollapsedLimits
 // ContentWidth: width available to the content in DIPs, Surface.Width - 2 * Inset, never below 0. It is not divided by Scale.
 // BottomRadius and TopRadius: corner radii; Shoulder: the notch's shoulder radius (0 for the other styles).
 public sealed record CollapsedShape(CompactStyle Style, DipRect Surface, double Scale, double Inset, double ContentWidth,
-    double BottomRadius, double TopRadius, double Shoulder);
+    double BottomRadius, double TopRadius, double Shoulder, double Taper = 0);
 
 // Where an open panel sits: Top in DIPs from the top of the monitor, and HeaderExtra, the space added above the header of a
 // panel that floats below a lowered capsule (0 when the panel hangs from the screen or work-area edge). The panel is the
@@ -123,8 +126,9 @@ public static class CollapsedGeometry
                 double width = Math.Min(Math.Max(auto ? fit : saved, SurfaceWidth(CompactStyle.Notch, height, required)), screen.Width);
                 double scale = height / CollapsedLimits.BaseHeight, inset = CollapsedLimits.NotchInset * scale;
                 double depth = column is { } across ? Math.Min(screen.Height, Math.Max(height, Finite(across) + 2 * CollapsedLimits.ColumnPad * scale)) : height;
+                var (shoulder, corner, taper) = settings.ResolvedNotchCurve();
                 var surface = new DipRect(Place(screen.Width, width, settings.NotchOffsetX), 0, width, depth);
-                return new(CompactStyle.Notch, surface, scale, inset, Math.Max(0, width - 2 * inset), CollapsedLimits.NotchCorner * s, 0, CollapsedLimits.NotchShoulder * s);
+                return new(CompactStyle.Notch, surface, scale, inset, Math.Max(0, width - 2 * inset), corner * s, 0, shoulder * s, taper * s);
             }
         }
     }

@@ -700,6 +700,7 @@ public sealed partial class SettingsWindow : Window, IKeepsAppFonts
                     s.MochiLaunchGreetingEnabled=defaults.MochiLaunchGreetingEnabled;s.MochiSoundsEnabled=defaults.MochiSoundsEnabled;
                     s.MochiDesktopRoamingEnabled=defaults.MochiDesktopRoamingEnabled;s.MochiDesktopX=null;s.MochiDesktopY=null;
                     s.MochiMiniBotsEnabled=defaults.MochiMiniBotsEnabled;s.MochiUpdateHintEnabled=defaults.MochiUpdateHintEnabled;
+                    s.MochiCollapseToCharacter=defaults.MochiCollapseToCharacter;
                     break;
             }
         });

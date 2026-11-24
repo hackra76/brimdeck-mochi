@@ -31,10 +31,12 @@ public partial class MainWindow
         _surface.Changed += (_, _) => ShadowChanging();
         var corners = DependencyPropertyDescriptor.FromProperty(Border.CornerRadiusProperty, typeof(IslandBorder));
         var shoulders = DependencyPropertyDescriptor.FromProperty(IslandBorder.ShoulderRadiusProperty, typeof(IslandBorder));
+        var tapers = DependencyPropertyDescriptor.FromProperty(IslandBorder.TaperProperty, typeof(IslandBorder));
         var opacity = DependencyPropertyDescriptor.FromProperty(OpacityProperty, typeof(Grid));
         void ShapeChanged(object? sender, EventArgs e) => ShadowChanging();
         corners.AddValueChanged(Island, ShapeChanged);
         shoulders.AddValueChanged(Island, ShapeChanged);
+        tapers.AddValueChanged(Island, ShapeChanged);
         // Hidden (the open panel, the line), the picture is let go; shown again, it is kept at once unless a change is under way.
         void OpacityChanged(object? sender, EventArgs e)
         {

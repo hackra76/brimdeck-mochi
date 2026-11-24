@@ -125,7 +125,7 @@ public partial class MainWindow
     {
         if (!DeckPages.Shown(Settings, page)) return;
         bool changed = CurrentPage != page;
-        if (changed) { CloseSourceMenu(); PageToolTips.CloseWithin(PageContent(CurrentPage)); }
+        if (changed) { CloseSourceMenu(); CloseQuickAsk(); PageToolTips.CloseWithin(PageContent(CurrentPage)); }
         if (changed && _expanded && !_preview)
         {
             // Start before resizing: the shrinking surface can immediately fire MouseLeave.
@@ -959,12 +959,13 @@ public partial class MainWindow
             double notchWanted = CompactMusicLayout.Whole(96 * scale);
             if (double.IsNaN(_compactWanted) || Math.Abs(notchWanted - _compactWanted) > .5 || Math.Abs(notchWanted - _compactRequired) > .5)
             { _compactWanted = notchWanted; _compactRequired = notchWanted; Dispatcher.BeginInvoke(DispatcherPriority.Background, FitCompactToContent); }
-            double miniSize = CompactMusicLayout.Whole(Math.Max(28 * scale, shape.Surface.Height - 2));
+            double pad = Math.Max(8, 10 * scale);
+            double miniSize = CompactMusicLayout.Whole(Math.Max(24 * scale, shape.Surface.Height - pad));
             double hostWidth = SnapDown(contentWidth, dpiOnly);
             double hostHeight = Math.Max(miniSize, shape.Surface.Height - 2);
             var miniMochi = AcquireCompactMochi(miniSize);
             miniMochi.Width = hostWidth;
-            miniMochi.Height = hostHeight;
+            miniMochi.Height = miniSize;
             miniMochi.HorizontalAlignment = HorizontalAlignment.Center;
             miniMochi.VerticalAlignment = VerticalAlignment.Center;
             var host = new Grid { Width = hostWidth, Height = hostHeight };

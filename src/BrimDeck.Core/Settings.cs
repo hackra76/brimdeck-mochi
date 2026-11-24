@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 namespace BrimDeck.Core;
 
 public enum CompactStyle { Notch, Capsule, Line }
+public enum NotchShapePreset { Classic, Liquid, Droplet, Flush, Custom }
 // The screen edge the notch hangs from (DeckSettings.NotchEdge); see EdgeFrame.
 public enum ScreenEdge { Top, Bottom, Left, Right }
 // What the notch or the line hangs from on its edge where a taskbar is: the screen's edge, over the taskbar, or the taskbar's inner
@@ -350,6 +351,18 @@ public sealed class DeckSettings
     public double NotchWidth { get; set; } = CollapsedLimits.NotchWidthDefault;
     public double NotchHeight { get; set; } = CollapsedLimits.NotchHeightDefault;
     public double NotchOffsetX { get; set; } = CollapsedLimits.OffsetDefault;
+    public NotchShapePreset NotchShape { get; set; } = NotchShapePreset.Classic;
+    public double NotchShoulder { get; set; } = CollapsedLimits.NotchShoulderDefault;
+    public double NotchCornerRadius { get; set; } = CollapsedLimits.NotchCornerDefault;
+    public double NotchTaper { get; set; } = CollapsedLimits.NotchTaperDefault;
+    public (double Shoulder, double Corner, double Taper) ResolvedNotchCurve() => NotchShape switch
+    {
+        NotchShapePreset.Liquid => (34, 18, 4),
+        NotchShapePreset.Droplet => (26, 24, 6),
+        NotchShapePreset.Flush => (0, 14, 0),
+        NotchShapePreset.Custom => (NotchShoulder, NotchCornerRadius, NotchTaper),
+        _ => (CollapsedLimits.NotchShoulderDefault, CollapsedLimits.NotchCornerDefault, CollapsedLimits.NotchTaperDefault)
+    };
     // The edge the notch hangs from. On the other edges it keeps its width (along the edge), height and offset (along the edge
     // too); see EdgeFrame. The capsule always sits below the top edge.
     public ScreenEdge NotchEdge { get; set; } = ScreenEdge.Top;
@@ -559,6 +572,7 @@ public sealed class DeckSettings
     public double? MochiDesktopY { get; set; }
     public bool MochiMiniBotsEnabled { get; set; } = true;
     public bool MochiUpdateHintEnabled { get; set; } = true;
+    public bool MochiCollapseToCharacter { get; set; } = true;
     public bool MochiHideWhenIdle { get; set; }
     public bool MochiDoNotDisturb { get; set; }
     public int CloseDelay { get; set; } = 0;
@@ -881,6 +895,10 @@ public sealed class DeckSettings
         NotchWidth = Fit(NotchWidth, CollapsedLimits.NotchWidthMin, CollapsedLimits.NotchWidthMax, CollapsedLimits.NotchWidthDefault);
         NotchHeight = Fit(NotchHeight, CollapsedLimits.NotchHeightMin, CollapsedLimits.NotchHeightMax, CollapsedLimits.NotchHeightDefault);
         NotchOffsetX = Offset(NotchOffsetX);
+        if (!Enum.IsDefined(NotchShape)) NotchShape = NotchShapePreset.Classic;
+        NotchShoulder = Fit(NotchShoulder, CollapsedLimits.NotchShoulderMin, CollapsedLimits.NotchShoulderMax, CollapsedLimits.NotchShoulderDefault);
+        NotchCornerRadius = Fit(NotchCornerRadius, CollapsedLimits.NotchCornerMin, CollapsedLimits.NotchCornerMax, CollapsedLimits.NotchCornerDefault);
+        NotchTaper = Fit(NotchTaper, CollapsedLimits.NotchTaperMin, CollapsedLimits.NotchTaperMax, CollapsedLimits.NotchTaperDefault);
         if (!Enum.IsDefined(NotchEdge)) NotchEdge = ScreenEdge.Top;
         if (!Enum.IsDefined(LineEdge)) LineEdge = ScreenEdge.Top;
         if (NotchAnchor is { } notchAnchor && !Enum.IsDefined(notchAnchor)) NotchAnchor = null;

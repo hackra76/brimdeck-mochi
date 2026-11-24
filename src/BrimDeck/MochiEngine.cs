@@ -615,11 +615,11 @@ public sealed class MochiEngine
     public void Draw(DrawingContext dc, double width, double height)
     {
         double now = NowSec();
-        double r = Math.Min(width, height) * (IsMini ? 0.42 : 0.40);
+        double r = Math.Min(width, height) * (IsMini ? 0.38 : 0.36);
         double rx = r * 1.14;
         double ry = r * 0.88;
         double cx = width / 2.0 + _ox * r;
-        double cy = height / 2.0 + _oy * r + r * 0.06;
+        double cy = height / 2.0 + _oy * r;
 
         bool dance = _dancingLevel > 0.001;
         if (dance)

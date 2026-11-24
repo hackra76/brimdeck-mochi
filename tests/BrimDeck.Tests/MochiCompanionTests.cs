@@ -46,5 +46,15 @@ internal static class MochiCompanionTests
         };
         check("Mochi extracts min remaining Antigravity quota (25%)",
             MochiCompanionLogic.ExtractAntigravityRemainingPercent([agSnap]) == 25);
+
+        // MochiQuickAsk backend detection & Antigravity CLI args
+        var backends = BrimDeck.MochiQuickAsk.DetectBackends(refresh: true);
+        check("MochiQuickAsk.DetectBackends succeeds without throwing", backends is not null);
+        var agy = backends?.FirstOrDefault(b => b.Backend.Executable == "agy");
+        if (agy is { Backend: not null })
+        {
+            check("MochiQuickAsk builds non-interactive plan args for Antigravity CLI",
+                agy.Value.Backend.BuildArgs("hello") == "-p \"hello\" --mode plan --disable-slash-commands");
+        }
     }
 }

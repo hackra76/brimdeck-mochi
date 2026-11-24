@@ -34,7 +34,7 @@ public partial class MainWindow
     private bool _notchHiddenAtIdle;
 
     private bool IsMochiOnlyNotch =>
-        Settings.MochiEnabled && !_roamingOnDesktop && !_expanded && !_hoverPeek && !_preview && !CompactColumnMode
+        Settings.MochiEnabled && Settings.MochiCollapseToCharacter && !_roamingOnDesktop && !_expanded && !_hoverPeek && !_preview && !CompactColumnMode
         && EffectiveStyle != CompactStyle.Line && _alert is null && _pendingPrompt is null;
 
     internal bool IsMochiActionPill =>
@@ -44,14 +44,18 @@ public partial class MainWindow
     internal void SetHoverPeek(bool peek)
     {
         if (_hoverPeek == peek) return;
+        bool wasMochiOnly = IsMochiOnlyNotch;
         _hoverPeek = peek;
         if (peek)
         {
             _lastMouseNearUtc = DateTimeOffset.UtcNow;
             _compactMochi.TriggerEmote(MochiEmote.Happy, 0.9);
         }
-        RenderCompact();
-        FitCompactToContent();
+        if (wasMochiOnly != IsMochiOnlyNotch)
+        {
+            RenderCompact();
+            FitCompactToContent();
+        }
     }
 
     internal void UpdateMochiGlobalLook(Point cursorScreen)
@@ -618,11 +622,44 @@ public partial class MainWindow
         (MochiOutfit.Pumpkin, "Pumpkin")
     ];
 
+    private bool _mochiMenuOpen;
+    internal bool MochiHoldsMenu => _mochiMenuOpen || _quickAskBackend?.IsDropDownOpen == true;
+    internal bool QuickAskHolds => QuickAskOverlay.Visibility == Visibility.Visible && !_pressedOutside
+        && (IsActive || _pointerInside || _quickAskCts is not null || _quickAskBackend?.IsDropDownOpen == true);
+
+    internal bool QuickAskEscape()
+    {
+        if (!_expanded || QuickAskOverlay.Visibility != Visibility.Visible) return false;
+        CloseQuickAsk();
+        return true;
+    }
+
     private void AttachMochiContextMenu(FrameworkElement target, bool isDesktop)
     {
         var menu = new ContextMenu();
         target.ContextMenu = menu;
-        target.ContextMenuOpening += (_, _) => PopulateMochiContextMenu(menu, isDesktop);
+        target.ContextMenuOpening += (_, _) =>
+        {
+            _mochiMenuOpen = true;
+            _hover.Stop();
+            _leave.Stop();
+            PopulateMochiContextMenu(menu, isDesktop);
+        };
+        menu.Opened += (_, _) =>
+        {
+            _mochiMenuOpen = true;
+            _hover.Stop();
+            _leave.Stop();
+        };
+        menu.Closed += (_, _) =>
+        {
+            _mochiMenuOpen = false;
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (_expanded && !_pointerInside && !ShelfHolds && !MochiHoldsMenu && !QuickAskHolds) PointerChanged(false);
+                else if (!_expanded && _hoverPeek && !_preview && !_pointerInside) SetHoverPeek(false);
+            });
+        };
     }
 
     private void PopulateMochiContextMenu(ContextMenu menu, bool isDesktop)
@@ -821,14 +858,42 @@ public partial class MainWindow
 
     internal void CloseQuickAsk()
     {
+        if (QuickAskOverlay.Visibility != Visibility.Visible) return;
         QuickAskOverlay.Visibility = Visibility.Collapsed;
+        if (IsActive)
+        {
+            EndTyping();
+            System.Windows.Input.Keyboard.ClearFocus();
+        }
     }
 
     private void OpenQuickAsk()
     {
         EnsureQuickAskBuilt();
+        RefreshQuickAskBackends();
         QuickAskOverlay.Visibility = Visibility.Visible;
-        _quickAskInput?.Focus();
+        BeginTyping(_quickAskInput);
+    }
+
+    private void RefreshQuickAskBackends()
+    {
+        if (_quickAskBackend is null) return;
+        var backends = MochiQuickAsk.DetectBackends();
+        if (backends.Count == 0)
+            backends = MochiQuickAsk.DetectBackends(refresh: true);
+        var items = backends.Count > 0 ? backends.Select(b => b.Backend.Name).ToList() : new List<string> { "No CLI found" };
+        if (_quickAskBackend.ItemsSource is IEnumerable<string> current && current.SequenceEqual(items))
+        {
+            _quickAskBackend.IsEnabled = backends.Count > 0;
+            return;
+        }
+        string? prev = _quickAskBackend.SelectedItem as string;
+        _quickAskBackend.ItemsSource = items;
+        _quickAskBackend.IsEnabled = backends.Count > 0;
+        int nextIdx = prev is not null ? items.IndexOf(prev) : -1;
+        _quickAskBackend.SelectedIndex = nextIdx >= 0 ? nextIdx : 0;
+        if (_quickAskOutput is not null && backends.Count > 0 && _quickAskOutput.Text == "No claude / gemini / codex / agy CLI detected on PATH.")
+            _quickAskOutput.Text = "Ask anything using your local signed-in AI CLI (no extra API keys needed).";
     }
 
     private void EnsureQuickAskBuilt()
@@ -873,6 +938,11 @@ public partial class MainWindow
             SelectedIndex = 0,
             IsEnabled = backends.Count > 0
         };
+        _quickAskBackend.DropDownClosed += (_, _) =>
+        {
+            if (QuickAskOverlay.Visibility == Visibility.Visible)
+                BeginTyping(_quickAskInput);
+        };
         var closeBtn = new Button
         {
             Content = "✕",
@@ -905,6 +975,7 @@ public partial class MainWindow
                 ? "Ask anything using your local signed-in AI CLI (no extra API keys needed)."
                 : "No claude / gemini / codex / agy CLI detected on PATH."
         };
+        TakeKeyboardOnClick(_quickAskOutput);
         Grid.SetRow(_quickAskOutput, 1);
         grid.Children.Add(_quickAskOutput);
 
@@ -912,20 +983,32 @@ public partial class MainWindow
         inputRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         inputRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
+        var inputHost = new Grid();
         _quickAskInput = new TextBox
         {
+            Style = (Style)FindResource("ShelfTextBox"),
             Height = 28,
-            Padding = new Thickness(8, 4, 8, 4),
+            Padding = new Thickness(8, 0, 8, 0),
             VerticalContentAlignment = VerticalAlignment.Center,
-            Background = new SolidColorBrush(Color.FromArgb(55, 255, 255, 255)),
-            Foreground = UI.Brush(UI.Primary),
-            CaretBrush = UI.Brush(UI.Primary),
-            BorderThickness = new Thickness(0),
+            FontFamily = UI.TextFont,
+            FontSize = 11.5
+        };
+        var placeholder = new TextBlock
+        {
+            Text = "Ask Mochi anything…",
             FontFamily = UI.TextFont,
             FontSize = 11.5,
-            IsEnabled = backends.Count > 0
+            Foreground = UI.Brush(UI.Tertiary),
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(10, 0, 8, 0),
+            IsHitTestVisible = false
         };
-        _quickAskInput.KeyDown += (_, e) =>
+        _quickAskInput.TextChanged += (_, _) =>
+        {
+            placeholder.Visibility = _quickAskInput.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+        };
+        TakeKeyboardOnClick(_quickAskInput);
+        _quickAskInput.PreviewKeyDown += (_, e) =>
         {
             if (e.Key == System.Windows.Input.Key.Enter)
             {
@@ -938,7 +1021,9 @@ public partial class MainWindow
                 CloseQuickAsk();
             }
         };
-        inputRow.Children.Add(_quickAskInput);
+        inputHost.Children.Add(_quickAskInput);
+        inputHost.Children.Add(placeholder);
+        inputRow.Children.Add(inputHost);
 
         _quickAskSend = new Button
         {
@@ -952,8 +1037,7 @@ public partial class MainWindow
             Foreground = new SolidColorBrush(Color.FromRgb(12, 18, 28)),
             Background = new SolidColorBrush(Color.FromRgb(56, 189, 248)),
             BorderThickness = new Thickness(0),
-            Cursor = System.Windows.Input.Cursors.Hand,
-            IsEnabled = backends.Count > 0
+            Cursor = System.Windows.Input.Cursors.Hand
         };
         _quickAskSend.Click += (_, _) => _ = SendQuickAskAsync();
         Grid.SetColumn(_quickAskSend, 1);
@@ -973,13 +1057,24 @@ public partial class MainWindow
         if (prompt.Length == 0) return;
 
         var backends = MochiQuickAsk.DetectBackends();
+        if (backends.Count == 0)
+        {
+            backends = MochiQuickAsk.DetectBackends(refresh: true);
+            RefreshQuickAskBackends();
+        }
+        if (backends.Count == 0)
+        {
+            _quickAskOutput.Text = "No claude / gemini / codex / agy CLI detected on PATH.";
+            return;
+        }
         int idx = _quickAskBackend.SelectedIndex;
-        if (idx < 0 || idx >= backends.Count) return;
+        if (idx < 0 || idx >= backends.Count) idx = 0;
         var (backend, resolved) = backends[idx];
 
         _quickAskCts?.Cancel();
-        _quickAskCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-        var ct = _quickAskCts.Token;
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        _quickAskCts = cts;
+        var ct = cts.Token;
 
         _quickAskInput.Text = "";
         _quickAskSend.IsEnabled = false;
@@ -1011,7 +1106,15 @@ public partial class MainWindow
         }
         finally
         {
+            if (ReferenceEquals(_quickAskCts, cts))
+                _quickAskCts = null;
+            cts.Dispose();
             _quickAskSend.IsEnabled = true;
+            if (QuickAskOverlay.Visibility == Visibility.Visible && IsActive)
+            {
+                _quickAskInput.Focus();
+                System.Windows.Input.Keyboard.Focus(_quickAskInput);
+            }
         }
     }
 

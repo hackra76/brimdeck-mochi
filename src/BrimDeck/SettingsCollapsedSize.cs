@@ -70,6 +70,79 @@ public sealed partial class SettingsWindow
                 var height = SizeRow(across ? "Content size" : "Height", S.NotchHeight, CollapsedLimits.NotchHeightMin, CollapsedLimits.NotchHeightMax, 1, v => ChangeCollapsed(s => s.NotchHeight = v),
                     help: across ? "At the left or right edge this sets the size of the content; the notch's width follows the content." : null);
                 var offset = SizeRow(across ? "Vertical offset" : "Horizontal offset", S.NotchOffsetX, 0, 0, 1, v => ChangeCollapsed(s => s.NotchOffsetX = v), centered: true, vertical: across);
+                var (curShoulder, curCorner, curTaper) = S.ResolvedNotchCurve();
+                (NotchShapePreset Preset, string Label)[] shapeChoices =
+                [
+                    (NotchShapePreset.Classic, "Classic"),
+                    (NotchShapePreset.Liquid, "Liquid"),
+                    (NotchShapePreset.Droplet, "Droplet"),
+                    (NotchShapePreset.Flush, "Sharp Flush"),
+                    (NotchShapePreset.Custom, "Custom")
+                ];
+                var shapeBox = new ComboBox
+                {
+                    Width = 150,
+                    Style = (Style)FindResource("SettingsCombo"),
+                    ItemsSource = shapeChoices.Select(c => c.Label).ToList(),
+                    SelectedIndex = Math.Max(0, Array.FindIndex(shapeChoices, c => c.Preset == S.NotchShape))
+                };
+                AutomationProperties.SetName(shapeBox, "Notch shape");
+                PopupMotion.Attach(shapeBox);
+                shapeBox.SelectionChanged += (_, _) =>
+                {
+                    if (_updatingCollapsedRanges || shapeBox.SelectedIndex < 0) return;
+                    var chosen = shapeChoices[shapeBox.SelectedIndex].Preset;
+                    ChangeCollapsed(s =>
+                    {
+                        s.NotchShape = chosen;
+                        if (chosen != NotchShapePreset.Custom)
+                        {
+                            var (sh, co, ta) = s.ResolvedNotchCurve();
+                            s.NotchShoulder = sh;
+                            s.NotchCornerRadius = co;
+                            s.NotchTaper = ta;
+                        }
+                    });
+                };
+                var shapeRow = Row("Notch shape", shapeBox, help: () => "Choose a preset notch silhouette or customize the top edge blend, bottom roundness, and side taper below.");
+                var shoulder = SizeRow("Top edge blend", curShoulder, CollapsedLimits.NotchShoulderMin, CollapsedLimits.NotchShoulderMax, 1,
+                    v => ChangeCollapsed(s =>
+                    {
+                        if (s.NotchShape != NotchShapePreset.Custom)
+                        {
+                            var (_, co, ta) = s.ResolvedNotchCurve();
+                            s.NotchCornerRadius = co;
+                            s.NotchTaper = ta;
+                        }
+                        s.NotchShape = NotchShapePreset.Custom;
+                        s.NotchShoulder = v;
+                    }),
+                    help: "Controls how smoothly the notch flares out where it meets the top display border.");
+                var corner = SizeRow("Bottom roundness", curCorner, CollapsedLimits.NotchCornerMin, CollapsedLimits.NotchCornerMax, 1,
+                    v => ChangeCollapsed(s =>
+                    {
+                        if (s.NotchShape != NotchShapePreset.Custom)
+                        {
+                            var (sh, _, ta) = s.ResolvedNotchCurve();
+                            s.NotchShoulder = sh;
+                            s.NotchTaper = ta;
+                        }
+                        s.NotchShape = NotchShapePreset.Custom;
+                        s.NotchCornerRadius = v;
+                    }));
+                var taper = SizeRow("Side taper", curTaper, CollapsedLimits.NotchTaperMin, CollapsedLimits.NotchTaperMax, 1,
+                    v => ChangeCollapsed(s =>
+                    {
+                        if (s.NotchShape != NotchShapePreset.Custom)
+                        {
+                            var (sh, co, _) = s.ResolvedNotchCurve();
+                            s.NotchShoulder = sh;
+                            s.NotchCornerRadius = co;
+                        }
+                        s.NotchShape = NotchShapePreset.Custom;
+                        s.NotchTaper = v;
+                    }),
+                    help: "Angles the left and right sides inward toward the bottom edge.");
                 _refreshCollapsedRanges = () =>
                 {
                     double shown = ShownWidth(style);
@@ -77,8 +150,15 @@ public sealed partial class SettingsWindow
                     SetCollapsedRange(width, limits.WidthMin, limits.WidthMax, shown);
                     SetAutoWidth(auto, width, S.NotchAutoWidth);
                     SetCollapsedRange(offset, -Whole(limits.OffsetMax), Whole(limits.OffsetMax), S.NotchOffsetX);
+                    var (sh, co, ta) = S.ResolvedNotchCurve();
+                    _updatingCollapsedRanges = true;
+                    try { shapeBox.SelectedIndex = Math.Max(0, Array.FindIndex(shapeChoices, c => c.Preset == S.NotchShape)); }
+                    finally { _updatingCollapsedRanges = false; }
+                    SetCollapsedRange(shoulder, CollapsedLimits.NotchShoulderMin, CollapsedLimits.NotchShoulderMax, sh);
+                    SetCollapsedRange(corner, CollapsedLimits.NotchCornerMin, CollapsedLimits.NotchCornerMax, co);
+                    SetCollapsedRange(taper, CollapsedLimits.NotchTaperMin, CollapsedLimits.NotchTaperMax, ta);
                 };
-                Group(Rows(edge, AnchorRow(style), auto, width.Row, height.Row, offset.Row));
+                Group(Rows(edge, AnchorRow(style), auto, width.Row, height.Row, offset.Row, shapeRow, shoulder.Row, corner.Row, taper.Row));
                 _builtDock = (style, S.NotchEdge, S.NotchAnchor);
                 break;
             }

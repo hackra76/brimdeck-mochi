@@ -68,16 +68,33 @@ public partial class MainWindow
         // search and its results stay.
         PreviewMouseLeftButtonDown += (_, e) =>
         {
-            if (_searchBox is not { IsKeyboardFocusWithin: true } box || box.Parent is not Visual host) return;
-            if (e.OriginalSource is Visual pressed && (host == pressed || host.IsAncestorOf(pressed))) return;
-            EndTyping(); Keyboard.ClearFocus();
+            var source = e.OriginalSource as DependencyObject;
+            if (_searchBox is { IsKeyboardFocusWithin: true } box && box.Parent is Visual host)
+            {
+                if (source is not null && IsDescendantOf(host, source)) return;
+                EndTyping(); Keyboard.ClearFocus();
+                return;
+            }
+            if ((_quickAskInput?.IsKeyboardFocusWithin == true || _quickAskOutput?.IsKeyboardFocusWithin == true)
+                && QuickAskOverlay.Visibility == Visibility.Visible)
+            {
+                if (source is not null && (IsDescendantOf(QuickAskOverlay, source) || IsDescendantOf(MochiStatusChip, source))) return;
+                EndTyping(); Keyboard.ClearFocus();
+            }
         };
         // Typing ends when the user goes to another window; the panel then closes as usual once the pointer is away.
         Deactivated += (_, _) =>
         {
             if (_shelfEdit is not null && !_editCommitting) { _shelfEdit = null; if (IsShelfPage) RenderShelf(); }
-            if (_expanded && !_pointerInside && !ShelfHolds) PointerChanged(false);
+            if (_expanded && !_pointerInside && !ShelfHolds && !MochiHoldsMenu && !QuickAskHolds) PointerChanged(false);
         };
+    }
+
+    private static bool IsDescendantOf(Visual parent, DependencyObject node)
+    {
+        for (var cur = node; cur is not null; cur = cur is Visual ? VisualTreeHelper.GetParent(cur) : LogicalTreeHelper.GetParent(cur))
+            if (ReferenceEquals(cur, parent)) return true;
+        return false;
     }
 
     // A copy or a dropped file while the panel is closed is shown when it opens (ApplyDefaultMusicPage), not built at every copy;

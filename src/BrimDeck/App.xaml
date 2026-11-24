@@ -246,10 +246,28 @@
       <Setter Property="OverridesDefaultStyle" Value="True"/><Setter Property="Foreground" Value="{DynamicResource MenuInk}"/><Setter Property="Cursor" Value="Hand"/>
       <Setter Property="Template"><Setter.Value>
         <ControlTemplate TargetType="MenuItem">
-          <Border x:Name="Chrome" Background="Transparent" CornerRadius="4" Height="26" Padding="12,0" SnapsToDevicePixels="True">
-            <ContentPresenter ContentSource="Header" VerticalAlignment="Center" RecognizesAccessKey="True"/>
-          </Border>
+          <Grid>
+            <Border x:Name="Chrome" Background="Transparent" CornerRadius="4" Height="26" Padding="8,0,10,0" SnapsToDevicePixels="True">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="16"/>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Path x:Name="Check" Grid.Column="0" Data="M1,4.5 L4,7.5 L9.5,1.5" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" VerticalAlignment="Center" HorizontalAlignment="Left" Visibility="Collapsed"/>
+                <ContentPresenter Grid.Column="1" ContentSource="Header" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                <Path x:Name="Arrow" Grid.Column="2" Data="M0,0 L3.5,3.5 L0,7" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Margin="12,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+              </Grid>
+            </Border>
+            <Popup x:Name="PART_Popup" Placement="Right" HorizontalOffset="2" VerticalOffset="-4" IsOpen="{TemplateBinding IsSubmenuOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="None">
+              <Border Background="{DynamicResource MenuSurface}" BorderBrush="{DynamicResource MenuEdge}" BorderThickness="1" CornerRadius="7" Padding="3" Margin="2" MinWidth="124" SnapsToDevicePixels="True">
+                <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+              </Border>
+            </Popup>
+          </Grid>
           <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True"><Setter TargetName="Check" Property="Visibility" Value="Visible"/></Trigger>
+            <Trigger Property="HasItems" Value="True"><Setter TargetName="Arrow" Property="Visibility" Value="Visible"/></Trigger>
             <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource MenuHover}"/><Setter Property="Foreground" Value="{DynamicResource MenuInkHover}"/></Trigger>
             <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger>
           </ControlTemplate.Triggers>

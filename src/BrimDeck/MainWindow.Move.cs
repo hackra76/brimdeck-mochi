@@ -100,7 +100,7 @@ public partial class MainWindow
     {
         var key = (box.Width, box.Height, Island.ShoulderRadius, Island.CornerRadius);
         if (_moveOutline is { } cached && (cached.Width, cached.Height, cached.Shoulder, cached.Corners) == key) return cached.Outline;
-        var outline = IslandBorder.BuildOutline(box.Width, box.Height, Island.ShoulderRadius, Island.CornerRadius, 0);
+        var outline = IslandBorder.BuildOutline(box.Width, box.Height, Island.ShoulderRadius, Island.CornerRadius, 0, Island.Taper);
         _moveOutline = (box.Width, box.Height, Island.ShoulderRadius, Island.CornerRadius, outline);
         return outline;
     }
