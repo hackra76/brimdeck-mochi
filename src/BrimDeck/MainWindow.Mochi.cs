@@ -394,7 +394,8 @@ public partial class MainWindow
             lastWrite,
             now,
             remaining,
-            _hookDetail);
+            _hookDetail,
+            MochiCompanionLogic.ExtractExhaustedAntigravityPools(Snapshots));
 
         if (eta is { } timeLeft && status.DetailText.Contains("quota", StringComparison.OrdinalIgnoreCase))
         {

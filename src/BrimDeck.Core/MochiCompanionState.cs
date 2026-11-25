@@ -85,15 +85,27 @@ public static class MochiCompanionLogic
         var ag = snapshots.FirstOrDefault(s => s.Id == ProviderId.Antigravity);
         if (ag is null || ag.Quotas.Count == 0) return null;
 
-        double? minRemaining = null;
+        // The best pool decides the mood: Mochi only feels depleted when nothing is left to work with.
+        double? bestRemaining = null;
         foreach (var quota in ag.Quotas)
         {
             if (!double.IsFinite(quota.UsedPercent)) continue;
             double remaining = Math.Clamp(100 - quota.UsedPercent, 0, 100);
-            if (minRemaining is null || remaining < minRemaining.Value)
-                minRemaining = remaining;
+            if (bestRemaining is null || remaining > bestRemaining.Value)
+                bestRemaining = remaining;
         }
-        return minRemaining;
+        return bestRemaining;
+    }
+
+    /// <summary>Labels of Antigravity quota pools that are exhausted (0.5% or less left).</summary>
+    public static IReadOnlyList<string> ExtractExhaustedAntigravityPools(IReadOnlyList<ProviderSnapshot> snapshots)
+    {
+        var ag = snapshots.FirstOrDefault(s => s.Id == ProviderId.Antigravity);
+        if (ag is null) return [];
+        return [.. ag.Quotas
+            .Where(q => double.IsFinite(q.UsedPercent) && 100 - q.UsedPercent <= 0.5)
+            .Select(q => q.Label)
+            .Distinct(StringComparer.OrdinalIgnoreCase)];
     }
 
     /// <summary>
@@ -105,12 +117,16 @@ public static class MochiCompanionLogic
         DateTimeOffset? lastConversationWriteUtc,
         DateTimeOffset nowUtc,
         double? remainingPercent,
-        string? hookDetail = null)
+        string? hookDetail = null,
+        IReadOnlyList<string>? exhaustedPools = null)
     {
         var quotaMood = EvaluateQuotaMood(remainingPercent);
         string quotaLabel = remainingPercent is { } rem
             ? $"Antigravity quota: {rem:0}% left"
             : "Antigravity quota: waiting for desktop app";
+        // Some pools are empty while the best one still has room: say so, but stay awake.
+        if (remainingPercent is > 0.5 && exhaustedPools is { Count: > 0 })
+            quotaLabel += $" · {string.Join(", ", exhaustedPools)} depleted";
 
         // 1. Explicit hook state (e.g. PreToolUse approval, thinking, working, error)
         if (hookAgentState is { } active && active != MochiState.Idle)

@@ -44,8 +44,27 @@ internal static class MochiCompanionTests
         {
             Quotas = [new Quota("Model 1", 25, null, 100), new Quota("Model 2", 75, null, 100)]
         };
-        check("Mochi extracts min remaining Antigravity quota (25%)",
-            MochiCompanionLogic.ExtractAntigravityRemainingPercent([agSnap]) == 25);
+        check("Mochi extracts best remaining Antigravity quota (75%)",
+            MochiCompanionLogic.ExtractAntigravityRemainingPercent([agSnap]) == 75);
+
+        // One exhausted pool must not put Mochi to sleep while another pool is full
+        var mixedSnap = new ProviderSnapshot(ProviderId.Antigravity)
+        {
+            Quotas = [new Quota("Claude", 100, null, 100), new Quota("Gemini", 0, null, 100)]
+        };
+        double? mixedBest = MochiCompanionLogic.ExtractAntigravityRemainingPercent([mixedSnap]);
+        var exhausted = MochiCompanionLogic.ExtractExhaustedAntigravityPools([mixedSnap]);
+        check("Mochi best-pool quota is 100% when only one pool is exhausted", mixedBest == 100);
+        check("Mochi names the exhausted pool", exhausted.Count == 1 && exhausted[0] == "Claude");
+        var mixed = MochiCompanionLogic.Resolve(null, null, now, mixedBest, null, exhausted);
+        check("Mochi stays awake when one pool is exhausted but another is full", mixed.State == MochiState.Idle);
+        check("Mochi detail mentions the depleted pool", mixed.DetailText.Contains("Claude depleted"));
+        var allGone = new ProviderSnapshot(ProviderId.Antigravity)
+        {
+            Quotas = [new Quota("Claude", 100, null, 100), new Quota("Gemini", 100, null, 100)]
+        };
+        check("Mochi sleeps only when every pool is exhausted",
+            MochiCompanionLogic.Resolve(null, null, now, MochiCompanionLogic.ExtractAntigravityRemainingPercent([allGone])).State == MochiState.Sleeping);
 
         // MochiQuickAsk backend detection & Antigravity CLI args
         var backends = BrimDeck.MochiQuickAsk.DetectBackends(refresh: true);
