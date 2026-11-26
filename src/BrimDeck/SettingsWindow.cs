@@ -30,11 +30,11 @@ public sealed partial class SettingsWindow : Window, IKeepsAppFonts
     private ScrollViewer _scroll = null!;
     private static string[] _pages => ["General", "Collapsed view", "Expanded view",
         "Quotas and usage", "Model prices", "Style", "Players", "About BrimDeck", "Panel theme", "Display and readings", "Enhanced sensors", "Shortcuts", "Display and devices",
-        "Clipboard", "File transfer", "Quick actions", "Mochi"];
+        "Clipboard", "File transfer", "Quick actions", "Nimbus"];
     // The order of the pages in the navigation; the theme page (ThemePage) and the shortcuts (HotkeysPage) are listed with the
     // basic pages, and the system monitor's page (MonitorSettingsPage) has its own group after music, then the clipboard's two
     // pages, before About.
-    private static readonly int[] PageOrder = [0, 1, 2, ThemePage, HotkeysPage, MochiPage, 3, 4, 5, 6, MusicGesturesPage, MonitorSettingsPage, SensorsPage, ClipboardSettingsPage, TransferSettingsPage, 7];
+    private static readonly int[] PageOrder = [0, 1, 2, ThemePage, HotkeysPage, NimbusPage, 3, 4, 5, 6, MusicGesturesPage, MonitorSettingsPage, SensorsPage, ClipboardSettingsPage, TransferSettingsPage, 7];
     private int _page;
     private bool _preview;
     private StackPanel? _appRows;
@@ -327,9 +327,9 @@ public sealed partial class SettingsWindow : Window, IKeepsAppFonts
         _page = page; _navigation.Children.Clear(); _content.Children.Clear(); _aboutUpdateView = null; _scroll.ScrollToTop();
         foreach (int i in PageOrder)
         {
-            if (i is 0 or MochiPage or 3 or 5 or 7 or MonitorSettingsPage or ClipboardSettingsPage)
+            if (i is 0 or NimbusPage or 3 or 5 or 7 or MonitorSettingsPage or ClipboardSettingsPage)
             {
-                var group = TextLine(i switch { 0 => "Basics", MochiPage => "Mochi", 3 => "AI usage", MonitorSettingsPage => "System monitor", ClipboardSettingsPage => "Shelf", 5 => "Music", _ => "About" },10.5,TextTertiary);
+                var group = TextLine(i switch { 0 => "Basics", NimbusPage => "Nimbus", 3 => "AI usage", MonitorSettingsPage => "System monitor", ClipboardSettingsPage => "Shelf", 5 => "Music", _ => "About" },10.5,TextTertiary);
                 group.Margin = new Thickness(12, i == 0 ? 0 : 24, 0, 8); _navigation.Children.Add(group);
             }
             int target=i; bool selected=page==i;
@@ -344,13 +344,13 @@ public sealed partial class SettingsWindow : Window, IKeepsAppFonts
         }
         // The About page is titled by the wordmark itself, so the name does not appear twice.
         var head = new DockPanel { Margin = new Thickness(0,0,0,page == 7 ? 10 : 20) };
-        if (page is < 4 or 5 or 6 or ThemePage or MonitorSettingsPage or HotkeysPage or ClipboardSettingsPage or MusicGesturesPage or MochiPage)
+        if (page is < 4 or 5 or 6 or ThemePage or MonitorSettingsPage or HotkeysPage or ClipboardSettingsPage or MusicGesturesPage or NimbusPage)
         {
             // Resets every setting on the page, so it asks first (SW-09, S-03); it keeps the look of the other "restore defaults" links.
             var reset=ActionButton("Restore defaults",()=>{ if(Confirm("Restore defaults",ResetConfirmText(page),"Restore defaults"))ResetPage(); }); reset.FontSize=11; DockPanel.SetDock(reset,Dock.Right); head.Children.Add(reset);
         }
         head.Children.Add(page == 7 ? Wordmark(28) : TextLine(_pages[page],24,TextPrimary,FontWeights.SemiBold)); _content.Children.Add(head);
-        switch(page) { case 0: General(); break; case 1: Compact(); break; case 2: Expanded(); break; case 3: Pages(); break; case 4: ModelPrices(); break; case 5: MusicStyle(); break; case 6: Players(); break; case 7: About(); break; case ThemePage: ThemesPage(); break; case MonitorSettingsPage: MonitorSettings(); break; case SensorsPage: SensorsSettings(); break; case HotkeysPage: HotkeysSettings(); break; case ClipboardSettingsPage: ClipboardSettings(); break; case TransferSettingsPage: TransferSettings(); break; case MusicGesturesPage: MusicGesturesSettings(); break; case MochiPage: MochiSettings(); break; }
+        switch(page) { case 0: General(); break; case 1: Compact(); break; case 2: Expanded(); break; case 3: Pages(); break; case 4: ModelPrices(); break; case 5: MusicStyle(); break; case 6: Players(); break; case 7: About(); break; case ThemePage: ThemesPage(); break; case MonitorSettingsPage: MonitorSettings(); break; case SensorsPage: SensorsSettings(); break; case HotkeysPage: HotkeysSettings(); break; case ClipboardSettingsPage: ClipboardSettings(); break; case TransferSettingsPage: TransferSettings(); break; case MusicGesturesPage: MusicGesturesSettings(); break; case NimbusPage: NimbusSettings(); break; }
         if (_content.Children[^1] is Border lastGroup) lastGroup.Margin = new Thickness(lastGroup.Margin.Left, lastGroup.Margin.Top, lastGroup.Margin.Right, 0);
         // Apply the offset before the frame is drawn, so the rebuilt page never shows its top for a frame.
         if (keep > 0) { _scroll.UpdateLayout(); _scroll.ScrollToVerticalOffset(keep); _scroll.UpdateLayout(); }
@@ -373,7 +373,7 @@ public sealed partial class SettingsWindow : Window, IKeepsAppFonts
         ClipboardSettingsPage => "M 3,2.5 H 13 V 15 H 3 Z M 6,1 H 10 V 4 H 6 Z M 5.5,8 H 10.5 M 5.5,11 H 10.5",
         TransferSettingsPage => "M 1.5,9 L 3.5,3 H 12.5 L 14.5,9 V 13 A 1,1 0 0 1 13.5,14 H 2.5 A 1,1 0 0 1 1.5,13 Z M 1.5,9 H 5.5 L 6.5,10.5 H 9.5 L 10.5,9 H 14.5",
         ThemePage => "M 8,1 C 4,1 1,4 1,8 C 1,12 4,15 8,15 C 9.4,15 9.6,13.6 8.8,12.8 C 8,12 8.6,10.5 10,10.5 H 12 C 13.7,10.5 15,9.2 15,7.5 C 15,4 12,1 8,1 Z M 4.6,8 V 8.1 M 6,4.8 V 4.9 M 9.6,4.4 V 4.5 M 12,6.8 V 6.9",
-        MochiPage => "M 2,8.5 C 2,4.5 4.7,2.5 8,2.5 C 11.3,2.5 14,4.5 14,8.5 C 14,12 11.5,13.5 8,13.5 C 4.5,13.5 2,12 2,8.5 Z M 5.5,7.5 V 8.8 M 10.5,7.5 V 8.8",
+        NimbusPage => "M 2,8.5 C 2,4.5 4.7,2.5 8,2.5 C 11.3,2.5 14,4.5 14,8.5 C 14,12 11.5,13.5 8,13.5 C 4.5,13.5 2,12 2,8.5 Z M 5.5,7.5 V 8.8 M 10.5,7.5 V 8.8",
         5 => "M 6,12.5 V 3 L 14,1.5 V 11 M 6,12.5 A 2,2 0 1 1 2,12.5 A 2,2 0 1 1 6,12.5 M 14,11 A 2,2 0 1 1 10,11 A 2,2 0 1 1 14,11",
         _ => "M 8,1 A 7,7 0 1 1 7.99,1 M 8,7 V 12 M 8,4 V 4.2"
     },16,16,color);
@@ -666,7 +666,7 @@ public sealed partial class SettingsWindow : Window, IKeepsAppFonts
         {
             switch(_page)
             {
-                case 0:s.LaunchAtStartup=false;s.ShowTrayIcon=defaults.ShowTrayIcon;s.MemoryMode=defaults.MemoryMode;s.Theme=defaults.Theme;s.Language=Loc.SystemLanguage();s.OpenDelay=defaults.OpenDelay;s.ClickToExpand=defaults.ClickToExpand;s.MochiEnabled=defaults.MochiEnabled;s.CloseDelay=defaults.CloseDelay;s.Animations=defaults.Animations;s.AnimationDuration=defaults.AnimationDuration;s.AlwaysOnTop=defaults.AlwaysOnTop;s.ForceTopmost=defaults.ForceTopmost;s.Maximized=defaults.Maximized;s.Borderless=defaults.Borderless;s.Exclusive=defaults.Exclusive;s.FullscreenRules=[];s.Display=defaults.Display;s.DisplayMonitors=[];s.PanelScale=defaults.PanelScale;s.SurfaceTransparency=defaults.SurfaceTransparency;s.UiFont=defaults.UiFont;
+                case 0:s.LaunchAtStartup=false;s.ShowTrayIcon=defaults.ShowTrayIcon;s.MemoryMode=defaults.MemoryMode;s.Theme=defaults.Theme;s.Language=Loc.SystemLanguage();s.OpenDelay=defaults.OpenDelay;s.ClickToExpand=defaults.ClickToExpand;s.NimbusEnabled=defaults.NimbusEnabled;s.CloseDelay=defaults.CloseDelay;s.Animations=defaults.Animations;s.AnimationDuration=defaults.AnimationDuration;s.AlwaysOnTop=defaults.AlwaysOnTop;s.ForceTopmost=defaults.ForceTopmost;s.Maximized=defaults.Maximized;s.Borderless=defaults.Borderless;s.Exclusive=defaults.Exclusive;s.FullscreenRules=[];s.Display=defaults.Display;s.DisplayMonitors=[];s.PanelScale=defaults.PanelScale;s.SurfaceTransparency=defaults.SurfaceTransparency;s.UiFont=defaults.UiFont;
                     s.ClickThrough=defaults.ClickThrough;s.ClickThroughPanel=defaults.ClickThroughPanel;s.WindowCapture=defaults.WindowCapture;break;
                 case HotkeysPage:foreach(var kind in Enum.GetValues<HotkeyKind>())s.SetHotkey(kind,defaults.Hotkey(kind));break;
                 case 1:s.Style=defaults.Style;s.NotchSummary=defaults.NotchSummary;s.NotchMusic=defaults.NotchMusic;s.CapsuleSummary=defaults.CapsuleSummary;s.CapsuleMusic=defaults.CapsuleMusic;s.MusicIndicatorProgress=defaults.MusicIndicatorProgress;
@@ -694,13 +694,13 @@ public sealed partial class SettingsWindow : Window, IKeepsAppFonts
                 case ThemePage:{ChooseTheme(s,defaults.PanelTheme);var palette=PanelThemes.Resolve(PanelTheme.Find(defaults.PanelTheme));
                     s.ClockStyle=defaults.ClockStyle;s.ClockColor=defaults.ClockColor;s.ClockCustomColor=defaults.ClockCustomColor;s.ClockGradient=[.. palette.ClockGradients[0].Stops];
                     PanelThemes.ApplyMatching(palette,s);break;}
-                case MochiPage:
-                    s.MochiEnabled=defaults.MochiEnabled;s.MochiOutfit=defaults.MochiOutfit;s.MochiDanceEnabled=defaults.MochiDanceEnabled;
-                    s.MochiAutoSleepEnabled=defaults.MochiAutoSleepEnabled;s.MochiAutoSleepMinutes=defaults.MochiAutoSleepMinutes;
-                    s.MochiLaunchGreetingEnabled=defaults.MochiLaunchGreetingEnabled;s.MochiSoundsEnabled=defaults.MochiSoundsEnabled;
-                    s.MochiDesktopRoamingEnabled=defaults.MochiDesktopRoamingEnabled;s.MochiDesktopX=null;s.MochiDesktopY=null;
-                    s.MochiMiniBotsEnabled=defaults.MochiMiniBotsEnabled;s.MochiUpdateHintEnabled=defaults.MochiUpdateHintEnabled;
-                    s.MochiCollapseToCharacter=defaults.MochiCollapseToCharacter;
+                case NimbusPage:
+                    s.NimbusEnabled=defaults.NimbusEnabled;s.NimbusOutfit=defaults.NimbusOutfit;s.NimbusDanceEnabled=defaults.NimbusDanceEnabled;
+                    s.NimbusAutoSleepEnabled=defaults.NimbusAutoSleepEnabled;s.NimbusAutoSleepMinutes=defaults.NimbusAutoSleepMinutes;
+                    s.NimbusLaunchGreetingEnabled=defaults.NimbusLaunchGreetingEnabled;s.NimbusSoundsEnabled=defaults.NimbusSoundsEnabled;
+                    s.NimbusDesktopRoamingEnabled=defaults.NimbusDesktopRoamingEnabled;s.NimbusDesktopX=null;s.NimbusDesktopY=null;
+                    s.NimbusMiniBotsEnabled=defaults.NimbusMiniBotsEnabled;s.NimbusUpdateHintEnabled=defaults.NimbusUpdateHintEnabled;
+                    s.NimbusCollapseToCharacter=defaults.NimbusCollapseToCharacter;
                     break;
             }
         });
@@ -1163,6 +1163,19 @@ public sealed partial class SettingsWindow : Window, IKeepsAppFonts
             Row("License",TextLine("Apache License 2.0",12,TextSecondary)),
             Row("Homepage",Link("GitHub ↗","https://github.com/hackra76/brimdeck-mochi")),
             Row("Issues and suggestions",Link("Send feedback ↗","https://github.com/hackra76/brimdeck-mochi/issues")));
+
+        // Attribution required by the licenses of the projects this fork is built on (Apache-2.0 and MIT).
+        SectionTitle("Credits and licenses");
+        var fork = TextLine("This fork (BrimDeck + Nimbus) is modified from the original BrimDeck, Apache License 2.0.",12,TextSecondary);
+        fork.TextWrapping = TextWrapping.Wrap; fork.Margin = new Thickness(0,0,0,10); _content.Children.Add(fork);
+        Group(Row("BrimDeck",Link("MoFeng2223 · Apache-2.0 ↗","https://github.com/MoFeng2223/BrimDeck")),
+            Row("BrimDeck contributors",Link("All contributors ↗","https://github.com/MoFeng2223/BrimDeck/graphs/contributors")),
+            Row("Companion architecture",Link("Inspired by Coucou (MIT) by Louis Raillé ↗","https://github.com/Louis-CFM/coucou")),
+            Row("System monitor page",Link("ftop by Nongfsq · MIT ↗","https://github.com/Nongfsq/ftop")),
+            Row("Third-party notices",Link("ThirdPartyNotices ↗","https://github.com/hackra76/brimdeck-mochi/blob/main/src/BrimDeck/ThirdPartyNotices.txt")),
+            Row("License text",Link("Apache License 2.0 ↗","https://github.com/hackra76/brimdeck-mochi/blob/main/LICENSE")));
+        var names = TextLine("Nimbus is an original cloud companion created for this fork. BrimDeck is created by MoFeng2223 (Apache-2.0), and the companion animation architecture is inspired by Coucou's MIT-licensed code by Louis Raillé. Thank you to both, and to every contributor.",11,TextTertiary);
+        names.TextWrapping = TextWrapping.Wrap; names.Margin = new Thickness(0,10,0,0); _content.Children.Add(names);
     }
 
     // External links are plain text, so their right edge lines up with the values in the rows above.

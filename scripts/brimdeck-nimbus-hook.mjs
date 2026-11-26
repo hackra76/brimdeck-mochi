@@ -1,7 +1,7 @@
 import net from "node:net";
 
 const rawEvent = (process.argv[2] || "").trim();
-const PIPE_PATH = "\\\\.\\pipe\\brimdeck-mochi-agent";
+const PIPE_PATH = "\\\\.\\pipe\\brimdeck-nimbus-agent";
 
 const EVENT_MAP = {
   PreToolUse: "pre_tool_use",

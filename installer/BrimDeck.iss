@@ -23,7 +23,7 @@
   #define AppId "9D9AD6ED-CF62-4527-A587-6DBE94A74B9E"
 #endif
 #ifndef AppName
-  ; BrimDeck + Mochi Companion Windows Installer Script (Inno Setup)
+  ; BrimDeck + Nimbus Companion Windows Installer Script (Inno Setup)
 #define AppName "BrimDeck"
 #endif
 #ifndef MainExe
@@ -54,7 +54,7 @@ AppId={{{#AppId}}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
-AppPublisher=hackra76 (fork of BrimDeck by MoFeng2223 + Coucou by Louis-CFM)
+AppPublisher=hackra76 (fork of BrimDeck by MoFeng2223)
 AppPublisherURL=https://github.com/hackra76/brimdeck-mochi
 AppSupportURL=https://github.com/hackra76/brimdeck-mochi/issues
 AppUpdatesURL=https://github.com/hackra76/brimdeck-mochi/releases

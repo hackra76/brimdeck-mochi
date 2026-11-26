@@ -6,12 +6,12 @@ using BrimDeck.Core;
 namespace BrimDeck;
 
 /// <summary>
-/// Modular WPF UserControl rendering the animated Mochi AI companion.
+/// Modular WPF UserControl rendering the animated Nimbus AI companion.
 /// Uses CompositionTarget.Rendering only while visible, keeping idle CPU near zero.
 /// </summary>
-public partial class MochiCompanion
+public partial class NimbusCompanion
 {
-    private sealed class MochiSurface(MochiEngine engine) : FrameworkElement
+    private sealed class NimbusSurface(NimbusEngine engine) : FrameworkElement
     {
         protected override void OnRender(DrawingContext dc)
         {
@@ -20,8 +20,8 @@ public partial class MochiCompanion
         }
     }
 
-    private readonly MochiEngine _engine = new();
-    private readonly MochiSurface _surface;
+    private readonly NimbusEngine _engine = new();
+    private readonly NimbusSurface _surface;
     private bool _renderingHooked;
     private long _lastRenderTicks;
     private Point? _dragStartScreen;
@@ -32,8 +32,8 @@ public partial class MochiCompanion
     public event Action? Clicked;
 
     public static readonly DependencyProperty IsMiniProperty = DependencyProperty.Register(
-        nameof(IsMini), typeof(bool), typeof(MochiCompanion),
-        new PropertyMetadata(false, (d, e) => ((MochiCompanion)d)._engine.IsMini = (bool)e.NewValue));
+        nameof(IsMini), typeof(bool), typeof(NimbusCompanion),
+        new PropertyMetadata(false, (d, e) => ((NimbusCompanion)d)._engine.IsMini = (bool)e.NewValue));
 
     public bool IsMini
     {
@@ -41,20 +41,20 @@ public partial class MochiCompanion
         set => SetValue(IsMiniProperty, value);
     }
 
-    public MochiState State => _engine.State;
+    public NimbusState State => _engine.State;
 
-    public MochiCompanion()
+    public NimbusCompanion()
     {
         InitializeComponent();
-        _surface = new MochiSurface(_engine);
+        _surface = new NimbusSurface(_engine);
         Root.Children.Add(_surface);
 
         _engine.DizzyTriggered += () =>
         {
             _ = Task.Delay(2400).ContinueWith(_ => Dispatcher.BeginInvoke(() =>
             {
-                if (_engine.State == MochiState.Dizzy)
-                    _engine.SetState(MochiState.Idle);
+                if (_engine.State == NimbusState.Dizzy)
+                    _engine.SetState(NimbusState.Idle);
             }));
         };
 
@@ -62,16 +62,16 @@ public partial class MochiCompanion
         Unloaded += (_, _) => UnhookRendering();
         IsVisibleChanged += (_, _) => UpdateRenderSubscription();
 
-        MouseLeftButtonDown += OnMochiClicked;
-        MouseLeftButtonUp += OnMochiMouseUp;
-        MouseMove += OnMochiMouseMove;
+        MouseLeftButtonDown += OnNimbusClicked;
+        MouseLeftButtonUp += OnNimbusMouseUp;
+        MouseMove += OnNimbusMouseMove;
         MouseLeave += (_, _) => _engine.SetLook(0, 0);
     }
 
-    public void ApplyStatus(MochiStatusSnapshot status)
+    public void ApplyStatus(NimbusStatusSnapshot status)
     {
         _engine.QuotaMood = status.QuotaMood;
-        if (_engine.State != MochiState.Dizzy)
+        if (_engine.State != NimbusState.Dizzy)
             _engine.SetState(status.State);
 
         ToolTip = $"{status.StatusTitle}\n{status.DetailText}";
@@ -81,15 +81,15 @@ public partial class MochiCompanion
     public void StartLaunchGreeting() => _engine.StartLaunchGreeting();
     public void Poke() => _engine.Poke();
     public void Gulp() => _engine.Gulp();
-    public void TriggerEmote(MochiEmote emote, double duration = 1.8) => _engine.TriggerEmote(emote, duration);
-    public void SetPermanentEmote(MochiEmote? emote) => _engine.SetPermanentEmote(emote);
+    public void TriggerEmote(NimbusEmote emote, double duration = 1.8) => _engine.TriggerEmote(emote, duration);
+    public void SetPermanentEmote(NimbusEmote? emote) => _engine.SetPermanentEmote(emote);
     public void SetGlobalLook(double nx, double ny) => _engine.SetLook(nx, ny);
     public void SetDancing(bool dancing) => _engine.SetDancing(dancing);
-    public void SetOutfit(MochiOutfit outfit) => _engine.SetOutfit(outfit);
+    public void SetOutfit(NimbusOutfit outfit) => _engine.SetOutfit(outfit);
     public void SetMailbox(bool mailbox) => _engine.SetMailbox(mailbox);
     public void SetUpdateHint(Color? color) => _engine.SetUpdateHint(color);
 
-    private void OnMochiClicked(object sender, MouseButtonEventArgs e)
+    private void OnNimbusClicked(object sender, MouseButtonEventArgs e)
     {
         if (AllowDragOut)
         {
@@ -104,7 +104,7 @@ public partial class MochiCompanion
         e.Handled = true;
     }
 
-    private void OnMochiMouseUp(object sender, MouseButtonEventArgs e)
+    private void OnNimbusMouseUp(object sender, MouseButtonEventArgs e)
     {
         if (IsMouseCaptured) ReleaseMouseCapture();
         bool wasTap = _dragStartScreen is not null && !_dragTriggered;
@@ -126,11 +126,11 @@ public partial class MochiCompanion
             return;
         }
         _engine.Slap();
-        if (_engine.State != MochiState.Dizzy && clickCount == 1)
+        if (_engine.State != NimbusState.Dizzy && clickCount == 1)
             _engine.Greet();
     }
 
-    private void OnMochiMouseMove(object sender, MouseEventArgs e)
+    private void OnNimbusMouseMove(object sender, MouseEventArgs e)
     {
         if (AllowDragOut && !_dragTriggered && _dragStartScreen is { } startScreen && e.LeftButton == MouseButtonState.Pressed)
         {

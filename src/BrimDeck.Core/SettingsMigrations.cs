@@ -28,6 +28,7 @@ public static class SettingsMigrations
         foreach (var (version, apply) in Steps)
             if (version > saved && version <= running) apply(root);
         MemoryModeFromSwitch(root);
+        NimbusFromLegacyMochi(root);
         var settings = root.Deserialize<DeckSettings>() ?? new();
         settings.Normalize();
         return settings;
@@ -118,6 +119,35 @@ public static class SettingsMigrations
     {
         if (root.ContainsKey("MemoryMode") || root["TrimMemoryWhenIdle"] is not NodeValue trim || !trim.TryGetValue(out bool on)) return;
         root["MemoryMode"] = (int)(on ? MemoryMode.Saver : MemoryMode.Balanced);
+    }
+
+    // Rebrand migration: preserve saved companion settings when upgrading from Mochi* keys to Nimbus* keys.
+    private static void NimbusFromLegacyMochi(JsonObject root)
+    {
+        (string Old, string New)[] pairs =
+        [
+            ("MochiEnabled", "NimbusEnabled"),
+            ("MochiOutfit", "NimbusOutfit"),
+            ("MochiDanceEnabled", "NimbusDanceEnabled"),
+            ("MochiAutoSleepEnabled", "NimbusAutoSleepEnabled"),
+            ("MochiAutoSleepMinutes", "NimbusAutoSleepMinutes"),
+            ("MochiLaunchGreetingEnabled", "NimbusLaunchGreetingEnabled"),
+            ("MochiSoundsEnabled", "NimbusSoundsEnabled"),
+            ("MochiDesktopRoamingEnabled", "NimbusDesktopRoamingEnabled"),
+            ("MochiDesktopX", "NimbusDesktopX"),
+            ("MochiDesktopY", "NimbusDesktopY"),
+            ("MochiMiniBotsEnabled", "NimbusMiniBotsEnabled"),
+            ("MochiUpdateHintEnabled", "NimbusUpdateHintEnabled"),
+            ("MochiCollapseToCharacter", "NimbusCollapseToCharacter"),
+            ("MochiHideWhenIdle", "NimbusHideWhenIdle"),
+            ("MochiDoNotDisturb", "NimbusDoNotDisturb"),
+        ];
+        foreach (var (oldKey, newKey) in pairs)
+        {
+            if (root[oldKey] is { } value && !root.ContainsKey(newKey))
+                root[newKey] = value.DeepClone();
+            root.Remove(oldKey);
+        }
     }
 
     private static bool Flag(JsonObject root, string name) => root[name] is not NodeValue value || !value.TryGetValue(out bool flag) || flag;

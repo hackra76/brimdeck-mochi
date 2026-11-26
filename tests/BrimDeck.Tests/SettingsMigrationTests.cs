@@ -77,5 +77,18 @@ internal static class SettingsMigrationTests
         file = SettingsMigrations.Parse(File.ReadAllText(Path.Combine(many, "settings.json")));
         check("at most five earlier versions are kept", file["Snapshots"] is System.Text.Json.Nodes.JsonObject kept && kept.Count == 5
             && kept.ContainsKey("0.7.0") && kept.ContainsKey("0.3.0") && !kept.ContainsKey("0.2.0"));
+
+        // Rebrand migration: legacy Mochi* keys migrate cleanly into Nimbus* properties and are removed on save.
+        var nimbusStore = new SettingsStore(Path.Combine(root, "nimbus-migration"), "1.6.0");
+        Directory.CreateDirectory(nimbusStore.DirectoryPath);
+        File.WriteAllText(nimbusStore.FilePath, """{"AppVersion":"1.5.1","MochiEnabled":false,"MochiOutfit":5,"MochiCollapseToCharacter":false,"MochiHideWhenIdle":true,"MochiDoNotDisturb":true,"MochiDesktopX":120,"MochiDesktopY":240}""");
+        var nimbusLoaded = nimbusStore.Load();
+        check("legacy Mochi* settings migrate into Nimbus* properties",
+            !nimbusLoaded.NimbusEnabled && nimbusLoaded.NimbusOutfit == NimbusOutfit.Sunglasses && !nimbusLoaded.NimbusCollapseToCharacter
+            && nimbusLoaded.NimbusHideWhenIdle && nimbusLoaded.NimbusDoNotDisturb && nimbusLoaded.NimbusDesktopX == 120 && nimbusLoaded.NimbusDesktopY == 240);
+        nimbusStore.Save(nimbusLoaded);
+        var nimbusSaved = SettingsMigrations.Parse(File.ReadAllText(nimbusStore.FilePath));
+        check("saving after migration writes Nimbus* keys and removes legacy Mochi* keys",
+            (bool?)nimbusSaved["NimbusEnabled"] == false && !nimbusSaved.ContainsKey("MochiEnabled") && !nimbusSaved.ContainsKey("MochiCollapseToCharacter"));
     }
 }

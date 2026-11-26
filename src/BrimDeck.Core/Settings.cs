@@ -560,21 +560,21 @@ public sealed class DeckSettings
     public int OpenDelay { get; set; } = 0;
     // The collapsed panel opens on a click instead of on hover; OpenDelay then does not apply.
     public bool ClickToExpand { get; set; } = true;
-    public bool MochiEnabled { get; set; } = true;
-    public MochiOutfit MochiOutfit { get; set; } = MochiOutfit.Auto;
-    public bool MochiDanceEnabled { get; set; } = true;
-    public bool MochiAutoSleepEnabled { get; set; } = true;
-    public int MochiAutoSleepMinutes { get; set; } = 5;
-    public bool MochiLaunchGreetingEnabled { get; set; } = true;
-    public bool MochiSoundsEnabled { get; set; } = true;
-    public bool MochiDesktopRoamingEnabled { get; set; } = true;
-    public double? MochiDesktopX { get; set; }
-    public double? MochiDesktopY { get; set; }
-    public bool MochiMiniBotsEnabled { get; set; } = true;
-    public bool MochiUpdateHintEnabled { get; set; } = true;
-    public bool MochiCollapseToCharacter { get; set; } = true;
-    public bool MochiHideWhenIdle { get; set; }
-    public bool MochiDoNotDisturb { get; set; }
+    public bool NimbusEnabled { get; set; } = true;
+    public NimbusOutfit NimbusOutfit { get; set; } = NimbusOutfit.Auto;
+    public bool NimbusDanceEnabled { get; set; } = true;
+    public bool NimbusAutoSleepEnabled { get; set; } = true;
+    public int NimbusAutoSleepMinutes { get; set; } = 5;
+    public bool NimbusLaunchGreetingEnabled { get; set; } = true;
+    public bool NimbusSoundsEnabled { get; set; } = true;
+    public bool NimbusDesktopRoamingEnabled { get; set; } = true;
+    public double? NimbusDesktopX { get; set; }
+    public double? NimbusDesktopY { get; set; }
+    public bool NimbusMiniBotsEnabled { get; set; } = true;
+    public bool NimbusUpdateHintEnabled { get; set; } = true;
+    public bool NimbusCollapseToCharacter { get; set; } = true;
+    public bool NimbusHideWhenIdle { get; set; }
+    public bool NimbusDoNotDisturb { get; set; }
     public int CloseDelay { get; set; } = 0;
     public int AnimationDuration { get; set; } = 360;
     public bool Animations { get; set; } = true;

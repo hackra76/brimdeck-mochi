@@ -9,22 +9,22 @@ namespace BrimDeck;
 
 public partial class MainWindow
 {
-    private readonly MochiCompanion _compactMochi = new() { IsMini = true };
-    private readonly DispatcherTimer _mochiPoll = new() { Interval = TimeSpan.FromSeconds(1.5) };
-    private readonly Dictionary<string, MochiAgentTask> _sessionTasks = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, (Border Pill, MochiCompanion Bot, TextBlock Label)> _miniBotPills = new(StringComparer.Ordinal);
+    private readonly NimbusCompanion _compactNimbus = new() { IsMini = true };
+    private readonly DispatcherTimer _nimbusPoll = new() { Interval = TimeSpan.FromSeconds(1.5) };
+    private readonly Dictionary<string, NimbusAgentTask> _sessionTasks = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, (Border Pill, NimbusCompanion Bot, TextBlock Label)> _miniBotPills = new(StringComparer.Ordinal);
     private readonly List<FileSystemWatcher> _conversationWatchers = [];
-    private readonly MochiQuotaTracker _quotaTracker = new();
+    private readonly NimbusQuotaTracker _quotaTracker = new();
     private long _latestConversationWriteTicks;
 
-    private MochiAgentPipeListener? _mochiPipe;
-    private DesktopMochiWindow? _desktopMochi;
-    private MochiState? _hookAgentState;
+    private NimbusAgentPipeListener? _nimbusPipe;
+    private DesktopNimbusWindow? _desktopNimbus;
+    private NimbusState? _hookAgentState;
     private string? _hookDetail;
     private DateTimeOffset _hookExpiresUtc;
-    private MochiHookEvent? _pendingPrompt;
+    private NimbusHookEvent? _pendingPrompt;
     private DateTimeOffset _pendingPromptExpiresUtc;
-    private MochiState _lastResolvedMochiState = MochiState.Idle;
+    private NimbusState _lastResolvedNimbusState = NimbusState.Idle;
     private DateTimeOffset _lastAgentActivityUtc = DateTimeOffset.UtcNow;
     private DateTimeOffset _lastMouseNearUtc = DateTimeOffset.UtcNow;
     private bool _hoverPeek;
@@ -33,34 +33,34 @@ public partial class MainWindow
     private bool _yawnedBeforeSleep;
     private bool _notchHiddenAtIdle;
 
-    private bool IsMochiOnlyNotch =>
-        Settings.MochiEnabled && Settings.MochiCollapseToCharacter && !_roamingOnDesktop && !_expanded && !_hoverPeek && !_preview && !CompactColumnMode
+    private bool IsNimbusOnlyNotch =>
+        Settings.NimbusEnabled && Settings.NimbusCollapseToCharacter && !_roamingOnDesktop && !_expanded && !_hoverPeek && !_preview && !CompactColumnMode
         && EffectiveStyle != CompactStyle.Line && _alert is null && _pendingPrompt is null;
 
-    internal bool IsMochiActionPill =>
-        Settings.MochiEnabled && _pendingPrompt is not null && !_expanded && !_preview && !CompactColumnMode
+    internal bool IsNimbusActionPill =>
+        Settings.NimbusEnabled && _pendingPrompt is not null && !_expanded && !_preview && !CompactColumnMode
         && EffectiveStyle != CompactStyle.Line && _alert is null;
 
     internal void SetHoverPeek(bool peek)
     {
         if (_hoverPeek == peek) return;
-        bool wasMochiOnly = IsMochiOnlyNotch;
+        bool wasNimbusOnly = IsNimbusOnlyNotch;
         _hoverPeek = peek;
         if (peek)
         {
             _lastMouseNearUtc = DateTimeOffset.UtcNow;
-            _compactMochi.TriggerEmote(MochiEmote.Happy, 0.9);
+            _compactNimbus.TriggerEmote(NimbusEmote.Happy, 0.9);
         }
-        if (wasMochiOnly != IsMochiOnlyNotch)
+        if (wasNimbusOnly != IsNimbusOnlyNotch)
         {
             RenderCompact();
             FitCompactToContent();
         }
     }
 
-    internal void UpdateMochiGlobalLook(Point cursorScreen)
+    internal void UpdateNimbusGlobalLook(Point cursorScreen)
     {
-        if (_desktopMochi is { IsVisible: true } desktop)
+        if (_desktopNimbus is { IsVisible: true } desktop)
         {
             var dpi = VisualTreeHelper.GetDpi(desktop);
             var dCenter = new Point((desktop.Left + desktop.Width / 2.0) * dpi.DpiScaleX, (desktop.Top + desktop.Height / 2.0) * dpi.DpiScaleY);
@@ -70,12 +70,12 @@ public partial class MainWindow
             if (ddx * ddx + ddy * ddy < nearPx * nearPx)
             {
                 _lastMouseNearUtc = DateTimeOffset.UtcNow;
-                if (_lastResolvedMochiState == MochiState.Sleeping)
-                    UpdateMochiStatus();
+                if (_lastResolvedNimbusState == NimbusState.Sleeping)
+                    UpdateNimbusStatus();
             }
             double dnx = Math.Clamp(ddx / 480.0, -1, 1);
             double dny = Math.Clamp(-ddy / 360.0, -1, 1);
-            desktop.Mochi.SetGlobalLook(dnx, dny);
+            desktop.Nimbus.SetGlobalLook(dnx, dny);
         }
 
         if (_expanded || PresentationSource.FromVisual(Island) is null || !(Island.ActualWidth > 0)) return;
@@ -85,41 +85,41 @@ public partial class MainWindow
         if (dx * dx + dy * dy < 280.0 * 280.0)
         {
             _lastMouseNearUtc = DateTimeOffset.UtcNow;
-            if (_lastResolvedMochiState == MochiState.Sleeping)
-                UpdateMochiStatus();
+            if (_lastResolvedNimbusState == NimbusState.Sleeping)
+                UpdateNimbusStatus();
         }
 
         double nx = Math.Clamp(dx / 480.0, -1, 1);
         double ny = Math.Clamp(-dy / 360.0, -1, 1);
-        _compactMochi.SetGlobalLook(nx, ny);
+        _compactNimbus.SetGlobalLook(nx, ny);
     }
 
-    private void InitializeMochi()
+    private void InitializeNimbus()
     {
-        _mochiPoll.Tick += (_, _) => UpdateMochiStatus();
-        _mochiPoll.Start();
+        _nimbusPoll.Tick += (_, _) => UpdateNimbusStatus();
+        _nimbusPoll.Start();
 
-        _compactMochi.Clicked += () => { if (!_expanded && !_preview && !_moveArmed && !IsSuppressed) OpenAtPointer(); };
-        ExpandedMochi.DragOutRequested += OnMochiDragOutRequested;
-        AttachMochiContextMenu(_compactMochi, isDesktop: false);
-        AttachMochiContextMenu(ExpandedMochi, isDesktop: false);
+        _compactNimbus.Clicked += () => { if (!_expanded && !_preview && !_moveArmed && !IsSuppressed) OpenAtPointer(); };
+        ExpandedNimbus.DragOutRequested += OnNimbusDragOutRequested;
+        AttachNimbusContextMenu(_compactNimbus, isDesktop: false);
+        AttachNimbusContextMenu(ExpandedNimbus, isDesktop: false);
 
         // Only the lead panel owns the named pipe listener to avoid duplicate pipe servers on multi-monitor setups.
         if (_lead is null)
         {
-            _mochiPipe = new MochiAgentPipeListener(ev =>
+            _nimbusPipe = new NimbusAgentPipeListener(ev =>
             {
                 Dispatcher.BeginInvoke(() =>
                 {
                     var now = DateTimeOffset.UtcNow;
                     _hookAgentState = ev.State;
                     _hookDetail = ev.Detail;
-                    _hookExpiresUtc = now.AddSeconds(ev.State is MochiState.Approval or MochiState.Question ? 120 : 15);
-                    if (ev.State is not MochiState.Idle and not MochiState.Sleeping)
+                    _hookExpiresUtc = now.AddSeconds(ev.State is NimbusState.Approval or NimbusState.Question ? 120 : 15);
+                    if (ev.State is not NimbusState.Idle and not NimbusState.Sleeping)
                         _lastAgentActivityUtc = now;
 
                     bool promptChanged = false;
-                    if (ev.State is MochiState.Approval or MochiState.Question)
+                    if (ev.State is NimbusState.Approval or NimbusState.Question)
                     {
                         _pendingPrompt = ev;
                         _pendingPromptExpiresUtc = now.AddSeconds(120);
@@ -132,9 +132,9 @@ public partial class MainWindow
                     }
 
                     string key = string.IsNullOrWhiteSpace(ev.SessionId) ? "default" : ev.SessionId;
-                    _sessionTasks[key] = new MochiAgentTask(key, ev.State, ev.Detail, now);
+                    _sessionTasks[key] = new NimbusAgentTask(key, ev.State, ev.Detail, now);
 
-                    UpdateMochiStatus();
+                    UpdateNimbusStatus();
                     if (promptChanged && !_expanded && IsLoaded)
                     {
                         RenderCompact();
@@ -143,7 +143,7 @@ public partial class MainWindow
                 });
             });
 
-            _app.Updates.Changed += OnUpdatesChangedForMochi;
+            _app.Updates.Changed += OnUpdatesChangedForNimbus;
         }
 
         StartConversationWatchers();
@@ -151,32 +151,32 @@ public partial class MainWindow
         Closed += (_, _) =>
         {
             _quickAskCts?.Cancel();
-            _mochiPoll.Stop();
-            _mochiPipe?.Dispose();
+            _nimbusPoll.Stop();
+            _nimbusPipe?.Dispose();
             foreach (var watcher in _conversationWatchers)
                 watcher.Dispose();
             _conversationWatchers.Clear();
-            if (_lead is null) _app.Updates.Changed -= OnUpdatesChangedForMochi;
-            _desktopMochi?.Close();
-            _desktopMochi = null;
+            if (_lead is null) _app.Updates.Changed -= OnUpdatesChangedForNimbus;
+            _desktopNimbus?.Close();
+            _desktopNimbus = null;
         };
 
-        ApplyMochiSettings();
-        UpdateMochiStatus();
+        ApplyNimbusSettings();
+        UpdateNimbusStatus();
 
         if (!CanAnimateLifecycle)
-            TriggerMochiLaunchGreetingIfEnabled();
+            TriggerNimbusLaunchGreetingIfEnabled();
 
-        if (_lead is null && Settings.MochiEnabled && Settings.MochiDesktopRoamingEnabled
-            && Settings.MochiDesktopX is { } sx && Settings.MochiDesktopY is { } sy)
+        if (_lead is null && Settings.NimbusEnabled && Settings.NimbusDesktopRoamingEnabled
+            && Settings.NimbusDesktopX is { } sx && Settings.NimbusDesktopY is { } sy)
         {
             Loaded += (_, _) =>
             {
-                if (_roamingOnDesktop || _desktopMochi is { IsVisible: true }) return;
-                if (Settings.MochiEnabled && Settings.MochiDesktopRoamingEnabled
-                    && Settings.MochiDesktopX is { } lx && Settings.MochiDesktopY is { } ly)
+                if (_roamingOnDesktop || _desktopNimbus is { IsVisible: true }) return;
+                if (Settings.NimbusEnabled && Settings.NimbusDesktopRoamingEnabled
+                    && Settings.NimbusDesktopX is { } lx && Settings.NimbusDesktopY is { } ly)
                 {
-                    ShowDesktopMochiAt(lx, ly);
+                    ShowDesktopNimbusAt(lx, ly);
                 }
             };
         }
@@ -189,7 +189,7 @@ public partial class MainWindow
 
         _ = Task.Run(() =>
         {
-            if (MochiCompanionLogic.LatestConversationWriteUtc(folders) is { } initial)
+            if (NimbusCompanionLogic.LatestConversationWriteUtc(folders) is { } initial)
                 RecordConversationWrite(initial);
         });
 
@@ -230,94 +230,94 @@ public partial class MainWindow
     }
 
     private bool _launchGreeted;
-    internal void TriggerMochiLaunchGreetingIfEnabled()
+    internal void TriggerNimbusLaunchGreetingIfEnabled()
     {
-        if (_launchGreeted || !Settings.MochiEnabled) return;
+        if (_launchGreeted || !Settings.NimbusEnabled) return;
         _launchGreeted = true;
-        if (Settings.MochiLaunchGreetingEnabled)
+        if (Settings.NimbusLaunchGreetingEnabled)
         {
-            _compactMochi.StartLaunchGreeting();
-            ExpandedMochi.StartLaunchGreeting();
-            _desktopMochi?.Mochi.StartLaunchGreeting();
+            _compactNimbus.StartLaunchGreeting();
+            ExpandedNimbus.StartLaunchGreeting();
+            _desktopNimbus?.Nimbus.StartLaunchGreeting();
         }
         else
         {
-            ExpandedMochi.Greet();
+            ExpandedNimbus.Greet();
         }
     }
 
-    private void OnUpdatesChangedForMochi() => Dispatcher.BeginInvoke(ApplyMochiSettings);
+    private void OnUpdatesChangedForNimbus() => Dispatcher.BeginInvoke(ApplyNimbusSettings);
 
-    internal void ApplyMochiSettings()
+    internal void ApplyNimbusSettings()
     {
-        MochiSound.Enabled = Settings.MochiSoundsEnabled && !Settings.MochiDoNotDisturb;
+        NimbusSound.Enabled = Settings.NimbusSoundsEnabled && !Settings.NimbusDoNotDisturb;
 
-        _compactMochi.SetOutfit(Settings.MochiOutfit);
-        ExpandedMochi.SetOutfit(Settings.MochiOutfit);
-        _desktopMochi?.Mochi.SetOutfit(Settings.MochiOutfit);
+        _compactNimbus.SetOutfit(Settings.NimbusOutfit);
+        ExpandedNimbus.SetOutfit(Settings.NimbusOutfit);
+        _desktopNimbus?.Nimbus.SetOutfit(Settings.NimbusOutfit);
 
-        bool allowDrag = _lead is null && Settings.MochiEnabled && Settings.MochiDesktopRoamingEnabled;
-        _compactMochi.AllowDragOut = false;
-        ExpandedMochi.AllowDragOut = allowDrag;
+        bool allowDrag = _lead is null && Settings.NimbusEnabled && Settings.NimbusDesktopRoamingEnabled;
+        _compactNimbus.AllowDragOut = false;
+        ExpandedNimbus.AllowDragOut = allowDrag;
 
-        if (!Settings.MochiEnabled || !Settings.MochiDesktopRoamingEnabled)
-            ReturnMochiToIsland(clearSavedPosition: false);
+        if (!Settings.NimbusEnabled || !Settings.NimbusDesktopRoamingEnabled)
+            ReturnNimbusToIsland(clearSavedPosition: false);
 
-        Color? hint = Settings.MochiEnabled && Settings.MochiUpdateHintEnabled && _app.Updates.HasUpdate
+        Color? hint = Settings.NimbusEnabled && Settings.NimbusUpdateHintEnabled && _app.Updates.HasUpdate
             ? Color.FromRgb(56, 189, 248)
             : null;
-        _compactMochi.SetUpdateHint(hint);
-        ExpandedMochi.SetUpdateHint(hint);
-        _desktopMochi?.Mochi.SetUpdateHint(hint);
+        _compactNimbus.SetUpdateHint(hint);
+        ExpandedNimbus.SetUpdateHint(hint);
+        _desktopNimbus?.Nimbus.SetUpdateHint(hint);
 
         bool mailbox = hint is not null && _app.Updates.Stage == AppUpdateStage.Ready;
-        _compactMochi.SetMailbox(mailbox);
-        ExpandedMochi.SetMailbox(mailbox);
-        _desktopMochi?.Mochi.SetMailbox(mailbox);
+        _compactNimbus.SetMailbox(mailbox);
+        ExpandedNimbus.SetMailbox(mailbox);
+        _desktopNimbus?.Nimbus.SetMailbox(mailbox);
         if (mailbox && !_wasMailbox)
         {
-            ExpandedMochi.Gulp();
-            _desktopMochi?.Mochi.Gulp();
+            ExpandedNimbus.Gulp();
+            _desktopNimbus?.Nimbus.Gulp();
         }
         _wasMailbox = mailbox;
 
-        ExpandedMochi.Visibility = Settings.MochiEnabled && !_roamingOnDesktop ? Visibility.Visible : Visibility.Collapsed;
-        UpdateMochiDance();
-        RenderMiniMochis();
+        ExpandedNimbus.Visibility = Settings.NimbusEnabled && !_roamingOnDesktop ? Visibility.Visible : Visibility.Collapsed;
+        UpdateNimbusDance();
+        RenderMiniNimbus();
     }
 
-    private void OnMochiDragOutRequested(Point cursorScreen)
+    private void OnNimbusDragOutRequested(Point cursorScreen)
     {
-        if (_lead is not null || !Settings.MochiEnabled || !Settings.MochiDesktopRoamingEnabled) return;
+        if (_lead is not null || !Settings.NimbusEnabled || !Settings.NimbusDesktopRoamingEnabled) return;
         _islandPressed = false;
         var source = PresentationSource.FromVisual(this);
         double scaleX = source?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
         double scaleY = source?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
         double left = cursorScreen.X / scaleX - 100;
         double top = cursorScreen.Y / scaleY - 116;
-        ShowDesktopMochiAt(left, top);
-        _desktopMochi?.BeginExternalDrag(cursorScreen);
-        SaveDesktopMochiPosition(left, top);
+        ShowDesktopNimbusAt(left, top);
+        _desktopNimbus?.BeginExternalDrag(cursorScreen);
+        SaveDesktopNimbusPosition(left, top);
     }
 
-    private void ShowDesktopMochiAt(double left, double top)
+    private void ShowDesktopNimbusAt(double left, double top)
     {
-        if (_desktopMochi is null)
+        if (_desktopNimbus is null)
         {
-            _desktopMochi = new DesktopMochiWindow();
-            _desktopMochi.PositionCommitted += SaveDesktopMochiPosition;
-            _desktopMochi.ReturnToIslandRequested += () => ReturnMochiToIsland(clearSavedPosition: true);
-            _desktopMochi.OpenSettingsRequested += () => _app.OpenSettings();
-            _desktopMochi.Clicked += () => { _lastMouseNearUtc = DateTimeOffset.UtcNow; UpdateMochiStatus(); };
-            AttachMochiContextMenu(_desktopMochi, isDesktop: true);
+            _desktopNimbus = new DesktopNimbusWindow();
+            _desktopNimbus.PositionCommitted += SaveDesktopNimbusPosition;
+            _desktopNimbus.ReturnToIslandRequested += () => ReturnNimbusToIsland(clearSavedPosition: true);
+            _desktopNimbus.OpenSettingsRequested += () => _app.OpenSettings();
+            _desktopNimbus.Clicked += () => { _lastMouseNearUtc = DateTimeOffset.UtcNow; UpdateNimbusStatus(); };
+            AttachNimbusContextMenu(_desktopNimbus, isDesktop: true);
         }
-        _desktopMochi.Left = left;
-        _desktopMochi.Top = top;
-        _desktopMochi.Mochi.SetOutfit(Settings.MochiOutfit);
-        _desktopMochi.Mochi.SetDancing(Settings.MochiEnabled && Settings.MochiDanceEnabled && MusicAudioActive);
-        if (!_desktopMochi.IsVisible) _desktopMochi.Show();
+        _desktopNimbus.Left = left;
+        _desktopNimbus.Top = top;
+        _desktopNimbus.Nimbus.SetOutfit(Settings.NimbusOutfit);
+        _desktopNimbus.Nimbus.SetDancing(Settings.NimbusEnabled && Settings.NimbusDanceEnabled && MusicAudioActive);
+        if (!_desktopNimbus.IsVisible) _desktopNimbus.Show();
         _roamingOnDesktop = true;
-        ExpandedMochi.Visibility = Visibility.Collapsed;
+        ExpandedNimbus.Visibility = Visibility.Collapsed;
         if (IsLoaded)
         {
             RenderCompact();
@@ -325,24 +325,24 @@ public partial class MainWindow
         }
     }
 
-    internal void ReturnMochiToIsland(bool clearSavedPosition = true)
+    internal void ReturnNimbusToIsland(bool clearSavedPosition = true)
     {
-        if (_desktopMochi is not null)
+        if (_desktopNimbus is not null)
         {
-            _desktopMochi.Hide();
+            _desktopNimbus.Hide();
         }
         bool wasRoaming = _roamingOnDesktop;
         _roamingOnDesktop = false;
-        if (clearSavedPosition && (Settings.MochiDesktopX is not null || Settings.MochiDesktopY is not null))
+        if (clearSavedPosition && (Settings.NimbusDesktopX is not null || Settings.NimbusDesktopY is not null))
         {
             var next = Settings.Copy();
-            next.MochiDesktopX = null;
-            next.MochiDesktopY = null;
+            next.NimbusDesktopX = null;
+            next.NimbusDesktopY = null;
             _app.UpdateSettings(next);
         }
         if (wasRoaming)
         {
-            ExpandedMochi.Visibility = Settings.MochiEnabled ? Visibility.Visible : Visibility.Collapsed;
+            ExpandedNimbus.Visibility = Settings.NimbusEnabled ? Visibility.Visible : Visibility.Collapsed;
             if (IsLoaded)
             {
                 RenderCompact();
@@ -351,15 +351,15 @@ public partial class MainWindow
         }
     }
 
-    private void SaveDesktopMochiPosition(double left, double top)
+    private void SaveDesktopNimbusPosition(double left, double top)
     {
         var next = Settings.Copy();
-        next.MochiDesktopX = left;
-        next.MochiDesktopY = top;
+        next.NimbusDesktopX = left;
+        next.NimbusDesktopY = top;
         _app.UpdateSettings(next);
     }
 
-    internal void UpdateMochiStatus()
+    internal void UpdateNimbusStatus()
     {
         var now = DateTimeOffset.UtcNow;
         if (_hookAgentState is not null && now >= _hookExpiresUtc)
@@ -386,16 +386,16 @@ public partial class MainWindow
         if (lastWrite is { } lw && lw > _lastAgentActivityUtc && (now - lw).TotalSeconds < 30)
             _lastAgentActivityUtc = lw;
 
-        double? remaining = MochiCompanionLogic.ExtractAntigravityRemainingPercent(Snapshots);
+        double? remaining = NimbusCompanionLogic.ExtractAntigravityRemainingPercent(Snapshots);
         var (justReset, eta) = _quotaTracker.Update(remaining, now);
 
-        var status = MochiCompanionLogic.Resolve(
+        var status = NimbusCompanionLogic.Resolve(
             _hookAgentState,
             lastWrite,
             now,
             remaining,
             _hookDetail,
-            MochiCompanionLogic.ExtractExhaustedAntigravityPools(Snapshots));
+            NimbusCompanionLogic.ExtractExhaustedAntigravityPools(Snapshots));
 
         if (eta is { } timeLeft && status.DetailText.Contains("quota", StringComparison.OrdinalIgnoreCase))
         {
@@ -405,18 +405,18 @@ public partial class MainWindow
             status = status with { DetailText = $"{status.DetailText} ({etaText})" };
         }
 
-        // Auto-sleep when idle and both agent & mouse have been inactive for MochiAutoSleepMinutes
-        bool dancing = Settings.MochiEnabled && Settings.MochiDanceEnabled && MusicAudioActive;
-        if (Settings.MochiAutoSleepEnabled && status.State == MochiState.Idle && !dancing && !_hoverPeek && !_expanded)
+        // Auto-sleep when idle and both agent & mouse have been inactive for NimbusAutoSleepMinutes
+        bool dancing = Settings.NimbusEnabled && Settings.NimbusDanceEnabled && MusicAudioActive;
+        if (Settings.NimbusAutoSleepEnabled && status.State == NimbusState.Idle && !dancing && !_hoverPeek && !_expanded)
         {
             var lastActive = _lastAgentActivityUtc > _lastMouseNearUtc ? _lastAgentActivityUtc : _lastMouseNearUtc;
             var idleFor = now - lastActive;
-            var sleepAfter = TimeSpan.FromMinutes(Math.Max(1, Settings.MochiAutoSleepMinutes));
+            var sleepAfter = TimeSpan.FromMinutes(Math.Max(1, Settings.NimbusAutoSleepMinutes));
             if (idleFor >= sleepAfter)
             {
                 status = status with
                 {
-                    State = MochiState.Sleeping,
+                    State = NimbusState.Sleeping,
                     StatusTitle = "Sleeping",
                     DetailText = "Zzz... idle for a while"
                 };
@@ -424,54 +424,54 @@ public partial class MainWindow
             else if (!_yawnedBeforeSleep && idleFor >= sleepAfter - TimeSpan.FromSeconds(15))
             {
                 _yawnedBeforeSleep = true;
-                _compactMochi.TriggerEmote(MochiEmote.Yawn, 1.8);
-                ExpandedMochi.TriggerEmote(MochiEmote.Yawn, 1.8);
-                _desktopMochi?.Mochi.TriggerEmote(MochiEmote.Yawn, 1.8);
+                _compactNimbus.TriggerEmote(NimbusEmote.Yawn, 1.8);
+                ExpandedNimbus.TriggerEmote(NimbusEmote.Yawn, 1.8);
+                _desktopNimbus?.Nimbus.TriggerEmote(NimbusEmote.Yawn, 1.8);
             }
         }
-        if (status.State != MochiState.Idle) _yawnedBeforeSleep = false;
+        if (status.State != NimbusState.Idle) _yawnedBeforeSleep = false;
 
-        // Auto-retract roaming desktop Mochi back to the island when an urgent notification/alert arrives
-        if (_roamingOnDesktop && status.State is MochiState.Approval or MochiState.Question or MochiState.Error)
+        // Auto-retract roaming desktop Nimbus back to the island when an urgent notification/alert arrives
+        if (_roamingOnDesktop && status.State is NimbusState.Approval or NimbusState.Question or NimbusState.Error)
         {
-            ReturnMochiToIsland(clearSavedPosition: false);
-            ExpandedMochi.TriggerEmote(MochiEmote.Surprised, 0.9);
+            ReturnNimbusToIsland(clearSavedPosition: false);
+            ExpandedNimbus.TriggerEmote(NimbusEmote.Surprised, 0.9);
         }
 
         // Wake up surprised when transitioning out of Sleeping into Idle
-        if (_lastResolvedMochiState == MochiState.Sleeping && status.State == MochiState.Idle)
+        if (_lastResolvedNimbusState == NimbusState.Sleeping && status.State == NimbusState.Idle)
         {
-            _compactMochi.TriggerEmote(MochiEmote.Surprised, 0.9);
-            ExpandedMochi.TriggerEmote(MochiEmote.Surprised, 0.9);
-            _desktopMochi?.Mochi.TriggerEmote(MochiEmote.Surprised, 0.9);
+            _compactNimbus.TriggerEmote(NimbusEmote.Surprised, 0.9);
+            ExpandedNimbus.TriggerEmote(NimbusEmote.Surprised, 0.9);
+            _desktopNimbus?.Nimbus.TriggerEmote(NimbusEmote.Surprised, 0.9);
         }
 
         // Trigger a brief celebration emote when transitioning into Finished while quota is healthy.
-        if (status.State == MochiState.Finished && _lastResolvedMochiState != MochiState.Finished
-            && status.QuotaMood == MochiQuotaMood.Energetic)
+        if (status.State == NimbusState.Finished && _lastResolvedNimbusState != NimbusState.Finished
+            && status.QuotaMood == NimbusQuotaMood.Energetic)
         {
-            ExpandedMochi.TriggerEmote(MochiEmote.Proud, 1.6);
-            _desktopMochi?.Mochi.TriggerEmote(MochiEmote.Proud, 1.6);
+            ExpandedNimbus.TriggerEmote(NimbusEmote.Proud, 1.6);
+            _desktopNimbus?.Nimbus.TriggerEmote(NimbusEmote.Proud, 1.6);
         }
         if (justReset)
         {
-            _compactMochi.TriggerEmote(MochiEmote.Proud, 2.0);
-            ExpandedMochi.TriggerEmote(MochiEmote.Proud, 2.0);
-            _desktopMochi?.Mochi.TriggerEmote(MochiEmote.Proud, 2.0);
-            if (_roamingOnDesktop && _desktopMochi is { IsVisible: true } && !Settings.MochiDoNotDisturb)
-                _desktopMochi.ShowBubble("Quota reset!");
+            _compactNimbus.TriggerEmote(NimbusEmote.Proud, 2.0);
+            ExpandedNimbus.TriggerEmote(NimbusEmote.Proud, 2.0);
+            _desktopNimbus?.Nimbus.TriggerEmote(NimbusEmote.Proud, 2.0);
+            if (_roamingOnDesktop && _desktopNimbus is { IsVisible: true } && !Settings.NimbusDoNotDisturb)
+                _desktopNimbus.ShowBubble("Quota reset!");
         }
-        else if (_roamingOnDesktop && _desktopMochi is { IsVisible: true } && status.State != _lastResolvedMochiState
-            && (!Settings.MochiDoNotDisturb || status.State == MochiState.Error)
-            && status.State is MochiState.Finished or MochiState.Error or MochiState.RateLimit or MochiState.Working)
+        else if (_roamingOnDesktop && _desktopNimbus is { IsVisible: true } && status.State != _lastResolvedNimbusState
+            && (!Settings.NimbusDoNotDisturb || status.State == NimbusState.Error)
+            && status.State is NimbusState.Finished or NimbusState.Error or NimbusState.RateLimit or NimbusState.Working)
         {
-            _desktopMochi.ShowBubble(status.StatusTitle);
+            _desktopNimbus.ShowBubble(status.StatusTitle);
         }
 
-        _lastResolvedMochiState = status.State;
+        _lastResolvedNimbusState = status.State;
 
-        bool hideNotch = Settings.MochiEnabled && Settings.MochiHideWhenIdle
-            && status.State == MochiState.Sleeping
+        bool hideNotch = Settings.NimbusEnabled && Settings.NimbusHideWhenIdle
+            && status.State == NimbusState.Sleeping
             && !_expanded && !_hoverPeek && !_preview && _pendingPrompt is null && _alert is null;
         if (hideNotch != _notchHiddenAtIdle)
         {
@@ -480,51 +480,51 @@ public partial class MainWindow
             ShadowHost.Visibility = hideNotch ? Visibility.Collapsed : Visibility.Visible;
         }
 
-        ExpandedMochi.Visibility = Settings.MochiEnabled && !_roamingOnDesktop ? Visibility.Visible : Visibility.Collapsed;
-        _compactMochi.ApplyStatus(status);
-        ExpandedMochi.ApplyStatus(status);
-        _desktopMochi?.Mochi.ApplyStatus(status);
-        UpdateMochiStatusChip(status);
-        UpdateMochiDance();
-        RenderMiniMochis();
+        ExpandedNimbus.Visibility = Settings.NimbusEnabled && !_roamingOnDesktop ? Visibility.Visible : Visibility.Collapsed;
+        _compactNimbus.ApplyStatus(status);
+        ExpandedNimbus.ApplyStatus(status);
+        _desktopNimbus?.Nimbus.ApplyStatus(status);
+        UpdateNimbusStatusChip(status);
+        UpdateNimbusDance();
+        RenderMiniNimbus();
     }
 
-    private void UpdateMochiStatusChip(MochiStatusSnapshot status)
+    private void UpdateNimbusStatusChip(NimbusStatusSnapshot status)
     {
-        if (!Settings.MochiEnabled)
+        if (!Settings.NimbusEnabled)
         {
-            MochiStatusChip.Visibility = Visibility.Collapsed;
+            NimbusStatusChip.Visibility = Visibility.Collapsed;
             return;
         }
         var accent = SessionStateColor(status.State);
-        MochiStatusChip.BorderBrush = new SolidColorBrush(Color.FromArgb(90, accent.R, accent.G, accent.B));
-        MochiStatusChip.Background = new SolidColorBrush(Color.FromArgb(26, accent.R, accent.G, accent.B));
-        MochiStatusText.Foreground = status.State == MochiState.Idle
+        NimbusStatusChip.BorderBrush = new SolidColorBrush(Color.FromArgb(90, accent.R, accent.G, accent.B));
+        NimbusStatusChip.Background = new SolidColorBrush(Color.FromArgb(26, accent.R, accent.G, accent.B));
+        NimbusStatusText.Foreground = status.State == NimbusState.Idle
             ? UI.Brush(UI.Secondary)
             : new SolidColorBrush(Color.FromRgb(
                 (byte)Math.Min(255, accent.R + 60),
                 (byte)Math.Min(255, accent.G + 60),
                 (byte)Math.Min(255, accent.B + 60)));
-        MochiStatusText.Text = status.StatusTitle;
-        MochiStatusChip.ToolTip = status.DetailText;
-        MochiStatusChip.Visibility = Visibility.Visible;
+        NimbusStatusText.Text = status.StatusTitle;
+        NimbusStatusChip.ToolTip = status.DetailText;
+        NimbusStatusChip.Visibility = Visibility.Visible;
     }
 
-    internal void UpdateMochiDance()
+    internal void UpdateNimbusDance()
     {
-        bool dancing = Settings.MochiEnabled && Settings.MochiDanceEnabled && MusicAudioActive;
-        _compactMochi.SetDancing(dancing);
-        ExpandedMochi.SetDancing(dancing);
-        _desktopMochi?.Mochi.SetDancing(dancing);
+        bool dancing = Settings.NimbusEnabled && Settings.NimbusDanceEnabled && MusicAudioActive;
+        _compactNimbus.SetDancing(dancing);
+        ExpandedNimbus.SetDancing(dancing);
+        _desktopNimbus?.Nimbus.SetDancing(dancing);
         foreach (var mini in _miniBotPills.Values)
             mini.Bot.SetDancing(dancing);
     }
 
-    private void RenderMiniMochis()
+    private void RenderMiniNimbus()
     {
-        if (!Settings.MochiEnabled || !Settings.MochiMiniBotsEnabled || _sessionTasks.Count <= 1)
+        if (!Settings.NimbusEnabled || !Settings.NimbusMiniBotsEnabled || _sessionTasks.Count <= 1)
         {
-            MiniMochisPanel.Visibility = Visibility.Collapsed;
+            MiniNimbusPanel.Visibility = Visibility.Collapsed;
             return;
         }
 
@@ -533,16 +533,16 @@ public partial class MainWindow
         foreach (var dead in _miniBotPills.Keys.Where(k => !activeKeys.Contains(k)).ToList())
         {
             if (_miniBotPills.TryGetValue(dead, out var entry))
-                MiniMochisPanel.Children.Remove(entry.Pill);
+                MiniNimbusPanel.Children.Remove(entry.Pill);
             _miniBotPills.Remove(dead);
         }
 
-        bool dancing = Settings.MochiDanceEnabled && MusicAudioActive;
+        bool dancing = Settings.NimbusDanceEnabled && MusicAudioActive;
         foreach (var task in active)
         {
             if (!_miniBotPills.TryGetValue(task.SessionId, out var entry))
             {
-                var bot = new MochiCompanion { IsMini = true, Width = 16, Height = 16, VerticalAlignment = VerticalAlignment.Center };
+                var bot = new NimbusCompanion { IsMini = true, Width = 16, Height = 16, VerticalAlignment = VerticalAlignment.Center };
                 var label = new TextBlock
                 {
                     FontFamily = UI.TextFont,
@@ -566,7 +566,7 @@ public partial class MainWindow
                 };
                 entry = (pill, bot, label);
                 _miniBotPills[task.SessionId] = entry;
-                MiniMochisPanel.Children.Add(pill);
+                MiniNimbusPanel.Children.Add(pill);
             }
 
             var accent = SessionStateColor(task.State);
@@ -578,15 +578,15 @@ public partial class MainWindow
             entry.Bot.SetDancing(dancing);
             entry.Bot.SetPermanentEmote(task.State switch
             {
-                MochiState.Finished => MochiEmote.Happy,
-                MochiState.Error => MochiEmote.Annoyed,
-                MochiState.Approval => MochiEmote.Wink,
+                NimbusState.Finished => NimbusEmote.Happy,
+                NimbusState.Error => NimbusEmote.Annoyed,
+                NimbusState.Approval => NimbusEmote.Wink,
                 _ => null
             });
-            entry.Bot.ApplyStatus(new MochiStatusSnapshot(task.State, MochiQuotaMood.Energetic, 100, task.State.ToString(), task.Detail ?? task.SessionId));
+            entry.Bot.ApplyStatus(new NimbusStatusSnapshot(task.State, NimbusQuotaMood.Energetic, 100, task.State.ToString(), task.Detail ?? task.SessionId));
         }
 
-        MiniMochisPanel.Visibility = Visibility.Visible;
+        MiniNimbusPanel.Visibility = Visibility.Visible;
     }
 
     private static string FormatSessionLabel(string sessionId, string? detail)
@@ -596,35 +596,35 @@ public partial class MainWindow
         return sessionId[..6] + "…";
     }
 
-    private static Color SessionStateColor(MochiState state) => state switch
+    private static Color SessionStateColor(NimbusState state) => state switch
     {
-        MochiState.Working => Color.FromRgb(59, 158, 255),
-        MochiState.Thinking => Color.FromRgb(139, 92, 246),
-        MochiState.Searching => Color.FromRgb(99, 102, 241),
-        MochiState.Approval => Color.FromRgb(245, 165, 36),
-        MochiState.Question => Color.FromRgb(34, 211, 238),
-        MochiState.Error => Color.FromRgb(244, 80, 94),
-        MochiState.Finished => Color.FromRgb(52, 211, 153),
-        MochiState.RateLimit => Color.FromRgb(251, 146, 60),
+        NimbusState.Working => Color.FromRgb(59, 158, 255),
+        NimbusState.Thinking => Color.FromRgb(139, 92, 246),
+        NimbusState.Searching => Color.FromRgb(99, 102, 241),
+        NimbusState.Approval => Color.FromRgb(245, 165, 36),
+        NimbusState.Question => Color.FromRgb(34, 211, 238),
+        NimbusState.Error => Color.FromRgb(244, 80, 94),
+        NimbusState.Finished => Color.FromRgb(52, 211, 153),
+        NimbusState.RateLimit => Color.FromRgb(251, 146, 60),
         _ => Color.FromRgb(148, 163, 184)
     };
 
-    private static readonly (MochiOutfit Outfit, string En)[] MochiWardrobeItems =
+    private static readonly (NimbusOutfit Outfit, string En)[] NimbusWardrobeItems =
     [
-        (MochiOutfit.Auto, "Auto (Seasonal)"),
-        (MochiOutfit.None, "None"),
-        (MochiOutfit.SantaHat, "Santa Hat"),
-        (MochiOutfit.PartyHat, "Party Hat"),
-        (MochiOutfit.WitchHat, "Witch Hat"),
-        (MochiOutfit.Sunglasses, "Sunglasses"),
-        (MochiOutfit.RoundGlasses, "Round Glasses"),
-        (MochiOutfit.Bow, "Ribbon Bow"),
-        (MochiOutfit.Scarf, "Winter Scarf"),
-        (MochiOutfit.Pumpkin, "Pumpkin")
+        (NimbusOutfit.Auto, "Auto (Seasonal)"),
+        (NimbusOutfit.None, "None"),
+        (NimbusOutfit.SantaHat, "Santa Hat"),
+        (NimbusOutfit.PartyHat, "Party Hat"),
+        (NimbusOutfit.WitchHat, "Witch Hat"),
+        (NimbusOutfit.Sunglasses, "Sunglasses"),
+        (NimbusOutfit.RoundGlasses, "Round Glasses"),
+        (NimbusOutfit.Bow, "Ribbon Bow"),
+        (NimbusOutfit.Scarf, "Winter Scarf"),
+        (NimbusOutfit.Pumpkin, "Pumpkin")
     ];
 
-    private bool _mochiMenuOpen;
-    internal bool MochiHoldsMenu => _mochiMenuOpen || _quickAskBackend?.IsDropDownOpen == true;
+    private bool _nimbusMenuOpen;
+    internal bool NimbusHoldsMenu => _nimbusMenuOpen || _quickAskBackend?.IsDropDownOpen == true;
     internal bool QuickAskHolds => QuickAskOverlay.Visibility == Visibility.Visible && !_pressedOutside
         && (IsActive || _pointerInside || _quickAskCts is not null || _quickAskBackend?.IsDropDownOpen == true);
 
@@ -635,51 +635,51 @@ public partial class MainWindow
         return true;
     }
 
-    private void AttachMochiContextMenu(FrameworkElement target, bool isDesktop)
+    private void AttachNimbusContextMenu(FrameworkElement target, bool isDesktop)
     {
         var menu = new ContextMenu();
         target.ContextMenu = menu;
         target.ContextMenuOpening += (_, _) =>
         {
-            _mochiMenuOpen = true;
+            _nimbusMenuOpen = true;
             _hover.Stop();
             _leave.Stop();
-            PopulateMochiContextMenu(menu, isDesktop);
+            PopulateNimbusContextMenu(menu, isDesktop);
         };
         menu.Opened += (_, _) =>
         {
-            _mochiMenuOpen = true;
+            _nimbusMenuOpen = true;
             _hover.Stop();
             _leave.Stop();
         };
         menu.Closed += (_, _) =>
         {
-            _mochiMenuOpen = false;
+            _nimbusMenuOpen = false;
             Dispatcher.BeginInvoke(() =>
             {
-                if (_expanded && !_pointerInside && !ShelfHolds && !MochiHoldsMenu && !QuickAskHolds) PointerChanged(false);
+                if (_expanded && !_pointerInside && !ShelfHolds && !NimbusHoldsMenu && !QuickAskHolds) PointerChanged(false);
                 else if (!_expanded && _hoverPeek && !_preview && !_pointerInside) SetHoverPeek(false);
             });
         };
     }
 
-    private void PopulateMochiContextMenu(ContextMenu menu, bool isDesktop)
+    private void PopulateNimbusContextMenu(ContextMenu menu, bool isDesktop)
     {
         menu.Items.Clear();
 
         var wardrobe = new MenuItem { Header = "Wardrobe" };
-        foreach (var (outfit, en) in MochiWardrobeItems)
+        foreach (var (outfit, en) in NimbusWardrobeItems)
         {
             var item = new MenuItem
             {
                 Header = en,
                 IsCheckable = true,
-                IsChecked = Settings.MochiOutfit == outfit
+                IsChecked = Settings.NimbusOutfit == outfit
             };
             item.Click += (_, _) =>
             {
                 var next = Settings.Copy();
-                next.MochiOutfit = outfit;
+                next.NimbusOutfit = outfit;
                 _app.UpdateSettings(next);
             };
             wardrobe.Items.Add(item);
@@ -690,12 +690,12 @@ public partial class MainWindow
         {
             Header = "Sounds",
             IsCheckable = true,
-            IsChecked = Settings.MochiSoundsEnabled
+            IsChecked = Settings.NimbusSoundsEnabled
         };
         sounds.Click += (_, _) =>
         {
             var next = Settings.Copy();
-            next.MochiSoundsEnabled = !Settings.MochiSoundsEnabled;
+            next.NimbusSoundsEnabled = !Settings.NimbusSoundsEnabled;
             _app.UpdateSettings(next);
         };
         menu.Items.Add(sounds);
@@ -704,23 +704,23 @@ public partial class MainWindow
         {
             Header = "Do Not Disturb",
             IsCheckable = true,
-            IsChecked = Settings.MochiDoNotDisturb
+            IsChecked = Settings.NimbusDoNotDisturb
         };
         dnd.Click += (_, _) =>
         {
             var next = Settings.Copy();
-            next.MochiDoNotDisturb = !Settings.MochiDoNotDisturb;
+            next.NimbusDoNotDisturb = !Settings.NimbusDoNotDisturb;
             _app.UpdateSettings(next);
         };
         menu.Items.Add(dnd);
 
-        if (_lead is null && Settings.MochiDesktopRoamingEnabled)
+        if (_lead is null && Settings.NimbusDesktopRoamingEnabled)
         {
             menu.Items.Add(new Separator());
             if (isDesktop || _roamingOnDesktop)
             {
                 var dock = new MenuItem { Header = "Return to Island" };
-                dock.Click += (_, _) => ReturnMochiToIsland(clearSavedPosition: true);
+                dock.Click += (_, _) => ReturnNimbusToIsland(clearSavedPosition: true);
                 menu.Items.Add(dock);
             }
             else
@@ -729,25 +729,25 @@ public partial class MainWindow
                 roam.Click += (_, _) =>
                 {
                     var center = PointToScreen(new Point(ActualWidth / 2.0, ActualHeight + 40));
-                    OnMochiDragOutRequested(center);
+                    OnNimbusDragOutRequested(center);
                 };
                 menu.Items.Add(roam);
             }
         }
 
         menu.Items.Add(new Separator());
-        var settings = new MenuItem { Header = "Mochi Settings" };
+        var settings = new MenuItem { Header = "Nimbus Settings" };
         settings.Click += (_, _) => _app.OpenSettings();
         menu.Items.Add(settings);
     }
 
-    internal (UIElement Content, double WantedWidth) BuildMochiActionPill(double scale, double rowHeight)
+    internal (UIElement Content, double WantedWidth) BuildNimbusActionPill(double scale, double rowHeight)
     {
         var prompt = _pendingPrompt!;
         double miniSize = CompactMusicLayout.Whole(Math.Max(22 * scale, rowHeight - 2));
-        var mochi = AcquireCompactMochi(miniSize);
-        mochi.Width = miniSize;
-        mochi.Height = miniSize;
+        var nimbus = AcquireCompactNimbus(miniSize);
+        nimbus.Width = miniSize;
+        nimbus.Height = miniSize;
 
         var panel = new StackPanel
         {
@@ -759,10 +759,10 @@ public partial class MainWindow
             Width = miniSize,
             Height = miniSize,
             Margin = new Thickness(0, 0, 6 * scale, 0),
-            Child = mochi
+            Child = nimbus
         });
 
-        string prefix = prompt.State == MochiState.Approval
+        string prefix = prompt.State == NimbusState.Approval
             ? "Approve"
             : "Question";
         string labelText = string.IsNullOrWhiteSpace(prompt.Detail) ? prefix : $"{prefix}: {prompt.Detail}";
@@ -773,7 +773,7 @@ public partial class MainWindow
         label.ToolTip = labelText;
         panel.Children.Add(label);
 
-        Button MakePillButton(string text, Color bg, Color fg, string decision, MochiState nextState)
+        Button MakePillButton(string text, Color bg, Color fg, string decision, NimbusState nextState)
         {
             var btn = new Button
             {
@@ -802,22 +802,22 @@ public partial class MainWindow
             return btn;
         }
 
-        if (prompt.State == MochiState.Approval)
+        if (prompt.State == NimbusState.Approval)
         {
-            panel.Children.Add(MakePillButton("Allow", Color.FromRgb(52, 211, 153), Color.FromRgb(10, 20, 16), "allow", MochiState.Working));
-            panel.Children.Add(MakePillButton("Deny", Color.FromArgb(64, 244, 80, 94), Color.FromRgb(255, 220, 224), "deny", MochiState.Idle));
+            panel.Children.Add(MakePillButton("Allow", Color.FromRgb(52, 211, 153), Color.FromRgb(10, 20, 16), "allow", NimbusState.Working));
+            panel.Children.Add(MakePillButton("Deny", Color.FromArgb(64, 244, 80, 94), Color.FromRgb(255, 220, 224), "deny", NimbusState.Idle));
         }
         else if (prompt.Options.Count > 0)
         {
             foreach (var opt in prompt.Options.Take(3))
             {
                 string shortOpt = opt.Length > 14 ? opt[..13] + "…" : opt;
-                panel.Children.Add(MakePillButton(shortOpt, Color.FromArgb(56, 34, 211, 238), Color.FromRgb(224, 249, 255), opt, MochiState.Working));
+                panel.Children.Add(MakePillButton(shortOpt, Color.FromArgb(56, 34, 211, 238), Color.FromRgb(224, 249, 255), opt, NimbusState.Working));
             }
         }
         else
         {
-            panel.Children.Add(MakePillButton("OK", Color.FromArgb(56, 34, 211, 238), Color.FromRgb(224, 249, 255), "ok", MochiState.Working));
+            panel.Children.Add(MakePillButton("OK", Color.FromArgb(56, 34, 211, 238), Color.FromRgb(224, 249, 255), "ok", NimbusState.Working));
         }
 
         panel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
@@ -825,16 +825,16 @@ public partial class MainWindow
         return (panel, wanted);
     }
 
-    private void ResolvePendingPrompt(MochiHookEvent prompt, string decision, MochiState nextState)
+    private void ResolvePendingPrompt(NimbusHookEvent prompt, string decision, NimbusState nextState)
     {
         if (!string.IsNullOrWhiteSpace(prompt.RequestId))
-            _mochiPipe?.TryRespond(prompt.RequestId, decision);
+            _nimbusPipe?.TryRespond(prompt.RequestId, decision);
 
         _pendingPrompt = null;
         _hookAgentState = nextState;
-        _hookDetail = nextState == MochiState.Working ? prompt.Detail : null;
-        _hookExpiresUtc = DateTimeOffset.UtcNow.AddSeconds(nextState == MochiState.Working ? 15 : 1);
-        UpdateMochiStatus();
+        _hookDetail = nextState == NimbusState.Working ? prompt.Detail : null;
+        _hookExpiresUtc = DateTimeOffset.UtcNow.AddSeconds(nextState == NimbusState.Working ? 15 : 1);
+        UpdateNimbusStatus();
         if (!_expanded && IsLoaded)
         {
             RenderCompact();
@@ -848,7 +848,7 @@ public partial class MainWindow
     private ComboBox? _quickAskBackend;
     private Button? _quickAskSend;
 
-    private void MochiStatusChip_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private void NimbusStatusChip_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         e.Handled = true;
         if (QuickAskOverlay.Visibility == Visibility.Visible)
@@ -879,9 +879,9 @@ public partial class MainWindow
     private void RefreshQuickAskBackends()
     {
         if (_quickAskBackend is null) return;
-        var backends = MochiQuickAsk.DetectBackends();
+        var backends = NimbusQuickAsk.DetectBackends();
         if (backends.Count == 0)
-            backends = MochiQuickAsk.DetectBackends(refresh: true);
+            backends = NimbusQuickAsk.DetectBackends(refresh: true);
         var items = backends.Count > 0 ? backends.Select(b => b.Backend.Name).ToList() : new List<string> { "No CLI found" };
         if (_quickAskBackend.ItemsSource is IEnumerable<string> current && current.SequenceEqual(items))
         {
@@ -901,7 +901,7 @@ public partial class MainWindow
     {
         if (QuickAskOverlay.Children.Count > 0) return;
 
-        var backends = MochiQuickAsk.DetectBackends();
+        var backends = NimbusQuickAsk.DetectBackends();
         var root = new Border
         {
             Background = new SolidColorBrush(Color.FromArgb(242, 20, 22, 28)),
@@ -919,7 +919,7 @@ public partial class MainWindow
         var header = new Grid { Margin = new Thickness(0, 0, 0, 8) };
         var title = new TextBlock
         {
-            Text = "Mochi Quick Ask",
+            Text = "Nimbus Quick Ask",
             FontFamily = UI.TextFont,
             FontSize = 12.5,
             FontWeight = FontWeights.SemiBold,
@@ -996,7 +996,7 @@ public partial class MainWindow
         };
         var placeholder = new TextBlock
         {
-            Text = "Ask Mochi anything…",
+            Text = "Ask Nimbus anything…",
             FontFamily = UI.TextFont,
             FontSize = 11.5,
             Foreground = UI.Brush(UI.Tertiary),
@@ -1057,10 +1057,10 @@ public partial class MainWindow
         string prompt = _quickAskInput.Text.Trim();
         if (prompt.Length == 0) return;
 
-        var backends = MochiQuickAsk.DetectBackends();
+        var backends = NimbusQuickAsk.DetectBackends();
         if (backends.Count == 0)
         {
-            backends = MochiQuickAsk.DetectBackends(refresh: true);
+            backends = NimbusQuickAsk.DetectBackends(refresh: true);
             RefreshQuickAskBackends();
         }
         if (backends.Count == 0)
@@ -1081,29 +1081,29 @@ public partial class MainWindow
         _quickAskSend.IsEnabled = false;
         _quickAskOutput.Text = $"Asking {backend.Name}…";
 
-        _hookAgentState = MochiState.Thinking;
+        _hookAgentState = NimbusState.Thinking;
         _hookDetail = $"Quick Ask ({backend.Name})";
         _hookExpiresUtc = DateTimeOffset.UtcNow.AddSeconds(65);
-        UpdateMochiStatus();
+        UpdateNimbusStatus();
 
         try
         {
-            var (ok, output) = await MochiQuickAsk.AskAsync(backend, resolved, prompt, ct);
+            var (ok, output) = await NimbusQuickAsk.AskAsync(backend, resolved, prompt, ct);
             if (ct.IsCancellationRequested) return;
             _quickAskOutput.Text = output;
-            _hookAgentState = ok ? MochiState.Finished : MochiState.Error;
+            _hookAgentState = ok ? NimbusState.Finished : NimbusState.Error;
             _hookDetail = ok ? backend.Name : "Quick Ask failed";
             _hookExpiresUtc = DateTimeOffset.UtcNow.AddSeconds(8);
-            UpdateMochiStatus();
+            UpdateNimbusStatus();
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             _quickAskOutput.Text = ex.Message;
-            _hookAgentState = MochiState.Error;
+            _hookAgentState = NimbusState.Error;
             _hookDetail = ex.Message;
             _hookExpiresUtc = DateTimeOffset.UtcNow.AddSeconds(8);
-            UpdateMochiStatus();
+            UpdateNimbusStatus();
         }
         finally
         {
@@ -1119,13 +1119,13 @@ public partial class MainWindow
         }
     }
 
-    private MochiCompanion AcquireCompactMochi(double size)
+    private NimbusCompanion AcquireCompactNimbus(double size)
     {
-        if (_compactMochi.Parent is Panel prev)
-            prev.Children.Remove(_compactMochi);
-        _compactMochi.IsMini = size < 26;
-        _compactMochi.Width = size;
-        _compactMochi.Height = size;
-        return _compactMochi;
+        if (_compactNimbus.Parent is Panel prev)
+            prev.Children.Remove(_compactNimbus);
+        _compactNimbus.IsMini = size < 26;
+        _compactNimbus.Width = size;
+        _compactNimbus.Height = size;
+        return _compactNimbus;
     }
 }

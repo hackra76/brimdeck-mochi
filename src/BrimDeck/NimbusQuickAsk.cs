@@ -6,7 +6,7 @@ namespace BrimDeck;
 
 internal sealed record QuickAskBackend(string Name, string Executable, Func<string, string> BuildArgs);
 
-internal static class MochiQuickAsk
+internal static class NimbusQuickAsk
 {
     private static readonly QuickAskBackend[] Candidates =
     [

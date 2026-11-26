@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace BrimDeck.Core;
 
-public enum MochiState
+public enum NimbusState
 {
     Idle,
     Working,
@@ -20,7 +20,7 @@ public enum MochiState
     Dizzy
 }
 
-public enum MochiEmote
+public enum NimbusEmote
 {
     Love,
     Surprised,
@@ -31,7 +31,7 @@ public enum MochiEmote
     Annoyed
 }
 
-public enum MochiOutfit
+public enum NimbusOutfit
 {
     Auto,
     None,
@@ -45,9 +45,9 @@ public enum MochiOutfit
     Pumpkin
 }
 
-public sealed record MochiAgentTask(string SessionId, MochiState State, string? Detail, DateTimeOffset UpdatedUtc);
+public sealed record NimbusAgentTask(string SessionId, NimbusState State, string? Detail, DateTimeOffset UpdatedUtc);
 
-public enum MochiQuotaMood
+public enum NimbusQuotaMood
 {
     Energetic,
     Normal,
@@ -56,9 +56,9 @@ public enum MochiQuotaMood
     Depleted
 }
 
-public sealed record MochiStatusSnapshot(
-    MochiState State,
-    MochiQuotaMood QuotaMood,
+public sealed record NimbusStatusSnapshot(
+    NimbusState State,
+    NimbusQuotaMood QuotaMood,
     double? RemainingPercent,
     string StatusTitle,
     string DetailText);
@@ -67,17 +67,17 @@ public sealed record MochiStatusSnapshot(
 /// Combines BrimDeck's Antigravity quota snapshots with local Antigravity session
 /// activity and optional Coucou-compatible hook events over a named pipe.
 /// </summary>
-public static class MochiCompanionLogic
+public static class NimbusCompanionLogic
 {
-    public static MochiQuotaMood EvaluateQuotaMood(double? remainingPercent)
+    public static NimbusQuotaMood EvaluateQuotaMood(double? remainingPercent)
     {
-        if (remainingPercent is null) return MochiQuotaMood.Normal;
+        if (remainingPercent is null) return NimbusQuotaMood.Normal;
         double pct = Math.Clamp(remainingPercent.Value, 0, 100);
-        if (pct <= 0.5) return MochiQuotaMood.Depleted;
-        if (pct < 15) return MochiQuotaMood.Critical;
-        if (pct < 30) return MochiQuotaMood.Low;
-        if (pct >= 50) return MochiQuotaMood.Energetic;
-        return MochiQuotaMood.Normal;
+        if (pct <= 0.5) return NimbusQuotaMood.Depleted;
+        if (pct < 15) return NimbusQuotaMood.Critical;
+        if (pct < 30) return NimbusQuotaMood.Low;
+        if (pct >= 50) return NimbusQuotaMood.Energetic;
+        return NimbusQuotaMood.Normal;
     }
 
     public static double? ExtractAntigravityRemainingPercent(IReadOnlyList<ProviderSnapshot> snapshots)
@@ -85,7 +85,7 @@ public static class MochiCompanionLogic
         var ag = snapshots.FirstOrDefault(s => s.Id == ProviderId.Antigravity);
         if (ag is null || ag.Quotas.Count == 0) return null;
 
-        // The best pool decides the mood: Mochi only feels depleted when nothing is left to work with.
+        // The best pool decides the mood: Nimbus only feels depleted when nothing is left to work with.
         double? bestRemaining = null;
         foreach (var quota in ag.Quotas)
         {
@@ -109,11 +109,11 @@ public static class MochiCompanionLogic
     }
 
     /// <summary>
-    /// Resolves Mochi's effective visual state from live agent state and quota mood.
+    /// Resolves Nimbus's effective visual state from live agent state and quota mood.
     /// Active agent states take precedence; when idle, low/depleted quota shapes the resting mood.
     /// </summary>
-    public static MochiStatusSnapshot Resolve(
-        MochiState? hookAgentState,
+    public static NimbusStatusSnapshot Resolve(
+        NimbusState? hookAgentState,
         DateTimeOffset? lastConversationWriteUtc,
         DateTimeOffset nowUtc,
         double? remainingPercent,
@@ -129,20 +129,20 @@ public static class MochiCompanionLogic
             quotaLabel += $" · {string.Join(", ", exhaustedPools)} depleted";
 
         // 1. Explicit hook state (e.g. PreToolUse approval, thinking, working, error)
-        if (hookAgentState is { } active && active != MochiState.Idle)
+        if (hookAgentState is { } active && active != NimbusState.Idle)
         {
             string title = active switch
             {
-                MochiState.Approval => "Waiting for approval",
-                MochiState.Thinking => "Thinking...",
-                MochiState.Working => "Running tools",
-                MochiState.Searching => "Searching",
-                MochiState.Question => "Needs input",
-                MochiState.Error => "Error encountered",
-                MochiState.Finished => "Finished task",
+                NimbusState.Approval => "Waiting for approval",
+                NimbusState.Thinking => "Thinking...",
+                NimbusState.Working => "Running tools",
+                NimbusState.Searching => "Searching",
+                NimbusState.Question => "Needs input",
+                NimbusState.Error => "Error encountered",
+                NimbusState.Finished => "Finished task",
                 _ => active.ToString()
             };
-            return new MochiStatusSnapshot(active, quotaMood, remainingPercent, title, hookDetail ?? quotaLabel);
+            return new NimbusStatusSnapshot(active, quotaMood, remainingPercent, title, hookDetail ?? quotaLabel);
         }
 
         // 2. Local SQLite / WAL activity fallback (~/.gemini/antigravity/conversations)
@@ -150,30 +150,30 @@ public static class MochiCompanionLogic
         {
             var age = nowUtc - lastWrite;
             if (age >= TimeSpan.Zero && age < TimeSpan.FromSeconds(6))
-                return new MochiStatusSnapshot(MochiState.Thinking, quotaMood, remainingPercent, "Antigravity active", quotaLabel);
+                return new NimbusStatusSnapshot(NimbusState.Thinking, quotaMood, remainingPercent, "Antigravity active", quotaLabel);
             if (age >= TimeSpan.FromSeconds(6) && age < TimeSpan.FromSeconds(14))
-                return new MochiStatusSnapshot(MochiState.Finished, quotaMood, remainingPercent, "Turn completed", quotaLabel);
+                return new NimbusStatusSnapshot(NimbusState.Finished, quotaMood, remainingPercent, "Turn completed", quotaLabel);
         }
 
         // 3. Idle baseline shaped by quota mood
         var idleState = quotaMood switch
         {
-            MochiQuotaMood.Depleted => MochiState.Sleeping,
-            MochiQuotaMood.Critical => MochiState.RateLimit,
-            MochiQuotaMood.Low => MochiState.RateLimit,
-            _ => MochiState.Idle
+            NimbusQuotaMood.Depleted => NimbusState.Sleeping,
+            NimbusQuotaMood.Critical => NimbusState.RateLimit,
+            NimbusQuotaMood.Low => NimbusState.RateLimit,
+            _ => NimbusState.Idle
         };
 
         string idleTitle = quotaMood switch
         {
-            MochiQuotaMood.Depleted => "Quota depleted (sleeping)",
-            MochiQuotaMood.Critical => "Quota critical!",
-            MochiQuotaMood.Low => "Quota running low",
-            MochiQuotaMood.Energetic => "Ready & energetic",
+            NimbusQuotaMood.Depleted => "Quota depleted (sleeping)",
+            NimbusQuotaMood.Critical => "Quota critical!",
+            NimbusQuotaMood.Low => "Quota running low",
+            NimbusQuotaMood.Energetic => "Ready & energetic",
             _ => "Idle"
         };
 
-        return new MochiStatusSnapshot(idleState, quotaMood, remainingPercent, idleTitle, quotaLabel);
+        return new NimbusStatusSnapshot(idleState, quotaMood, remainingPercent, idleTitle, quotaLabel);
     }
 
     public static DateTimeOffset? LatestConversationWriteUtc(IReadOnlyList<string> folders)
@@ -200,7 +200,7 @@ public static class MochiCompanionLogic
         return latest;
     }
 
-    public static MochiState? ParseHookEvent(string jsonLine)
+    public static NimbusState? ParseHookEvent(string jsonLine)
     {
         if (string.IsNullOrWhiteSpace(jsonLine)) return null;
         try
@@ -213,14 +213,14 @@ public static class MochiCompanionLogic
                 : null;
             return kind?.ToLowerInvariant() switch
             {
-                "agy_pre_tool" or "approval" or "permission_request" => MochiState.Approval,
-                "thinking" => MochiState.Thinking,
-                "working" or "pre_tool_use" or "tool_use" => MochiState.Working,
-                "searching" => MochiState.Searching,
-                "question" => MochiState.Question,
-                "error" => MochiState.Error,
-                "finished" or "stop" or "done" => MochiState.Finished,
-                "idle" => MochiState.Idle,
+                "agy_pre_tool" or "approval" or "permission_request" => NimbusState.Approval,
+                "thinking" => NimbusState.Thinking,
+                "working" or "pre_tool_use" or "tool_use" => NimbusState.Working,
+                "searching" => NimbusState.Searching,
+                "question" => NimbusState.Question,
+                "error" => NimbusState.Error,
+                "finished" or "stop" or "done" => NimbusState.Finished,
+                "idle" => NimbusState.Idle,
                 _ => null
             };
         }
@@ -231,31 +231,31 @@ public static class MochiCompanionLogic
     }
 }
 
-public sealed record MochiHookEvent(
-    MochiState State,
+public sealed record NimbusHookEvent(
+    NimbusState State,
     string? Detail,
     string? SessionId,
     string? RequestId,
     IReadOnlyList<string> Options);
 
 /// <summary>
-/// Bidirectional named-pipe listener (\\.\pipe\brimdeck-mochi-agent) so external hooks
+/// Bidirectional named-pipe listener (\\.\pipe\brimdeck-nimbus-agent) so external hooks
 /// can push live Antigravity agent state transitions and optionally await user decisions.
 /// </summary>
-public sealed class MochiAgentPipeListener : IDisposable
+public sealed class NimbusAgentPipeListener : IDisposable
 {
-    public const string PipeName = "brimdeck-mochi-agent";
+    public const string PipeName = "brimdeck-nimbus-agent";
     private readonly CancellationTokenSource _cts = new();
-    private readonly Action<MochiHookEvent> _onEvent;
+    private readonly Action<NimbusHookEvent> _onEvent;
     private readonly ConcurrentDictionary<string, TaskCompletionSource<string>> _pendingReplies = new(StringComparer.Ordinal);
 
-    public MochiAgentPipeListener(Action<MochiState, string?> onState)
+    public NimbusAgentPipeListener(Action<NimbusState, string?> onState)
         : this(ev => onState(ev.State, ev.Detail)) { }
 
-    public MochiAgentPipeListener(Action<MochiState, string?, string?> onState)
+    public NimbusAgentPipeListener(Action<NimbusState, string?, string?> onState)
         : this(ev => onState(ev.State, ev.Detail, ev.SessionId)) { }
 
-    public MochiAgentPipeListener(Action<MochiHookEvent> onEvent)
+    public NimbusAgentPipeListener(Action<NimbusHookEvent> onEvent)
     {
         _onEvent = onEvent;
         _ = Task.Run(() => ListenLoopAsync(_cts.Token));
@@ -310,12 +310,12 @@ public sealed class MochiAgentPipeListener : IDisposable
 
                 while (!ct.IsCancellationRequested && await reader.ReadLineAsync(ct).ConfigureAwait(false) is { } line)
                 {
-                    if (MochiCompanionLogic.ParseHookEvent(line) is not { } state) continue;
+                    if (NimbusCompanionLogic.ParseHookEvent(line) is not { } state) continue;
 
                     var hookEvent = ParseDetails(line, state);
                     TaskCompletionSource<string>? replyTcs = null;
                     if (!string.IsNullOrWhiteSpace(hookEvent.RequestId)
-                        && state is MochiState.Approval or MochiState.Question)
+                        && state is NimbusState.Approval or NimbusState.Question)
                     {
                         replyTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
                         _pendingReplies[hookEvent.RequestId] = replyTcs;
@@ -349,7 +349,7 @@ public sealed class MochiAgentPipeListener : IDisposable
         }
     }
 
-    private static MochiHookEvent ParseDetails(string line, MochiState state)
+    private static NimbusHookEvent ParseDetails(string line, NimbusState state)
     {
         string? detail = null;
         string? sessionId = null;
@@ -380,7 +380,7 @@ public sealed class MochiAgentPipeListener : IDisposable
         }
         catch (JsonException) { }
 
-        return new MochiHookEvent(state, detail, sessionId, requestId, options);
+        return new NimbusHookEvent(state, detail, sessionId, requestId, options);
     }
 
     public void Dispose()
@@ -396,7 +396,7 @@ public sealed class MochiAgentPipeListener : IDisposable
 /// Tracks Antigravity remaining quota samples over a rolling window to estimate
 /// burn-rate time-to-depletion and detect quota window resets.
 /// </summary>
-public sealed class MochiQuotaTracker
+public sealed class NimbusQuotaTracker
 {
     private readonly List<(DateTimeOffset Time, double Remaining)> _samples = [];
     private double? _lastRemaining;

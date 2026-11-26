@@ -13,7 +13,7 @@ A native Windows app built with C# and WPF, designed for performance and smoothn
 [![License](https://img.shields.io/badge/License-Apache%202.0-E5A385?style=flat-square)](LICENSE)
 ![Interface language](https://img.shields.io/badge/Interface-English-B9A8FF?style=flat-square)
 
-<p><a href="#mochi-ai-companion-brimdeck--coucou">Mochi Integration</a> · <a href="#features">Features</a> · <a href="#install">Install</a> · <a href="#quick-start">Quick start</a> · <a href="#privacy">Privacy</a> · <a href="#faq">FAQ</a></p>
+<p><a href="#nimbus-ai-companion">Nimbus Companion</a> · <a href="#features">Features</a> · <a href="#install">Install</a> · <a href="#quick-start">Quick start</a> · <a href="#privacy">Privacy</a> · <a href="#faq">FAQ</a></p>
 
 <img src="docs/en-US/images/hero.png" width="100%" alt="BrimDeck opens from the notch at the top of the screen into the AI usage panel, switches to the music page, the system monitor page, the clipboard and file transfer page and the device batteries page, then collapses">
 
@@ -31,36 +31,32 @@ A native Windows app built with C# and WPF, designed for performance and smoothn
 - **Works out of the box**: Detects Claude, Codex, Cursor and other tools already signed in on this PC. No keys to enter and no extra sign-in.
 - **Native Windows**: Built on .NET and WPF to deliver smooth animation with low resource use.
 
-## Mochi AI Companion (BrimDeck + Coucou)
+## Nimbus AI Companion
 
-This fork combines [BrimDeck](https://github.com/MoFeng2223/BrimDeck) with the animated **Mochi** companion inspired by [Coucou](https://github.com/Louis-CFM/coucou), rendered natively in WPF (`MochiCompanion` / `MochiEngine`) using `DrawingContext` so idle CPU stays near zero.
+This fork pairs [BrimDeck](https://github.com/MoFeng2223/BrimDeck) with **Nimbus**, an original animated cloud companion rendered natively in WPF using `DrawingContext` so idle CPU stays near zero.
 
-<img src="docs/en-US/images/mochi-3stage-ux.jpg" width="100%" alt="3-stage Mochi Dynamic Island UX: 1. Always-On Mochi Notch, 2. Hover Peek, 3. Click to Expand">
-
-### Mochi Integration Highlights
+### Nimbus Integration Highlights
 
 - **3-Stage Notch UX**:
-  1. **Always-On Mochi Notch**: Stays compact at the top of the screen with Mochi following your mouse cursor with his eyes.
-  2. **Hover Peek**: Hovering expands into a medium pill showing Mochi alongside your quota rings, music info, and clock.
+  1. **Always-On Nimbus Notch**: Stays compact at the top of the screen with Nimbus following your mouse cursor with his eyes (can be disabled in Settings to always keep the full compact bar).
+  2. **Hover Peek**: Hovering expands into a medium pill showing Nimbus alongside your quota rings, music info, and clock.
   3. **Click to Expand**: Clicking opens the full Dynamic Island panel with AI usage, music controls, system monitor, clipboard, and device batteries.
 - **Instant Antigravity Hooks & Quota Moods**:
-  - Connects via named pipe (`\\.\pipe\brimdeck-mochi-agent`) using [scripts/brimdeck-mochi-hook.mjs](scripts/brimdeck-mochi-hook.mjs) so Mochi reacts instantaneously to `PreToolUse` (`Working` / `Approval`), `PreInvocation` (`Thinking`), and `PostInvocation` / `Stop` (`Finished`).
-  - Falls back to Antigravity session writes (`~/.gemini/antigravity/conversations`) and shapes idle mood from Antigravity remaining quota (`Energetic`, `Normal`, `RateLimit`, `Sleeping`).
+  - Connects via named pipe (`\\.\pipe\brimdeck-nimbus-agent`) using [scripts/brimdeck-nimbus-hook.mjs](scripts/brimdeck-nimbus-hook.mjs) so Nimbus reacts instantaneously to `PreToolUse` (`Working` / `Approval`), `PreInvocation` (`Thinking`), and `PostInvocation` / `Stop` (`Finished`).
+  - Falls back to Antigravity session writes (`~/.gemini/antigravity/conversations`) and shapes idle mood from Antigravity's best remaining quota pool (`Energetic`, `Normal`, `RateLimit`, `Sleeping`).
 - **Outfits & Seasonal Wardrobe**: Choose `Auto (Seasonal)` (New Year, Easter, Halloween, Christmas) or pick from `Santa Hat`, `Party Hat`, `Witch Hat`, `Sunglasses`, `Round Glasses`, `Ribbon Bow`, `Winter Scarf`, or `Pumpkin` — all 3D head-tracked.
-- **112 BPM Music Dance**: Mochi smoothly bounces, tilts, and squashes to a 112 BPM beat whenever BrimDeck detects active audio playback.
-- **Desktop Roaming & Auto-Retract**: Drag Mochi out of the notch/panel to place him anywhere on your desktop; double-click (or right-click → *Return to Island*) to dock him back, or let him auto-retract when an urgent approval/error arrives.
-- **Auto-Sleep, Launch Greeting, Sounds & Parallel Mini-Mochis**:
+- **112 BPM Music Dance**: Nimbus smoothly bounces, tilts, and squashes to a 112 BPM beat whenever BrimDeck detects active audio playback.
+- **Desktop Roaming & Auto-Retract**: Drag Nimbus out of the notch/panel to place him anywhere on your desktop; double-click (or right-click → *Return to Island*) to dock him back, or let him auto-retract when an urgent approval/error arrives.
+- **Auto-Sleep, Launch Greeting, Sounds & Parallel Mini Clouds**:
   - Automatically falls asleep (`Zz`) after configurable inactivity and wakes when you approach or an agent starts working.
-  - Plays a drop-in bounce & wave greeting on startup, subtle synthesized chime cues, and spawns Mini-Mochis in the expanded header when multiple agent sessions run in parallel.
+  - Plays a drop-in bounce & wave greeting on startup, subtle synthesized chime cues, and spawns mini Nimbus clouds in the expanded header when multiple agent sessions run in parallel.
   - Displays a pulsing update indicator (and morphs into a mailbox when an update is ready to install).
-- **Dedicated Mochi Settings Page**: Configure every Mochi feature from the dedicated **Mochi** category in the Settings sidebar.
-
-<img src="docs/en-US/images/mochi-states-outfits.jpg" width="100%" alt="Mochi AI States and Seasonal Outfits showcase">
+- **Dedicated Nimbus Settings Page**: Configure every Nimbus feature from the dedicated **Nimbus** category in the Settings sidebar.
 
 ### Credits & Acknowledgments
 
 - **[BrimDeck](https://github.com/MoFeng2223/BrimDeck)** by **[MoFeng2223](https://github.com/MoFeng2223)** — Original Windows 11 Dynamic Island base application, quota monitoring, media controls, and WPF architecture (Apache-2.0).
-- **[Coucou](https://github.com/Louis-CFM/coucou)** by **[Louis-CFM](https://github.com/Louis-CFM)** — Original **Mochi** AI companion character, procedural expressions, outfits, 112 BPM dance, desktop roaming, and animation design.
+- **[Coucou](https://github.com/Louis-CFM/coucou)** by **[Louis Raillé](https://github.com/Louis-CFM)** — Companion state/tween architecture inspiration (MIT License). Nimbus is an original cloud character, look, and sound set created for this fork.
 
 ## Features
 

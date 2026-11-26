@@ -9,11 +9,11 @@ using BrimDeck.Core;
 namespace BrimDeck;
 
 /// <summary>
-/// Floating transparent desktop window for Mochi when dragged out of the Dynamic Island.
+/// Floating transparent desktop window for Nimbus when dragged out of the Dynamic Island.
 /// </summary>
-public sealed class DesktopMochiWindow : Window
+public sealed class DesktopNimbusWindow : Window
 {
-    public MochiCompanion Mochi { get; } = new() { Width = 128, Height = 128 };
+    public NimbusCompanion Nimbus { get; } = new() { Width = 128, Height = 128 };
     public event Action<double, double>? PositionCommitted;
     public event Action? ReturnToIslandRequested;
     public event Action? OpenSettingsRequested;
@@ -26,7 +26,7 @@ public sealed class DesktopMochiWindow : Window
     private readonly TextBlock _bubbleText;
     private readonly DispatcherTimer _bubbleTimer;
 
-    public DesktopMochiWindow()
+    public DesktopNimbusWindow()
     {
         Width = 200;
         Height = 184;
@@ -67,19 +67,19 @@ public sealed class DesktopMochiWindow : Window
             _bubble.BeginAnimation(OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(220)));
         };
 
-        Mochi.HorizontalAlignment = HorizontalAlignment.Center;
-        Mochi.VerticalAlignment = VerticalAlignment.Bottom;
-        Mochi.Margin = new Thickness(0, 0, 0, 6);
+        Nimbus.HorizontalAlignment = HorizontalAlignment.Center;
+        Nimbus.VerticalAlignment = VerticalAlignment.Bottom;
+        Nimbus.Margin = new Thickness(0, 0, 0, 6);
 
         var host = new Grid { Background = Brushes.Transparent };
         host.Children.Add(_bubble);
-        host.Children.Add(Mochi);
+        host.Children.Add(Nimbus);
         Content = host;
 
         var menu = new ContextMenu();
         var returnItem = new MenuItem { Header = "Return to Island" };
         returnItem.Click += (_, _) => ReturnToIslandRequested?.Invoke();
-        var settingsItem = new MenuItem { Header = "Mochi Settings" };
+        var settingsItem = new MenuItem { Header = "Nimbus Settings" };
         settingsItem.Click += (_, _) => OpenSettingsRequested?.Invoke();
         menu.Items.Add(returnItem);
         menu.Items.Add(settingsItem);
@@ -148,7 +148,7 @@ public sealed class DesktopMochiWindow : Window
         else if (_pressScreen is not null)
         {
             Clicked?.Invoke();
-            Mochi.TriggerTapReaction(1);
+            Nimbus.TriggerTapReaction(1);
         }
         _pressScreen = null;
         _dragging = false;

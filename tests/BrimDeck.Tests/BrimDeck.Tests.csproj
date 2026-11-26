@@ -2,7 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\BrimDeck.Core\BrimDeck.Core.csproj" />
-    <Compile Include="..\..\src\BrimDeck\MochiQuickAsk.cs" Link="MochiQuickAsk.cs" />
+    <Compile Include="..\..\src\BrimDeck\NimbusQuickAsk.cs" Link="NimbusQuickAsk.cs" />
     <Content Include="Fixtures\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

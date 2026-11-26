@@ -108,7 +108,7 @@ public partial class MainWindow : Window
         _hover = new(Dispatcher, () =>
         {
             _hover!.Stop();
-            if (IsSuppressed || !_pointerInside || MochiHoldsMenu) return;
+            if (IsSuppressed || !_pointerInside || NimbusHoldsMenu) return;
             OpenAtPointer();
         });
         _leave = new(Dispatcher, () => CheckPointerExit(WindowsHost.Cursor()));
@@ -127,7 +127,7 @@ public partial class MainWindow : Window
         InitializeMusic();
         InitializeMonitor();
         InitializeShelf();
-        InitializeMochi();
+        InitializeNimbus();
         InitializeResize();
         InitializeScale();
         InitializeShadow();
@@ -142,7 +142,7 @@ public partial class MainWindow : Window
         _host.ContextChanged += context =>
         {
             _context = context;
-            if (_expanded && !_preview && _detailPopup is null && _popupReturnArea is null && MediaSourceButton.ContextMenu?.IsOpen != true && !ShelfHolds && !MochiHoldsMenu && !QuickAskHolds)
+            if (_expanded && !_preview && _detailPopup is null && _popupReturnArea is null && MediaSourceButton.ContextMenu?.IsOpen != true && !ShelfHolds && !NimbusHoldsMenu && !QuickAskHolds)
             {
                 _expanded = false;
                 PanelClosed();
@@ -267,7 +267,7 @@ public partial class MainWindow : Window
         ApplyLanguage();
         ApplyTheme();
         ApplySurface();
-        ApplyMochiSettings();
+        ApplyNimbusSettings();
         WindowsHost.SetCapturable(this, Settings.WindowCapture);
         // Made ordinary, at startup too, the panel goes beneath the window in use like a closed one; so does an ordinary panel
         // whose indicator is no longer called for.
@@ -410,7 +410,7 @@ public partial class MainWindow : Window
     }
     private CollapsedShape ShapeFor(CompactStyle style)
     {
-        if (IsMochiOnlyNotch && style != CompactStyle.Line && !ColumnFor(style))
+        if (IsNimbusOnlyNotch && style != CompactStyle.Line && !ColumnFor(style))
         {
             double miniWanted = CompactMusicLayout.Whole(86 * _scale);
             if (style == CompactStyle.Capsule && _frame.Edge != ScreenEdge.Top)
@@ -420,7 +420,7 @@ public partial class MainWindow : Window
             }
             return CollapsedGeometry.Resolve(Settings, style, MonitorBoundsDip, WorkDip, _pixelsPerDip, miniWanted, miniWanted, _scale);
         }
-        double? wanted = (Settings.CompactAutoWidth(style) || IsMochiActionPill) && !double.IsNaN(_compactWanted) ? _compactWanted : null;
+        double? wanted = (Settings.CompactAutoWidth(style) || IsNimbusActionPill) && !double.IsNaN(_compactWanted) ? _compactWanted : null;
         // The capsule keeps its place on the screen; docked with the bottom (MainWindow.Edge.cs) it is only seen from there.
         if (style == CompactStyle.Capsule && _frame.Edge != ScreenEdge.Top)
         {
@@ -591,7 +591,7 @@ public partial class MainWindow : Window
     {
         Snapshots = snapshots; _updatedAt = DateTimeOffset.Now; FirstReadEnded();
         DetectThresholds();
-        UpdateMochiStatus();
+        UpdateNimbusStatus();
         RenderCompact(); RenderUsage();
     }
 
@@ -947,7 +947,7 @@ public partial class MainWindow : Window
         CheckMoveOvertaken();
         if (_preview && _previewExpanded || IsSuppressed || !IsVisible || PresentationSource.FromVisual(Stage) is null || Resizing || BootHoldsPointer) return;
         var cursor = WindowsHost.Cursor();
-        UpdateMochiGlobalLook(cursor);
+        UpdateNimbusGlobalLook(cursor);
         // Move mode: the panel does not open (MainWindow.Move.cs).
         if (_moveArmed) { TrackMove(cursor); return; }
         // Mouse pass-through: hovering does nothing (MainWindow.ClickThrough.cs).
@@ -1016,15 +1016,15 @@ public partial class MainWindow : Window
             _popupReturnArea = null;
             _leave.Stop(); if (_expanded || IsSuppressed) return;
             SetHoverPeek(true);
-            _hover.Stop(); if (Settings.ClickToExpand || MochiHoldsMenu) return;
+            _hover.Stop(); if (Settings.ClickToExpand || NimbusHoldsMenu) return;
             _hover.Interval = TimeSpan.FromMilliseconds(Math.Max(1, Settings.OpenDelay)); _hover.Start();
         }
         else
         {
-            if (!_expanded && _hoverPeek && !_preview && !MochiHoldsMenu) SetHoverPeek(false);
+            if (!_expanded && _hoverPeek && !_preview && !NimbusHoldsMenu) SetHoverPeek(false);
             _hover.Stop();
             if (_expanded && !_preview) WatchOutsidePress(true);
-            if (!_expanded || _preview || _pageSwitchHold.IsEnabled || _detailPopup is not null || MediaSourceButton.ContextMenu?.IsOpen == true || ShelfHolds || MochiHoldsMenu || QuickAskHolds) return;
+            if (!_expanded || _preview || _pageSwitchHold.IsEnabled || _detailPopup is not null || MediaSourceButton.ContextMenu?.IsOpen == true || ShelfHolds || NimbusHoldsMenu || QuickAskHolds) return;
             // A press outside closes the panel at once (MainWindow.OutsidePress.cs).
             int delay = _pressedOutside ? 1 : Math.Max(_popupReturnArea is null ? 1 : 50, Settings.CloseDelay);
             _leftAt = Environment.TickCount64;
@@ -1034,7 +1034,7 @@ public partial class MainWindow : Window
     internal void CheckPointerExit(Point screenPoint)
     {
         if (IsHotkeyPinned || Resizing) { _leave.Stop(); return; }
-        if (_pointerInside || _preview || _pageSwitchHold.IsEnabled || _detailPopup is not null || MediaSourceButton.ContextMenu?.IsOpen == true || ShelfHolds || MochiHoldsMenu || QuickAskHolds) { _leave.Stop(); return; }
+        if (_pointerInside || _preview || _pageSwitchHold.IsEnabled || _detailPopup is not null || MediaSourceButton.ContextMenu?.IsOpen == true || ShelfHolds || NimbusHoldsMenu || QuickAskHolds) { _leave.Stop(); return; }
         // Closing a calendar with either button must leave a path back to the results.
         // Keep checking until the cursor leaves that area; entering the island restores normal hover behavior.
         if (_popupReturnArea is { } area && area.Contains(screenPoint) && !_pressedOutside) return;

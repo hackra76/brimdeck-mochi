@@ -4,7 +4,7 @@ using System.Media;
 
 namespace BrimDeck;
 
-public enum MochiSoundKind
+public enum NimbusSoundKind
 {
     Greet,
     Poke,
@@ -16,15 +16,15 @@ public enum MochiSoundKind
 }
 
 /// <summary>
-/// Lightweight procedural WAV synthesizer for Mochi's subtle audio cues.
+/// Lightweight procedural WAV synthesizer for Nimbus's subtle audio cues.
 /// Generates and caches short 16-bit PCM chimes in memory without external asset files.
 /// </summary>
-public static class MochiSound
+public static class NimbusSound
 {
-    private static readonly ConcurrentDictionary<MochiSoundKind, byte[]> Cache = new();
+    private static readonly ConcurrentDictionary<NimbusSoundKind, byte[]> Cache = new();
     public static bool Enabled { get; set; } = true;
 
-    public static void Play(MochiSoundKind kind)
+    public static void Play(NimbusSoundKind kind)
     {
         if (!Enabled) return;
         try
@@ -51,16 +51,16 @@ public static class MochiSound
         }
     }
 
-    private static byte[] BuildWav(MochiSoundKind kind) => kind switch
+    private static byte[] BuildWav(NimbusSoundKind kind) => kind switch
     {
-        MochiSoundKind.Greet => Synthesize([(523.25, 0.08, 0.14), (659.25, 0.09, 0.14), (783.99, 0.14, 0.16)]),
-        MochiSoundKind.Poke => Synthesize([(620.0, 0.055, 0.12)]),
-        MochiSoundKind.Slap => Synthesize([(210.0, 0.06, 0.18), (140.0, 0.07, 0.12)]),
-        MochiSoundKind.Dizzy => Synthesize([(480.0, 0.07, 0.14), (390.0, 0.07, 0.14), (310.0, 0.12, 0.12)]),
-        MochiSoundKind.Approval => Synthesize([(587.33, 0.09, 0.16), (880.0, 0.14, 0.16)]),
-        MochiSoundKind.Finished => Synthesize([(523.25, 0.07, 0.12), (659.25, 0.07, 0.12), (1046.5, 0.16, 0.15)]),
-        MochiSoundKind.Error => Synthesize([(260.0, 0.10, 0.16), (196.0, 0.18, 0.16)]),
-        _ => Synthesize([(440.0, 0.06, 0.10)])
+        NimbusSoundKind.Greet => Synthesize([(587.33, 0.07, 0.13), (783.99, 0.08, 0.13), (987.77, 0.13, 0.15)]),
+        NimbusSoundKind.Poke => Synthesize([(740.0, 0.05, 0.11)]),
+        NimbusSoundKind.Slap => Synthesize([(246.94, 0.055, 0.16), (164.81, 0.07, 0.11)]),
+        NimbusSoundKind.Dizzy => Synthesize([(523.25, 0.065, 0.13), (440.0, 0.065, 0.13), (349.23, 0.11, 0.11)]),
+        NimbusSoundKind.Approval => Synthesize([(659.25, 0.08, 0.15), (987.77, 0.13, 0.15)]),
+        NimbusSoundKind.Finished => Synthesize([(587.33, 0.065, 0.11), (783.99, 0.065, 0.11), (1174.66, 0.15, 0.14)]),
+        NimbusSoundKind.Error => Synthesize([(293.66, 0.09, 0.15), (220.0, 0.16, 0.15)]),
+        _ => Synthesize([(523.25, 0.055, 0.10)])
     };
 
     private static byte[] Synthesize((double Freq, double DurationSec, double Gain)[] notes)

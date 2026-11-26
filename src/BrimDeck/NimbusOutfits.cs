@@ -7,10 +7,10 @@ namespace BrimDeck;
 /// <summary>
 /// Procedural 3D-head-tracked outfits and seasonal wardrobe ported from Coucou.
 /// </summary>
-internal static class MochiOutfits
+internal static class NimbusOutfits
 {
-    public static MochiOutfit ResolveOutfit(MochiOutfit selection, DateTime now)
-        => selection == MochiOutfit.Auto ? SeasonalOutfit(now) : selection;
+    public static NimbusOutfit ResolveOutfit(NimbusOutfit selection, DateTime now)
+        => selection == NimbusOutfit.Auto ? SeasonalOutfit(now) : selection;
 
     /// <summary>
     /// Seasonal schedule matching Coucou's wardrobe.ts:
@@ -20,24 +20,24 @@ internal static class MochiOutfits
     /// Christmas (Dec 15 - Dec 26) -> SantaHat
     /// Otherwise -> None.
     /// </summary>
-    public static MochiOutfit SeasonalOutfit(DateTime date)
+    public static NimbusOutfit SeasonalOutfit(DateTime date)
     {
         int m = date.Month, d = date.Day;
         if ((m == 12 && d >= 31) || (m == 1 && d <= 3))
-            return MochiOutfit.PartyHat;
+            return NimbusOutfit.PartyHat;
         if (m == 12 && d >= 15 && d <= 26)
-            return MochiOutfit.SantaHat;
+            return NimbusOutfit.SantaHat;
         if (m == 10 && d == 31)
-            return MochiOutfit.Pumpkin;
+            return NimbusOutfit.Pumpkin;
         if ((m == 10 && d >= 24) || (m == 11 && d == 1))
-            return MochiOutfit.WitchHat;
+            return NimbusOutfit.WitchHat;
 
         var easter = EasterSunday(date.Year);
         double daysFromEaster = (date.Date - easter).TotalDays;
         if (daysFromEaster >= -3 && daysFromEaster <= 1)
-            return MochiOutfit.Bow;
+            return NimbusOutfit.Bow;
 
-        return MochiOutfit.None;
+        return NimbusOutfit.None;
     }
 
     private static DateTime EasterSunday(int year)
@@ -59,12 +59,12 @@ internal static class MochiOutfits
         return new DateTime(year, month, day);
     }
 
-    public static bool IsPumpkin(MochiOutfit resolved) => resolved == MochiOutfit.Pumpkin;
+    public static bool IsPumpkin(NimbusOutfit resolved) => resolved == NimbusOutfit.Pumpkin;
 
-    public static void DrawBehind(DrawingContext dc, MochiOutfit outfit, double r, double yaw, double pitch, double alpha, double physDx = 0, double physDy = 0)
+    public static void DrawBehind(DrawingContext dc, NimbusOutfit outfit, double r, double yaw, double pitch, double alpha, double physDx = 0, double physDy = 0)
     {
-        if (outfit == MochiOutfit.None || alpha <= 0.01) return;
-        if (outfit == MochiOutfit.Pumpkin)
+        if (outfit == NimbusOutfit.None || alpha <= 0.01) return;
+        if (outfit == NimbusOutfit.Pumpkin)
         {
             // Pumpkin stem behind the top of the head
             double sx = yaw * r * 0.25;
@@ -84,35 +84,35 @@ internal static class MochiOutfits
         }
     }
 
-    public static void DrawFront(DrawingContext dc, MochiOutfit outfit, double r, double yaw, double pitch, double alpha, double physDx = 0, double physDy = 0)
+    public static void DrawFront(DrawingContext dc, NimbusOutfit outfit, double r, double yaw, double pitch, double alpha, double physDx = 0, double physDy = 0)
     {
-        if (outfit == MochiOutfit.None || alpha <= 0.01) return;
+        if (outfit == NimbusOutfit.None || alpha <= 0.01) return;
 
         dc.PushOpacity(alpha);
         switch (outfit)
         {
-            case MochiOutfit.SantaHat:
+            case NimbusOutfit.SantaHat:
                 DrawSantaHat(dc, r, yaw, pitch, physDx, physDy);
                 break;
-            case MochiOutfit.PartyHat:
+            case NimbusOutfit.PartyHat:
                 DrawPartyHat(dc, r, yaw, pitch, physDx, physDy);
                 break;
-            case MochiOutfit.WitchHat:
+            case NimbusOutfit.WitchHat:
                 DrawWitchHat(dc, r, yaw, pitch, physDx, physDy);
                 break;
-            case MochiOutfit.Sunglasses:
+            case NimbusOutfit.Sunglasses:
                 DrawSunglasses(dc, r, yaw, pitch);
                 break;
-            case MochiOutfit.RoundGlasses:
+            case NimbusOutfit.RoundGlasses:
                 DrawRoundGlasses(dc, r, yaw, pitch);
                 break;
-            case MochiOutfit.Bow:
+            case NimbusOutfit.Bow:
                 DrawBow(dc, r, yaw, pitch, physDx, physDy);
                 break;
-            case MochiOutfit.Scarf:
+            case NimbusOutfit.Scarf:
                 DrawScarf(dc, r, yaw, pitch, physDx, physDy);
                 break;
-            case MochiOutfit.Pumpkin:
+            case NimbusOutfit.Pumpkin:
                 DrawPumpkinRibs(dc, r, yaw, pitch);
                 break;
         }

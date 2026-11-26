@@ -15,7 +15,7 @@ try
 {
     ModelUsageTests.Run(Check);
     AntigravityUsageTests.Run(root, Check);
-    BrimDeck.Tests.MochiCompanionTests.Run(Check);
+    BrimDeck.Tests.NimbusCompanionTests.Run(Check);
     await MusicTests.Run(Check);
     await AppleMusicLyricsTests.Run(root, Check);
     await KugouTests.Run(Check);

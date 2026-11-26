@@ -265,7 +265,7 @@ public partial class MainWindow
         // Native lyric events must update compact text even while playback is paused.
         UpdateMusicPosition();
         UpdateMusicTimer();
-        UpdateMochiDance();
+        UpdateNimbusDance();
     }
     private void ScheduleTimelineHoldEnd(DateTimeOffset now)
     {
@@ -953,7 +953,7 @@ public partial class MainWindow
         var shape = Collapsed; _compactRendered = shape;
         double scale = CompactMusicLayout.SafeScale(shape.Scale);
         double contentWidth = CompactContentWidth(shape);
-        if (IsMochiOnlyNotch)
+        if (IsNimbusOnlyNotch)
         {
             double dpiOnly = VisualTreeHelper.GetDpi(this).DpiScaleX;
             double notchWanted = CompactMusicLayout.Whole(96 * scale);
@@ -963,22 +963,22 @@ public partial class MainWindow
             double miniSize = CompactMusicLayout.Whole(Math.Max(24 * scale, shape.Surface.Height - pad));
             double hostWidth = SnapDown(contentWidth, dpiOnly);
             double hostHeight = Math.Max(miniSize, shape.Surface.Height - 2);
-            var miniMochi = AcquireCompactMochi(miniSize);
-            miniMochi.Width = hostWidth;
-            miniMochi.Height = miniSize;
-            miniMochi.HorizontalAlignment = HorizontalAlignment.Center;
-            miniMochi.VerticalAlignment = VerticalAlignment.Center;
+            var miniNimbus = AcquireCompactNimbus(miniSize);
+            miniNimbus.Width = hostWidth;
+            miniNimbus.Height = miniSize;
+            miniNimbus.HorizontalAlignment = HorizontalAlignment.Center;
+            miniNimbus.VerticalAlignment = VerticalAlignment.Center;
             var host = new Grid { Width = hostWidth, Height = hostHeight };
-            host.Children.Add(miniMochi);
+            host.Children.Add(miniNimbus);
             CompactRings.Children.Add(host);
             UpdateMusicTimer();
             _stripShowing = false;
             UpdateMonitorDemand();
             return;
         }
-        if (IsMochiActionPill)
+        if (IsNimbusActionPill)
         {
-            var (pill, wantedPill) = BuildMochiActionPill(scale, shape.Surface.Height - 2);
+            var (pill, wantedPill) = BuildNimbusActionPill(scale, shape.Surface.Height - 2);
             if (double.IsNaN(_compactWanted) || Math.Abs(wantedPill - _compactWanted) > .5 || Math.Abs(wantedPill - _compactRequired) > .5)
             { _compactWanted = wantedPill; _compactRequired = wantedPill; Dispatcher.BeginInvoke(DispatcherPriority.Background, FitCompactToContent); }
             CompactRings.Children.Add(pill);
@@ -1027,10 +1027,10 @@ public partial class MainWindow
         double required = CompactMusicLayout.RequiredWidth(scale, media, steadyText, fixedFace,
             steadyRings > 0 ? CompactMusicLayout.RingSizeFor(ringDiameter, scale) : 0, CompactSpacing.Minimum(readingWidths, strip?.Gap ?? 0), equalizer, Settings.EqualizerBars, showCover);
         double row = layout.RowHeight, unit = CompactMusicLayout.Gap(scale);
-        double mochiSize = CompactMusicLayout.Whole(28 * scale);
-        double mochiReserve = mochiSize + unit;
-        wanted += mochiReserve;
-        required += mochiReserve;
+        double nimbusSize = CompactMusicLayout.Whole(28 * scale);
+        double nimbusReserve = nimbusSize + unit;
+        wanted += nimbusReserve;
+        required += nimbusReserve;
         if (double.IsNaN(_compactWanted) || Math.Abs(wanted - _compactWanted) > .5 || Math.Abs(required - _compactRequired) > .5)
         { _compactWanted = wanted; _compactRequired = required; Dispatcher.BeginInvoke(DispatcherPriority.Background, FitCompactToContent); }
         var grid = new Grid { Width = SnapDown(contentWidth, dpi), Height = row };
@@ -1050,7 +1050,7 @@ public partial class MainWindow
         var ringWidths = apps.Select(_ => layout.RingSize).ToList();
         bool hasRings = ringWidths.Count > 0, hasReadings = readingWidths.Count > 0;
         int parts = 1 + (hasCover ? 1 : 0) + (hasEqualizer ? 1 : 0) + (hasClock ? 1 : 0) + (hasTransfer ? 1 : 0) + (hasText ? 1 : 0) + (hasRings ? 1 : 0) + (hasReadings ? 1 : 0);
-        double others = mochiSize + (hasCover ? layout.CoverSize : 0) + (hasEqualizer ? layout.EqualizerSize : 0) + (hasClock ? clock!.ReservedWidth : 0) + (hasTransfer ? transferWidth : 0) + Math.Max(0, parts - 1) * unit;
+        double others = nimbusSize + (hasCover ? layout.CoverSize : 0) + (hasEqualizer ? layout.EqualizerSize : 0) + (hasClock ? clock!.ReservedWidth : 0) + (hasTransfer ? transferWidth : 0) + Math.Max(0, parts - 1) * unit;
         double pool = SnapDown(contentWidth, dpi) - others - titleShare;
         // Too short for both narrowest windows, the title gives way down to its shortest.
         double needed = CompactSpacing.Minimum(ringWidths, layout.RingGap) + CompactSpacing.Minimum(readingWidths, strip?.Gap ?? 0);
@@ -1075,7 +1075,7 @@ public partial class MainWindow
             readingCut = CompactSpacing.CutFade(readingWidths, strip?.Gap ?? 0, readings.Window, Math.Min(Snap(layout.TextEdge, dpi), unit));
         }
         var shown = new List<(object Part, CompactSpacing.Part Size)>();
-        if (Settings.MochiEnabled && !_roamingOnDesktop) shown.Add(("mochi", new(mochiSize)));
+        if (Settings.NimbusEnabled && !_roamingOnDesktop) shown.Add(("nimbus", new(nimbusSize)));
         if (hasCover) shown.Add(("cover", new(layout.CoverSize)));
         foreach (var part in Settings.CompactOrder(EffectiveStyle))
         {
@@ -1096,8 +1096,8 @@ public partial class MainWindow
             FrameworkElement element;
             switch (shown[i].Part)
             {
-                case "mochi":
-                    element = CompactRegion(AcquireCompactMochi(mochiSize), room, mochiSize, mochiSize, row, RegionAnchor.Left, dpi); break;
+                case "nimbus":
+                    element = CompactRegion(AcquireCompactNimbus(nimbusSize), room, nimbusSize, nimbusSize, row, RegionAnchor.Left, dpi); break;
                 case "cover":
                     var cover = MusicVisuals.Cover(_mediaCover, layout.CoverSize, layout.CoverRadius); AutomationProperties.SetName(cover, _mediaTrack!.Caption);
                     element = CompactRegion(cover, room, layout.CoverSize, layout.CoverSize, row, RegionAnchor.Left, dpi); break;

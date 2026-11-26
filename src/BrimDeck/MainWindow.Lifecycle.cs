@@ -86,7 +86,7 @@ public partial class MainWindow
     private void Boot()
     {
         if (_poweringOff || _app.Exiting || _retiring) return;
-        if (Settings.MochiEnabled && Settings.MochiLaunchGreetingEnabled)
+        if (Settings.NimbusEnabled && Settings.NimbusLaunchGreetingEnabled)
         {
             _bootWaiting = false;
             _bootDot = false;
@@ -94,10 +94,10 @@ public partial class MainWindow
             ResetDotPose();
             SetImmediate(HoverZone, OpacityProperty, 1d);
             SetImmediate(Compact, OpacityProperty, 1d);
-            TriggerMochiLaunchGreetingIfEnabled();
+            TriggerNimbusLaunchGreetingIfEnabled();
             return;
         }
-        if (_expanded || IsSuppressed || !CanAnimateLifecycle) { SetImmediate(HoverZone, OpacityProperty, 1d); TriggerMochiLaunchGreetingIfEnabled(); return; }
+        if (_expanded || IsSuppressed || !CanAnimateLifecycle) { SetImmediate(HoverZone, OpacityProperty, 1d); TriggerNimbusLaunchGreetingIfEnabled(); return; }
         SetImmediate(HoverZone, OpacityProperty, 0d);
         _bootWaiting = true;
         int boot = ++_boot;
@@ -117,7 +117,7 @@ public partial class MainWindow
     {
         int boot = ++_boot; _bootWaiting = false;
         if (_poweringOff || _app.Exiting || _retiring) return;
-        if (_expanded || IsSuppressed || !CanAnimateLifecycle) { SetImmediate(HoverZone, OpacityProperty, 1d); TriggerMochiLaunchGreetingIfEnabled(); return; }
+        if (_expanded || IsSuppressed || !CanAnimateLifecycle) { SetImmediate(HoverZone, OpacityProperty, 1d); TriggerNimbusLaunchGreetingIfEnabled(); return; }
         var shape = Collapsed = ShapeFor(EffectiveStyle);
         PlaceDot(shape);
         _bootDot = true; Island.SettledClip = false;
@@ -146,7 +146,7 @@ public partial class MainWindow
             _ = Task.Delay(greetDelay).ContinueWith(_ => Dispatcher.BeginInvoke(() =>
             {
                 if (!_poweringOff && !_app.Exiting && !_retiring)
-                    TriggerMochiLaunchGreetingIfEnabled();
+                    TriggerNimbusLaunchGreetingIfEnabled();
             }));
         });
     }

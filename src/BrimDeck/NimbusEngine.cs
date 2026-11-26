@@ -6,40 +6,40 @@ using BrimDeck.Core;
 
 namespace BrimDeck;
 
-public enum MochiEyeShape
+public enum NimbusEyeShape
 {
     Pill, Wide, Dot, Line, Flat, Happy, Closed,
     Spiral, Heart, Star, Tired, Wink, Cup
 }
 
-public enum MochiBadgeKind
+public enum NimbusBadgeKind
 {
     Dots, Bang, Question, Dot, Arrow
 }
 
-public readonly record struct MochiBadge(MochiBadgeKind Kind, Color Color);
+public readonly record struct NimbusBadge(NimbusBadgeKind Kind, Color Color);
 
-internal enum MochiPropKey
+internal enum NimbusPropKey
 {
     Yaw, Pitch, Roll, Tilt, Open, Sx, Sy,
     Oy, Ox, Tint, Hands, Blush, Es, BadgeS
 }
 
-internal enum MochiEase { Linear, Out, InOut, Back }
+internal enum NimbusEase { Linear, Out, InOut, Back }
 
-internal readonly record struct MochiTweenKey(double Target, double DurationMs, MochiEase Ease);
+internal readonly record struct NimbusTweenKey(double Target, double DurationMs, NimbusEase Ease);
 
-internal sealed class MochiTween
+internal sealed class NimbusTween
 {
-    public MochiPropKey Prop { get; init; }
-    public MochiTweenKey[] Keys { get; init; } = [];
+    public NimbusPropKey Prop { get; init; }
+    public NimbusTweenKey[] Keys { get; init; } = [];
     public int Index { get; set; }
     public double From { get; set; }
     public double StartMs { get; set; }
     public Action? OnComplete { get; init; }
 }
 
-internal sealed class MochiParticle
+internal sealed class NimbusParticle
 {
     public required string Type { get; init; } // "heart" | "star" | "spark" | "sweat" | "z"
     public double X { get; set; }
@@ -52,11 +52,11 @@ internal sealed class MochiParticle
     public double Size { get; set; }
 }
 
-internal sealed record MochiStateCfg(
+internal sealed record NimbusStateCfg(
     Color Color,
     double Tint,
-    MochiEyeShape Eye,
-    MochiBadge? Badge,
+    NimbusEyeShape Eye,
+    NimbusBadge? Badge,
     bool Bounces = false,
     bool Scans = false,
     bool Breathes = false,
@@ -66,34 +66,34 @@ internal sealed record MochiStateCfg(
     double Tilt = 0);
 
 /// <summary>
-/// Procedural vector animation engine for Mochi, ported from Coucou's BotEngine
+/// Procedural vector animation engine for Nimbus, ported from Coucou's BotEngine
 /// to native WPF DrawingContext rendering.
 /// </summary>
-public sealed class MochiEngine
+public sealed class NimbusEngine
 {
-    private const double EyeW = 0.25;
-    private const double EyeH = 0.27;
-    private const double EyeSp = 0.37;
-    private const double EyeP = -0.12;
+    private const double EyeW = 0.24;
+    private const double EyeH = 0.24;
+    private const double EyeSp = 0.34;
+    private const double EyeP = -0.02;
 
-    private static readonly Color BaseTop = Color.FromRgb(0xED, 0xED, 0xEF);
-    private static readonly Color BaseBottom = Color.FromRgb(0xC4, 0xC5, 0xCA);
-    private static readonly Color InkColor = Color.FromRgb(26, 20, 18);
-    private static readonly Color MiniInkColor = Color.FromRgb(16, 19, 26);
+    private static readonly Color BaseTop = Color.FromRgb(0xFB, 0xFD, 0xFF);
+    private static readonly Color BaseBottom = Color.FromRgb(0xD6, 0xE6, 0xF8);
+    private static readonly Color InkColor = Color.FromRgb(22, 32, 54);
+    private static readonly Color MiniInkColor = Color.FromRgb(18, 28, 48);
 
-    private static readonly Dictionary<MochiState, MochiStateCfg> StateConfigs = new()
+    private static readonly Dictionary<NimbusState, NimbusStateCfg> StateConfigs = new()
     {
-        [MochiState.Idle] = new(Color.FromRgb(230, 233, 238), 0.00, MochiEyeShape.Pill, null),
-        [MochiState.Working] = new(Color.FromRgb(59, 158, 255), 0.72, MochiEyeShape.Pill, new(MochiBadgeKind.Dots, Color.FromRgb(59, 158, 255))),
-        [MochiState.Thinking] = new(Color.FromRgb(139, 92, 246), 0.72, MochiEyeShape.Pill, new(MochiBadgeKind.Dots, Color.FromRgb(139, 92, 246)), Look: (0.55, 0.55)),
-        [MochiState.Searching] = new(Color.FromRgb(99, 102, 241), 0.72, MochiEyeShape.Pill, new(MochiBadgeKind.Dots, Color.FromRgb(99, 102, 241)), Scans: true),
-        [MochiState.Approval] = new(Color.FromRgb(245, 165, 36), 0.78, MochiEyeShape.Wide, new(MochiBadgeKind.Bang, Color.FromRgb(245, 165, 36)), Bounces: true),
-        [MochiState.Question] = new(Color.FromRgb(34, 211, 238), 0.75, MochiEyeShape.Pill, new(MochiBadgeKind.Question, Color.FromRgb(34, 211, 238)), Tilt: 0.17),
-        [MochiState.Error] = new(Color.FromRgb(244, 80, 94), 0.78, MochiEyeShape.Flat, new(MochiBadgeKind.Dot, Color.FromRgb(244, 80, 94))),
-        [MochiState.Finished] = new(Color.FromRgb(52, 211, 153), 0.35, MochiEyeShape.Happy, new(MochiBadgeKind.Dot, Color.FromRgb(52, 211, 153))),
-        [MochiState.RateLimit] = new(Color.FromRgb(251, 146, 60), 0.72, MochiEyeShape.Tired, new(MochiBadgeKind.Dot, Color.FromRgb(251, 146, 60)), Sweat: true),
-        [MochiState.Sleeping] = new(Color.FromRgb(148, 163, 184), 0.32, MochiEyeShape.Closed, null, Breathes: true, Zz: true),
-        [MochiState.Dizzy] = new(Color.FromRgb(244, 114, 182), 0.70, MochiEyeShape.Spiral, null),
+        [NimbusState.Idle] = new(Color.FromRgb(186, 224, 255), 0.06, NimbusEyeShape.Pill, null),
+        [NimbusState.Working] = new(Color.FromRgb(56, 189, 248), 0.68, NimbusEyeShape.Pill, new(NimbusBadgeKind.Dots, Color.FromRgb(56, 189, 248))),
+        [NimbusState.Thinking] = new(Color.FromRgb(129, 140, 248), 0.68, NimbusEyeShape.Pill, new(NimbusBadgeKind.Dots, Color.FromRgb(129, 140, 248)), Look: (0.55, 0.55)),
+        [NimbusState.Searching] = new(Color.FromRgb(45, 212, 191), 0.68, NimbusEyeShape.Pill, new(NimbusBadgeKind.Dots, Color.FromRgb(45, 212, 191)), Scans: true),
+        [NimbusState.Approval] = new(Color.FromRgb(251, 191, 36), 0.74, NimbusEyeShape.Wide, new(NimbusBadgeKind.Bang, Color.FromRgb(251, 191, 36)), Bounces: true),
+        [NimbusState.Question] = new(Color.FromRgb(34, 211, 238), 0.70, NimbusEyeShape.Pill, new(NimbusBadgeKind.Question, Color.FromRgb(34, 211, 238)), Tilt: 0.17),
+        [NimbusState.Error] = new(Color.FromRgb(248, 113, 113), 0.76, NimbusEyeShape.Flat, new(NimbusBadgeKind.Dot, Color.FromRgb(248, 113, 113))),
+        [NimbusState.Finished] = new(Color.FromRgb(52, 211, 153), 0.38, NimbusEyeShape.Happy, new(NimbusBadgeKind.Dot, Color.FromRgb(52, 211, 153))),
+        [NimbusState.RateLimit] = new(Color.FromRgb(251, 146, 60), 0.70, NimbusEyeShape.Tired, new(NimbusBadgeKind.Dot, Color.FromRgb(251, 146, 60)), Sweat: true),
+        [NimbusState.Sleeping] = new(Color.FromRgb(148, 163, 198), 0.34, NimbusEyeShape.Closed, null, Breathes: true, Zz: true),
+        [NimbusState.Dizzy] = new(Color.FromRgb(232, 121, 249), 0.68, NimbusEyeShape.Spiral, null),
     };
 
     private static readonly Stopwatch Clock = Stopwatch.StartNew();
@@ -101,14 +101,14 @@ public sealed class MochiEngine
     private static double NowMs() => Clock.Elapsed.TotalMilliseconds;
 
     private readonly Random _rng = new();
-    private readonly Dictionary<MochiPropKey, MochiTween> _tweens = new();
-    private readonly HashSet<MochiPropKey> _locks = new();
-    private readonly List<MochiParticle> _particles = new();
+    private readonly Dictionary<NimbusPropKey, NimbusTween> _tweens = new();
+    private readonly HashSet<NimbusPropKey> _locks = new();
+    private readonly List<NimbusParticle> _particles = new();
     private readonly List<double> _slapTimes = new();
 
     public bool IsMini { get; set; }
-    public MochiState State { get; private set; } = MochiState.Idle;
-    public MochiQuotaMood QuotaMood { get; set; } = MochiQuotaMood.Normal;
+    public NimbusState State { get; private set; } = NimbusState.Idle;
+    public NimbusQuotaMood QuotaMood { get; set; } = NimbusQuotaMood.Normal;
     public event Action? DizzyTriggered;
 
     // Animated properties
@@ -127,17 +127,17 @@ public sealed class MochiEngine
     // Targets
     private double _tgYaw, _tgPitch, _tgTilt, _tgSx = 1, _tgSy = 1;
     private double _lookX, _lookY;
-    private Color _col = StateConfigs[MochiState.Idle].Color;
-    private Color _colT = StateConfigs[MochiState.Idle].Color;
-    private MochiStateCfg _cfg = StateConfigs[MochiState.Idle];
+    private Color _col = StateConfigs[NimbusState.Idle].Color;
+    private Color _colT = StateConfigs[NimbusState.Idle].Color;
+    private NimbusStateCfg _cfg = StateConfigs[NimbusState.Idle];
 
-    private MochiEyeShape? _eyeOverride;
+    private NimbusEyeShape? _eyeOverride;
     private double _eyeOverrideUntil;
-    private MochiEyeShape? _permanentEye;
-    private MochiEmote? _permanentEmote;
+    private NimbusEyeShape? _permanentEye;
+    private NimbusEmote? _permanentEmote;
     private double _miniNextBehavior;
     private double _miniLookX, _miniLookY, _miniLookNextTime;
-    private MochiBadge? _badge;
+    private NimbusBadge? _badge;
     private string _badgeKey = "none";
     private int _badgeToken;
 
@@ -151,44 +151,44 @@ public sealed class MochiEngine
     private int _greetToken;
     private bool _isDancing;
     private double _dancingLevel;
-    private MochiOutfit _outfit = MochiOutfit.Auto;
+    private NimbusOutfit _outfit = NimbusOutfit.Auto;
     private bool _mailbox;
     private double _mailboxLevel;
     private Color? _updateHintColor;
     private double _launchGreetingStart;
     private double _launchGreetingUntil;
 
-    /// <summary>True when Mochi is resting (Idle/Sleeping) with no active tweens, particles, or dance.</summary>
+    /// <summary>True when Nimbus is resting (Idle/Sleeping) with no active tweens, particles, or dance.</summary>
     public bool IsLowRateIdle =>
         _tweens.Count == 0
         && _particles.Count == 0
         && !_isDancing
         && _dancingLevel <= 0.001
         && _eyeOverride is null
-        && (State == MochiState.Idle || State == MochiState.Sleeping);
+        && (State == NimbusState.Idle || State == NimbusState.Sleeping);
 
     public void SetDancing(bool dancing) => _isDancing = dancing;
-    public void SetOutfit(MochiOutfit outfit) => _outfit = outfit;
+    public void SetOutfit(NimbusOutfit outfit) => _outfit = outfit;
     public void SetMailbox(bool mailbox) => _mailbox = mailbox;
     public void SetUpdateHint(Color? color) => _updateHintColor = color;
 
-    public void SetPermanentEmote(MochiEmote? emote)
+    public void SetPermanentEmote(NimbusEmote? emote)
     {
         _permanentEmote = emote;
         double n = NowSec();
-        if (emote == MochiEmote.Wink)
+        if (emote == NimbusEmote.Wink)
         {
             _miniNextBehavior = n + 0.8 + _rng.NextDouble() * 1.7;
             return;
         }
         _permanentEye = emote switch
         {
-            MochiEmote.Love => MochiEyeShape.Heart,
-            MochiEmote.Surprised => MochiEyeShape.Dot,
-            MochiEmote.Proud => MochiEyeShape.Star,
-            MochiEmote.Yawn => MochiEyeShape.Tired,
-            MochiEmote.Happy => MochiEyeShape.Happy,
-            MochiEmote.Annoyed => MochiEyeShape.Line,
+            NimbusEmote.Love => NimbusEyeShape.Heart,
+            NimbusEmote.Surprised => NimbusEyeShape.Dot,
+            NimbusEmote.Proud => NimbusEyeShape.Star,
+            NimbusEmote.Yawn => NimbusEyeShape.Tired,
+            NimbusEmote.Happy => NimbusEyeShape.Happy,
+            NimbusEmote.Annoyed => NimbusEyeShape.Line,
             _ => null
         };
         if (_permanentEye is not null)
@@ -212,22 +212,22 @@ public sealed class MochiEngine
         _launchGreetingUntil = t + 2.6;
         _oy = -0.65;
         _ox = -1.5;
-        Anim(MochiPropKey.Oy, [new(0.10, 240, MochiEase.Out), new(-0.24, 180, MochiEase.Out), new(0, 220, MochiEase.Back)]);
-        Anim(MochiPropKey.Sy, [new(1.0, 200, MochiEase.Linear), new(0.68, 90, MochiEase.Out), new(1.16, 140, MochiEase.Out), new(1, 220, MochiEase.InOut)]);
-        Anim(MochiPropKey.Sx, [new(1.0, 200, MochiEase.Linear), new(1.28, 90, MochiEase.Out), new(0.90, 140, MochiEase.Out), new(1, 220, MochiEase.InOut)]);
-        Anim(MochiPropKey.Ox, [new(0.65, 420, MochiEase.Back), new(0.65, 850, MochiEase.Linear), new(0, 380, MochiEase.InOut)]);
-        Anim(MochiPropKey.Blush, [new(0.85, 250, MochiEase.Out), new(0.85, 1100, MochiEase.Linear), new(0, 450, MochiEase.InOut)]);
+        Anim(NimbusPropKey.Oy, [new(0.10, 240, NimbusEase.Out), new(-0.24, 180, NimbusEase.Out), new(0, 220, NimbusEase.Back)]);
+        Anim(NimbusPropKey.Sy, [new(1.0, 200, NimbusEase.Linear), new(0.68, 90, NimbusEase.Out), new(1.16, 140, NimbusEase.Out), new(1, 220, NimbusEase.InOut)]);
+        Anim(NimbusPropKey.Sx, [new(1.0, 200, NimbusEase.Linear), new(1.28, 90, NimbusEase.Out), new(0.90, 140, NimbusEase.Out), new(1, 220, NimbusEase.InOut)]);
+        Anim(NimbusPropKey.Ox, [new(0.65, 420, NimbusEase.Back), new(0.65, 850, NimbusEase.Linear), new(0, 380, NimbusEase.InOut)]);
+        Anim(NimbusPropKey.Blush, [new(0.85, 250, NimbusEase.Out), new(0.85, 1100, NimbusEase.Linear), new(0, 450, NimbusEase.InOut)]);
         Emit("spark", 6);
     }
 
     public void Poke()
     {
         Squash();
-        MochiSound.Play(MochiSoundKind.Poke);
-        TriggerEmote(MochiEmote.Happy, 1.1);
+        NimbusSound.Play(NimbusSoundKind.Poke);
+        TriggerEmote(NimbusEmote.Happy, 1.1);
     }
 
-    public void SetState(MochiState next, bool force = false)
+    public void SetState(NimbusState next, bool force = false)
     {
         if (State == next && !force) return;
         var prev = State;
@@ -240,31 +240,31 @@ public sealed class MochiEngine
 
         switch (next)
         {
-            case MochiState.Finished:
+            case NimbusState.Finished:
                 DoRoll(950, 1);
                 Emit("spark", 5);
-                MochiSound.Play(MochiSoundKind.Finished);
+                NimbusSound.Play(NimbusSoundKind.Finished);
                 break;
-            case MochiState.Error:
-                Anim(MochiPropKey.Ox, [new(0.08, 50, MochiEase.Out), new(-0.08, 70, MochiEase.InOut), new(0.05, 70, MochiEase.InOut), new(0, 90, MochiEase.Out)]);
-                MochiSound.Play(MochiSoundKind.Error);
+            case NimbusState.Error:
+                Anim(NimbusPropKey.Ox, [new(0.08, 50, NimbusEase.Out), new(-0.08, 70, NimbusEase.InOut), new(0.05, 70, NimbusEase.InOut), new(0, 90, NimbusEase.Out)]);
+                NimbusSound.Play(NimbusSoundKind.Error);
                 break;
-            case MochiState.Approval:
-                Anim(MochiPropKey.Oy, [new(-0.2, 150, MochiEase.Out), new(0, 300, MochiEase.Back)]);
-                MochiSound.Play(MochiSoundKind.Approval);
+            case NimbusState.Approval:
+                Anim(NimbusPropKey.Oy, [new(-0.2, 150, NimbusEase.Out), new(0, 300, NimbusEase.Back)]);
+                NimbusSound.Play(NimbusSoundKind.Approval);
                 break;
-            case MochiState.Dizzy:
+            case NimbusState.Dizzy:
                 DoRoll(1300, 2);
-                MochiSound.Play(MochiSoundKind.Dizzy);
+                NimbusSound.Play(NimbusSoundKind.Dizzy);
                 break;
-            case MochiState.Question:
+            case NimbusState.Question:
                 Blink();
                 break;
-            case MochiState.RateLimit:
+            case NimbusState.RateLimit:
                 Emit("sweat", 1);
                 break;
             default:
-                if (prev != MochiState.Idle || next != MochiState.Idle) Blink();
+                if (prev != NimbusState.Idle || next != NimbusState.Idle) Blink();
                 break;
         }
     }
@@ -278,15 +278,15 @@ public sealed class MochiEngine
 
     public void Blink()
     {
-        if (_locks.Contains(MochiPropKey.Open)) return;
-        Anim(MochiPropKey.Open, [new(0.06, 70, MochiEase.InOut), new(1, 130, MochiEase.Out)]);
+        if (_locks.Contains(NimbusPropKey.Open)) return;
+        Anim(NimbusPropKey.Open, [new(0.06, 70, NimbusEase.InOut), new(1, 130, NimbusEase.Out)]);
     }
 
     public void Squash()
     {
         _physVy += 0.6;
-        Anim(MochiPropKey.Sy, [new(0.78, 70, MochiEase.Out), new(1.1, 130, MochiEase.Out), new(1, 170, MochiEase.InOut)]);
-        Anim(MochiPropKey.Sx, [new(1.16, 70, MochiEase.Out), new(0.95, 130, MochiEase.Out), new(1, 170, MochiEase.InOut)]);
+        Anim(NimbusPropKey.Sy, [new(0.78, 70, NimbusEase.Out), new(1.1, 130, NimbusEase.Out), new(1, 170, NimbusEase.InOut)]);
+        Anim(NimbusPropKey.Sx, [new(1.16, 70, NimbusEase.Out), new(0.95, 130, NimbusEase.Out), new(1, 170, NimbusEase.InOut)]);
     }
 
     public void Gulp()
@@ -298,15 +298,15 @@ public sealed class MochiEngine
             _isChewing = true;
             _ = Task.Delay(800).ContinueWith(__ => _isChewing = false);
         });
-        Anim(MochiPropKey.Sy, [new(0.78, 80, MochiEase.Out), new(1.18, 130, MochiEase.Out), new(1, 220, MochiEase.Back)]);
-        Anim(MochiPropKey.Sx, [new(1.28, 80, MochiEase.Out), new(0.92, 130, MochiEase.Out), new(1, 220, MochiEase.Back)]);
+        Anim(NimbusPropKey.Sy, [new(0.78, 80, NimbusEase.Out), new(1.18, 130, NimbusEase.Out), new(1, 220, NimbusEase.Back)]);
+        Anim(NimbusPropKey.Sx, [new(1.28, 80, NimbusEase.Out), new(0.92, 130, NimbusEase.Out), new(1, 220, NimbusEase.Back)]);
         Blink();
     }
 
     public void Slap()
     {
         InterruptGreet();
-        if (State == MochiState.Dizzy) return;
+        if (State == NimbusState.Dizzy) return;
         double t = NowSec();
         _slapTimes.RemoveAll(s => t - s >= 1.7);
         _slapTimes.Add(t);
@@ -316,13 +316,13 @@ public sealed class MochiEngine
         if (_slapTimes.Count >= 3)
         {
             _slapTimes.Clear();
-            SetState(MochiState.Dizzy, force: true);
+            SetState(NimbusState.Dizzy, force: true);
             DizzyTriggered?.Invoke();
         }
         else
         {
-            MochiSound.Play(MochiSoundKind.Slap);
-            _eyeOverride = MochiEyeShape.Line;
+            NimbusSound.Play(NimbusSoundKind.Slap);
+            _eyeOverride = NimbusEyeShape.Line;
             _eyeOverrideUntil = t + 0.8;
         }
     }
@@ -330,7 +330,7 @@ public sealed class MochiEngine
     public void DoRoll(double durationMs, int turns)
     {
         _roll = 0;
-        Anim(MochiPropKey.Roll, [new(Math.PI * 2 * turns, durationMs, MochiEase.InOut)], () => _roll = 0);
+        Anim(NimbusPropKey.Roll, [new(Math.PI * 2 * turns, durationMs, NimbusEase.InOut)], () => _roll = 0);
     }
 
     public void Greet()
@@ -340,17 +340,17 @@ public sealed class MochiEngine
         _waveStart = t + 0.45;
         _waveUntil = t + 1.55;
         _physVx += 0.2;
-        _eyeOverride = MochiEyeShape.Happy;
+        _eyeOverride = NimbusEyeShape.Happy;
         _eyeOverrideUntil = t + 2.0;
-        Anim(MochiPropKey.Oy, [new(-0.06, 220, MochiEase.Out), new(0, 220, MochiEase.Back)]);
+        Anim(NimbusPropKey.Oy, [new(-0.06, 220, NimbusEase.Out), new(0, 220, NimbusEase.Back)]);
 
         _ = Task.Delay(250).ContinueWith(_ =>
         {
             if (_greetToken != tok) return;
-            Anim(MochiPropKey.Hands, [new(1, 280, MochiEase.Out)]);
-            Anim(MochiPropKey.Sy, [new(0.95, 100, MochiEase.Out), new(1, 260, MochiEase.Back)]);
-            Anim(MochiPropKey.Sx, [new(1.04, 100, MochiEase.Out), new(1, 260, MochiEase.Back)]);
-            MochiSound.Play(MochiSoundKind.Greet);
+            Anim(NimbusPropKey.Hands, [new(1, 280, NimbusEase.Out)]);
+            Anim(NimbusPropKey.Sy, [new(0.95, 100, NimbusEase.Out), new(1, 260, NimbusEase.Back)]);
+            Anim(NimbusPropKey.Sx, [new(1.04, 100, NimbusEase.Out), new(1, 260, NimbusEase.Back)]);
+            NimbusSound.Play(NimbusSoundKind.Greet);
         });
         _ = Task.Delay(550).ContinueWith(_ => { if (_greetToken == tok) Blink(); });
         _ = Task.Delay(1500).ContinueWith(_ => { if (_greetToken == tok) Blink(); });
@@ -358,12 +358,12 @@ public sealed class MochiEngine
         {
             if (_greetToken != tok) return;
             _waveUntil = 0;
-            Anim(MochiPropKey.Hands, [new(0, 200, MochiEase.InOut)]);
+            Anim(NimbusPropKey.Hands, [new(0, 200, NimbusEase.InOut)]);
         });
         _ = Task.Delay(1750).ContinueWith(_ =>
         {
             if (_greetToken != tok) return;
-            _eyeOverride = MochiEyeShape.Happy;
+            _eyeOverride = NimbusEyeShape.Happy;
             _eyeOverrideUntil = NowSec() + 0.3;
         });
     }
@@ -374,55 +374,55 @@ public sealed class MochiEngine
         _greetToken++;
         _waveUntil = 0;
         _waveStart = 0;
-        Anim(MochiPropKey.Hands, [new(0, 150, MochiEase.InOut)]);
+        Anim(NimbusPropKey.Hands, [new(0, 150, NimbusEase.InOut)]);
     }
 
-    public void TriggerEmote(MochiEmote emote, double duration = 1.8)
+    public void TriggerEmote(NimbusEmote emote, double duration = 1.8)
     {
         double t = NowSec();
         _eyeOverride = emote switch
         {
-            MochiEmote.Love => MochiEyeShape.Heart,
-            MochiEmote.Surprised => MochiEyeShape.Dot,
-            MochiEmote.Proud => MochiEyeShape.Star,
-            MochiEmote.Wink => MochiEyeShape.Wink,
-            MochiEmote.Yawn => MochiEyeShape.Tired,
-            MochiEmote.Happy => MochiEyeShape.Happy,
-            MochiEmote.Annoyed => MochiEyeShape.Line,
-            _ => MochiEyeShape.Happy
+            NimbusEmote.Love => NimbusEyeShape.Heart,
+            NimbusEmote.Surprised => NimbusEyeShape.Dot,
+            NimbusEmote.Proud => NimbusEyeShape.Star,
+            NimbusEmote.Wink => NimbusEyeShape.Wink,
+            NimbusEmote.Yawn => NimbusEyeShape.Tired,
+            NimbusEmote.Happy => NimbusEyeShape.Happy,
+            NimbusEmote.Annoyed => NimbusEyeShape.Line,
+            _ => NimbusEyeShape.Happy
         };
         _eyeOverrideUntil = t + duration;
 
         switch (emote)
         {
-            case MochiEmote.Love:
-                Anim(MochiPropKey.Blush, [new(1, 300, MochiEase.Out), new(1, (duration - 0.6) * 1000, MochiEase.Linear), new(0, 300, MochiEase.InOut)]);
+            case NimbusEmote.Love:
+                Anim(NimbusPropKey.Blush, [new(1, 300, NimbusEase.Out), new(1, (duration - 0.6) * 1000, NimbusEase.Linear), new(0, 300, NimbusEase.InOut)]);
                 Emit("heart", 4);
-                Anim(MochiPropKey.Oy, [new(-0.1, 160, MochiEase.Out), new(0, 300, MochiEase.Back)]);
+                Anim(NimbusPropKey.Oy, [new(-0.1, 160, NimbusEase.Out), new(0, 300, NimbusEase.Back)]);
                 break;
-            case MochiEmote.Surprised:
-                Anim(MochiPropKey.Oy, [new(-0.26, 140, MochiEase.Out), new(0, 380, MochiEase.Back)]);
-                Anim(MochiPropKey.Es, [new(1.25, 120, MochiEase.Out), new(1, 500, MochiEase.InOut)]);
+            case NimbusEmote.Surprised:
+                Anim(NimbusPropKey.Oy, [new(-0.26, 140, NimbusEase.Out), new(0, 380, NimbusEase.Back)]);
+                Anim(NimbusPropKey.Es, [new(1.25, 120, NimbusEase.Out), new(1, 500, NimbusEase.InOut)]);
                 break;
-            case MochiEmote.Proud:
+            case NimbusEmote.Proud:
                 Emit("star", 5);
-                Anim(MochiPropKey.Tilt, [new(-0.14, 220, MochiEase.Out), new(-0.14, (duration - 0.5) * 1000, MochiEase.Linear), new(0, 280, MochiEase.InOut)]);
-                Anim(MochiPropKey.Blush, [new(0.7, 250, MochiEase.Out), new(0.7, (duration - 0.5) * 1000, MochiEase.Linear), new(0, 300, MochiEase.InOut)]);
+                Anim(NimbusPropKey.Tilt, [new(-0.14, 220, NimbusEase.Out), new(-0.14, (duration - 0.5) * 1000, NimbusEase.Linear), new(0, 280, NimbusEase.InOut)]);
+                Anim(NimbusPropKey.Blush, [new(0.7, 250, NimbusEase.Out), new(0.7, (duration - 0.5) * 1000, NimbusEase.Linear), new(0, 300, NimbusEase.InOut)]);
                 break;
-            case MochiEmote.Wink:
-                Anim(MochiPropKey.Tilt, [new(0.12, 160, MochiEase.Out), new(0.12, (duration - 0.4) * 1000, MochiEase.Linear), new(0, 240, MochiEase.InOut)]);
+            case NimbusEmote.Wink:
+                Anim(NimbusPropKey.Tilt, [new(0.12, 160, NimbusEase.Out), new(0.12, (duration - 0.4) * 1000, NimbusEase.Linear), new(0, 240, NimbusEase.InOut)]);
                 break;
-            case MochiEmote.Yawn:
-                Anim(MochiPropKey.Sy, [new(1.12, 500, MochiEase.InOut), new(1, 500, MochiEase.InOut)]);
-                Anim(MochiPropKey.Sx, [new(0.94, 500, MochiEase.InOut), new(1, 500, MochiEase.InOut)]);
+            case NimbusEmote.Yawn:
+                Anim(NimbusPropKey.Sy, [new(1.12, 500, NimbusEase.InOut), new(1, 500, NimbusEase.InOut)]);
+                Anim(NimbusPropKey.Sx, [new(0.94, 500, NimbusEase.InOut), new(1, 500, NimbusEase.InOut)]);
                 _ = Task.Delay(700).ContinueWith(_ =>
                 {
-                    _eyeOverride = MochiEyeShape.Closed;
+                    _eyeOverride = NimbusEyeShape.Closed;
                     Emit("z", 2);
                 });
                 break;
-            case MochiEmote.Happy:
-                Anim(MochiPropKey.Blush, [new(0.6, 200, MochiEase.Out), new(0, 600, MochiEase.InOut)]);
+            case NimbusEmote.Happy:
+                Anim(NimbusPropKey.Blush, [new(0.6, 200, NimbusEase.Out), new(0, 600, NimbusEase.InOut)]);
                 break;
         }
     }
@@ -432,7 +432,7 @@ public sealed class MochiEngine
         for (int i = 0; i < count; i++)
         {
             bool isZ = type == "z";
-            _particles.Add(new MochiParticle
+            _particles.Add(new NimbusParticle
             {
                 Type = type,
                 X = (_rng.NextDouble() - 0.5) * 0.9 + (isZ ? 0.55 : 0),
@@ -479,7 +479,7 @@ public sealed class MochiEngine
         // Auto blink (suppressed while sleeping or dizzy; 22% chance of a double-blink)
         if (n >= _nextBlink)
         {
-            if (State != MochiState.Sleeping && State != MochiState.Dizzy)
+            if (State != NimbusState.Sleeping && State != NimbusState.Dizzy)
             {
                 Blink();
                 if (_rng.NextDouble() < 0.22)
@@ -503,10 +503,10 @@ public sealed class MochiEngine
             ty = Math.Sin(elapsed * 2.6) * 0.6;
             tp = -0.06;
         }
-        if (State == MochiState.Sleeping) { ty = 0; tp = -0.14; }
-        if (State == MochiState.Dizzy) { ty = Math.Sin(elapsed * 9) * 0.25; tp = 0; }
+        if (State == NimbusState.Sleeping) { ty = 0; tp = -0.14; }
+        if (State == NimbusState.Dizzy) { ty = Math.Sin(elapsed * 9) * 0.25; tp = 0; }
 
-        if (IsMini && _cfg.Look is null && !_cfg.Scans && State != MochiState.Sleeping && State != MochiState.Dizzy)
+        if (IsMini && _cfg.Look is null && !_cfg.Scans && State != NimbusState.Sleeping && State != NimbusState.Dizzy)
         {
             if (n > _miniLookNextTime)
             {
@@ -517,13 +517,13 @@ public sealed class MochiEngine
             ty = _miniLookX * 0.62;
             tp = _miniLookY * 0.5;
         }
-        else if (State == MochiState.Idle && !IsMini && n >= _nextAmbient && n >= _externalLookUntil && Math.Abs(_lookX) < 0.05 && Math.Abs(_lookY) < 0.05)
+        else if (State == NimbusState.Idle && !IsMini && n >= _nextAmbient && n >= _externalLookUntil && Math.Abs(_lookX) < 0.05 && Math.Abs(_lookY) < 0.05)
         {
             ty = (_rng.NextDouble() - 0.5) * 0.45;
             tp = (_rng.NextDouble() - 0.5) * 0.24;
             _nextAmbient = n + 2.4 + _rng.NextDouble() * 2.8;
-            if (QuotaMood == MochiQuotaMood.Energetic && _rng.NextDouble() < 0.25)
-                TriggerEmote(MochiEmote.Happy, 1.2);
+            if (QuotaMood == NimbusQuotaMood.Energetic && _rng.NextDouble() < 0.25)
+                TriggerEmote(NimbusEmote.Happy, 1.2);
         }
 
         _tgYaw = ty;
@@ -538,7 +538,7 @@ public sealed class MochiEngine
 
         double bounce = _cfg.Bounces ? -Math.Abs(Math.Sin(elapsed * 5.2)) * 0.07 : 0;
         double kGen = 1 - Math.Pow(0.0008, dt);
-        if (!_locks.Contains(MochiPropKey.Oy)) _oy += (bounce - _oy) * kGen;
+        if (!_locks.Contains(NimbusPropKey.Oy)) _oy += (bounce - _oy) * kGen;
 
         if (_cfg.Breathes)
         {
@@ -570,11 +570,11 @@ public sealed class MochiEngine
 
         // Smooth follow for look / scale / tilt (respecting active tween locks)
         double kLook = 1 - Math.Pow(0.0025, dt);
-        if (!_locks.Contains(MochiPropKey.Yaw)) _yaw = Lerp(_yaw, _tgYaw, kLook);
-        if (!_locks.Contains(MochiPropKey.Pitch)) _pitch = Lerp(_pitch, _tgPitch, kLook);
-        if (!_locks.Contains(MochiPropKey.Tilt)) _tilt = Lerp(_tilt, _tgTilt, kGen);
-        if (!_locks.Contains(MochiPropKey.Sx)) _sx = Lerp(_sx, _tgSx, kGen);
-        if (!_locks.Contains(MochiPropKey.Sy)) _sy = Lerp(_sy, _tgSy, kGen);
+        if (!_locks.Contains(NimbusPropKey.Yaw)) _yaw = Lerp(_yaw, _tgYaw, kLook);
+        if (!_locks.Contains(NimbusPropKey.Pitch)) _pitch = Lerp(_pitch, _tgPitch, kLook);
+        if (!_locks.Contains(NimbusPropKey.Tilt)) _tilt = Lerp(_tilt, _tgTilt, kGen);
+        if (!_locks.Contains(NimbusPropKey.Sx)) _sx = Lerp(_sx, _tgSx, kGen);
+        if (!_locks.Contains(NimbusPropKey.Sy)) _sy = Lerp(_sy, _tgSy, kGen);
 
         // Mouth slot spring (omega = 2pi / 0.25, zeta = 0.6)
         const double omega = (2 * Math.PI) / 0.25;
@@ -590,7 +590,7 @@ public sealed class MochiEngine
             double oyVel = (_oy - _prevOy) / dt;
             double dRoll = _roll - _prevRoll;
             double rollVel = Math.Abs(dRoll) > Math.PI ? 0 : dRoll / dt;
-            bool rigidRoll = !IsMini && MochiOutfits.ResolveOutfit(_outfit, DateTime.Now) != MochiOutfit.None;
+            bool rigidRoll = !IsMini && NimbusOutfits.ResolveOutfit(_outfit, DateTime.Now) != NimbusOutfit.None;
             double centrifugal = rigidRoll ? rollVel * 0.18 : 0;
             double tDx = Math.Clamp(-yawVel * 0.35 - _tilt * 2 + centrifugal, -1, 1);
             double tDy = Math.Clamp(oyVel * 0.5, -1, 1);
@@ -618,8 +618,11 @@ public sealed class MochiEngine
         double r = Math.Min(width, height) * (IsMini ? 0.38 : 0.36);
         double rx = r * 1.14;
         double ry = r * 0.88;
+        double floatY = (!_isDancing && State != NimbusState.Dizzy)
+            ? Math.Sin(now * 1.9) * r * (State == NimbusState.Sleeping ? 0.025 : 0.045)
+            : 0;
         double cx = width / 2.0 + _ox * r;
-        double cy = height / 2.0 + _oy * r;
+        double cy = height / 2.0 + _oy * r + floatY;
 
         bool dance = _dancingLevel > 0.001;
         if (dance)
@@ -644,23 +647,23 @@ public sealed class MochiEngine
         if ((!IsMini || now < _launchGreetingUntil) && _hands > 0.01 && r > 7)
             DrawHandsBehind(dc, r, rx, ry, cx, cy);
 
-        var resolvedOutfit = MochiOutfits.ResolveOutfit(_outfit, DateTime.Now);
+        var resolvedOutfit = NimbusOutfits.ResolveOutfit(_outfit, DateTime.Now);
         double outfitAlpha = Math.Max(0.0, 1.0 - _mailboxLevel * 1.4);
-        bool rigidRoll = !IsMini && resolvedOutfit != MochiOutfit.None && outfitAlpha > 0.05;
+        bool rigidRoll = !IsMini && resolvedOutfit != NimbusOutfit.None && outfitAlpha > 0.05;
 
         dc.PushTransform(new TranslateTransform(cx, cy));
         double totalTilt = _tilt + (rigidRoll ? _roll : 0);
         if (Math.Abs(totalTilt) > 0.001) dc.PushTransform(new RotateTransform(totalTilt * 180.0 / Math.PI));
         if (Math.Abs(_sx - 1) > 0.001 || Math.Abs(_sy - 1) > 0.001) dc.PushTransform(new ScaleTransform(_sx, _sy));
 
-        MochiOutfits.DrawBehind(dc, resolvedOutfit, r, _yaw, _pitch, outfitAlpha, _physDx, _physDy);
+        NimbusOutfits.DrawBehind(dc, resolvedOutfit, r, _yaw, _pitch, outfitAlpha, _physDx, _physDy);
 
         var body = BuildBodyGeometry(rx, ry, _mailboxLevel);
-        DrawBody(dc, body, r, rx, ry, MochiOutfits.IsPumpkin(resolvedOutfit) && outfitAlpha > 0.1);
+        DrawBody(dc, body, r, rx, ry, NimbusOutfits.IsPumpkin(resolvedOutfit) && outfitAlpha > 0.1);
         DrawBlush(dc, body, r, rx, ry);
         DrawEyes(dc, body, r, rx, ry, rigidRoll ? 0 : _roll);
         DrawMouthSlot(dc, r, rx, ry);
-        MochiOutfits.DrawFront(dc, resolvedOutfit, r, _yaw, _pitch, outfitAlpha, _physDx, _physDy);
+        NimbusOutfits.DrawFront(dc, resolvedOutfit, r, _yaw, _pitch, outfitAlpha, _physDx, _physDy);
 
         if (Math.Abs(_sx - 1) > 0.001 || Math.Abs(_sy - 1) > 0.001) dc.Pop();
         if (Math.Abs(totalTilt) > 0.001) dc.Pop();
@@ -670,7 +673,7 @@ public sealed class MochiEngine
             DrawBadge(dc, badge, r, cx, cy);
 
         // Update hint dot when idle or sleeping
-        if (_updateHintColor is { } hintCol && (State == MochiState.Idle || State == MochiState.Sleeping))
+        if (_updateHintColor is { } hintCol && (State == NimbusState.Idle || State == NimbusState.Sleeping))
         {
             double pulse = 0.65 + 0.35 * Math.Sin(now * 3.5);
             var dotBrush = new SolidColorBrush(Color.FromArgb((byte)(230 * pulse), hintCol.R, hintCol.G, hintCol.B));
@@ -692,10 +695,7 @@ public sealed class MochiEngine
 
     private static StreamGeometry BuildBodyGeometry(double rx, double ry, double mailboxLevel = 0)
     {
-        const int n = 64;
-        double expN = Lerp(2.0 / 2.7, 0.24, mailboxLevel);
-        double mx = rx * Lerp(1.0, 1.08, mailboxLevel);
-        double my = ry * Lerp(1.0, 0.94, mailboxLevel);
+        const int n = 96;
         var geo = new StreamGeometry();
         using var ctx = geo.Open();
         for (int i = 0; i <= n; i++)
@@ -703,8 +703,29 @@ public sealed class MochiEngine
             double a = (double)i / n * Math.PI * 2;
             double ca = Math.Cos(a);
             double sa = Math.Sin(a);
-            double px = mx * (ca >= 0 ? Math.Pow(ca, expN) : -Math.Pow(-ca, expN));
-            double py = my * (sa >= 0 ? Math.Pow(sa, expN) : -Math.Pow(-sa, expN));
+
+            // Fluffy 5-puff cloud contour with a gently flattened base.
+            double lobe = 0.5 + 0.5 * Math.Cos(5.0 * (a + Math.PI / 2.0));
+            double topMask = Math.Clamp((0.45 - sa) / 0.85, 0.0, 1.0);
+            double puffScale = 1.0 + 0.16 * lobe * topMask;
+            double cloudX = rx * 1.15 * ca * puffScale;
+            double cloudY = ry * 0.94 * sa * puffScale;
+            if (sa > 0.25)
+            {
+                double bottomT = Math.Clamp((sa - 0.25) / 0.75, 0.0, 1.0);
+                cloudY = Lerp(cloudY, ry * (0.72 + 0.05 * sa), bottomT * 0.72);
+            }
+
+            double px = cloudX;
+            double py = cloudY;
+            if (mailboxLevel > 0.001)
+            {
+                double boxX = rx * 1.08 * (ca >= 0 ? Math.Pow(ca, 0.24) : -Math.Pow(-ca, 0.24));
+                double boxY = ry * 0.94 * (sa >= 0 ? Math.Pow(sa, 0.24) : -Math.Pow(-sa, 0.24));
+                px = Lerp(cloudX, boxX, mailboxLevel);
+                py = Lerp(cloudY, boxY, mailboxLevel);
+            }
+
             var pt = new Point(px, py);
             if (i == 0) ctx.BeginFigure(pt, true, true);
             else ctx.LineTo(pt, true, true);
@@ -718,7 +739,8 @@ public sealed class MochiEngine
         var topCol = pumpkin ? Color.FromRgb(255, 169, 77) : BaseTop;
         var botCol = pumpkin ? Color.FromRgb(232, 89, 12) : BaseBottom;
         var baseGrad = new LinearGradientBrush(topCol, botCol, new Point(0.85, 0.08), new Point(0.1, 0.95));
-        dc.DrawGeometry(baseGrad, null, body);
+        var rimPen = new Pen(new SolidColorBrush(Color.FromArgb(70, 165, 198, 235)), Math.Max(0.8, r * 0.045));
+        dc.DrawGeometry(baseGrad, rimPen, body);
 
         if (_tint > 0.01)
         {
@@ -728,7 +750,7 @@ public sealed class MochiEngine
             dc.DrawGeometry(tintGrad, null, body);
         }
 
-        // Subtle vignette shadow
+        // Subtle bottom cloud shadow
         var vig = new RadialGradientBrush
         {
             Center = new Point(0.5, 0.5),
@@ -736,8 +758,8 @@ public sealed class MochiEngine
             RadiusX = 0.65,
             RadiusY = 0.65
         };
-        vig.GradientStops.Add(new GradientStop(Color.FromArgb(0, 0, 0, 0), 0.55));
-        vig.GradientStops.Add(new GradientStop(Color.FromArgb(48, 0, 0, 0), 1.0));
+        vig.GradientStops.Add(new GradientStop(Color.FromArgb(0, 0, 0, 0), 0.58));
+        vig.GradientStops.Add(new GradientStop(Color.FromArgb(40, 30, 58, 95), 1.0));
         dc.DrawGeometry(vig, null, body);
 
         // Specular highlight
@@ -756,19 +778,19 @@ public sealed class MochiEngine
         double blushVal = Math.Max(_blush, _tint * 0.45);
         if (blushVal <= 0.02) return;
         dc.PushClip(body);
-        var brush = new SolidColorBrush(Color.FromArgb((byte)Math.Clamp(128 * blushVal, 0, 255), 255, 120, 150));
+        var brush = new SolidColorBrush(Color.FromArgb((byte)Math.Clamp(128 * blushVal, 0, 255), 255, 148, 168));
         double yOffset = Math.Sin(_yaw) * rx * 0.8;
         foreach (int sd in new[] { -1, 1 })
-            dc.DrawEllipse(brush, null, new Point(sd * rx * 0.55 + yOffset, ry * 0.2), r * 0.17, r * 0.10);
+            dc.DrawEllipse(brush, null, new Point(sd * rx * 0.52 + yOffset, ry * 0.22), r * 0.16, r * 0.095);
         dc.Pop();
     }
 
     private void DrawEyes(DrawingContext dc, Geometry body, double r, double rx, double ry, double eyeRoll = 0)
     {
         var shape = _mailboxLevel > 0.5
-            ? MochiEyeShape.Cup
-            : _eyeOverride ?? (_isDancing && _dancingLevel > 0.15 && !IsMini && (State == MochiState.Idle || State == MochiState.Finished)
-                ? MochiEyeShape.Happy
+            ? NimbusEyeShape.Cup
+            : _eyeOverride ?? (_isDancing && _dancingLevel > 0.15 && !IsMini && (State == NimbusState.Idle || State == NimbusState.Finished)
+                ? NimbusEyeShape.Happy
                 : _cfg.Eye);
         dc.PushClip(body);
         var ink = new SolidColorBrush(IsMini ? MiniInkColor : InkColor);
@@ -798,33 +820,42 @@ public sealed class MochiEngine
         dc.Pop();
     }
 
-    private void DrawEyeShape(DrawingContext dc, MochiEyeShape shape, double w, double h, int sd, Brush ink)
+    private void DrawEyeShape(DrawingContext dc, NimbusEyeShape shape, double w, double h, int sd, Brush ink)
     {
         double t = NowSec();
         switch (shape)
         {
-            case MochiEyeShape.Wide:
-                DrawEyeShape(dc, MochiEyeShape.Pill, w * 1.16, h * 1.12, sd, ink);
+            case NimbusEyeShape.Wide:
+                DrawEyeShape(dc, NimbusEyeShape.Pill, w * 1.16, h * 1.12, sd, ink);
                 break;
-            case MochiEyeShape.Pill:
+            case NimbusEyeShape.Pill:
             {
                 double hh = Math.Max(h * _open, w * 0.3);
                 double rad = Math.Min(w / 2, hh / 2);
                 dc.DrawRoundedRectangle(ink, null, new Rect(-w / 2, -hh / 2, w, hh), rad, rad);
+                if (_open > 0.45)
+                {
+                    double glint = w * (IsMini ? 0.14 : 0.18);
+                    dc.DrawEllipse(Brushes.White, null, new Point(w * 0.16, -hh * 0.18), glint, glint);
+                }
                 break;
             }
-            case MochiEyeShape.Dot:
+            case NimbusEyeShape.Dot:
+            {
                 dc.DrawEllipse(ink, null, new Point(0, 0), w * 0.45, w * 0.45);
+                double glint = w * (IsMini ? 0.14 : 0.18);
+                dc.DrawEllipse(Brushes.White, null, new Point(w * 0.14, -w * 0.16), glint, glint);
                 break;
-            case MochiEyeShape.Line:
+            }
+            case NimbusEyeShape.Line:
                 dc.PushTransform(new RotateTransform(-sd * 11.5));
                 dc.DrawRoundedRectangle(ink, null, new Rect(-w * 0.78, -w * 0.21, w * 1.56, w * 0.42), w * 0.21, w * 0.21);
                 dc.Pop();
                 break;
-            case MochiEyeShape.Flat:
+            case NimbusEyeShape.Flat:
                 dc.DrawRoundedRectangle(ink, null, new Rect(-w * 0.72, -w * 0.2, w * 1.44, w * 0.4), w * 0.2, w * 0.2);
                 break;
-            case MochiEyeShape.Happy:
+            case NimbusEyeShape.Happy:
             {
                 var pen = new Pen(ink, Math.Max(1.0, w * 0.48)) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
                 var geo = new StreamGeometry();
@@ -838,7 +869,7 @@ public sealed class MochiEngine
                 dc.DrawGeometry(null, pen, geo);
                 break;
             }
-            case MochiEyeShape.Closed:
+            case NimbusEyeShape.Closed:
             {
                 var pen = new Pen(ink, Math.Max(1.0, w * 0.34)) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
                 var geo = new StreamGeometry();
@@ -852,7 +883,7 @@ public sealed class MochiEngine
                 dc.DrawGeometry(null, pen, geo);
                 break;
             }
-            case MochiEyeShape.Spiral:
+            case NimbusEyeShape.Spiral:
             {
                 var pen = new Pen(ink, Math.Max(1.0, w * 0.22)) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
                 var geo = new StreamGeometry();
@@ -871,24 +902,24 @@ public sealed class MochiEngine
                 dc.DrawGeometry(null, pen, geo);
                 break;
             }
-            case MochiEyeShape.Heart:
+            case NimbusEyeShape.Heart:
                 DrawHeart(dc, new SolidColorBrush(Color.FromRgb(0xFF, 0x4D, 0x6D)), w * 1.15);
                 break;
-            case MochiEyeShape.Star:
+            case NimbusEyeShape.Star:
                 dc.PushTransform(new RotateTransform(t * 85 * sd));
                 DrawStar(dc, new SolidColorBrush(Color.FromRgb(0xF7, 0xB3, 0x2B)), w * 1.05, w * 0.46);
                 dc.Pop();
                 break;
-            case MochiEyeShape.Tired:
+            case NimbusEyeShape.Tired:
                 dc.DrawRoundedRectangle(ink, null, new Rect(-w / 2, -h * 0.02, w, h * 0.38), w / 2, w / 2);
                 dc.DrawRoundedRectangle(ink, null, new Rect(-w * 0.62, -h * 0.1, w * 1.24, w * 0.22), w * 0.11, w * 0.11);
                 break;
-            case MochiEyeShape.Wink:
-                if (sd < 0) DrawEyeShape(dc, MochiEyeShape.Pill, w, h, sd, ink);
-                else DrawEyeShape(dc, MochiEyeShape.Happy, w, h, sd, ink);
+            case NimbusEyeShape.Wink:
+                if (sd < 0) DrawEyeShape(dc, NimbusEyeShape.Pill, w, h, sd, ink);
+                else DrawEyeShape(dc, NimbusEyeShape.Happy, w, h, sd, ink);
                 break;
-            case MochiEyeShape.Cup:
-                DrawEyeShape(dc, MochiEyeShape.Pill, w, h, sd, ink);
+            case NimbusEyeShape.Cup:
+                DrawEyeShape(dc, NimbusEyeShape.Pill, w, h, sd, ink);
                 break;
         }
     }
@@ -939,7 +970,7 @@ public sealed class MochiEngine
         }
     }
 
-    private void DrawBadge(DrawingContext dc, MochiBadge badge, double r, double cx, double cy)
+    private void DrawBadge(DrawingContext dc, NimbusBadge badge, double r, double cx, double cy)
     {
         double bs = _badgeS * (IsMini ? 1.25 : 1.0);
         double bx = cx - r * 0.72 * _sx;
@@ -952,7 +983,7 @@ public sealed class MochiEngine
         var fill = new SolidColorBrush(badge.Color);
         var black = Brushes.Black;
 
-        if (badge.Kind == MochiBadgeKind.Dots)
+        if (badge.Kind == NimbusBadgeKind.Dots)
         {
             if (IsMini)
             {
@@ -973,14 +1004,14 @@ public sealed class MochiEngine
                 }
             }
         }
-        else if (badge.Kind is MochiBadgeKind.Bang or MochiBadgeKind.Question)
+        else if (badge.Kind is NimbusBadgeKind.Bang or NimbusBadgeKind.Question)
         {
             dc.DrawEllipse(black, null, new Point(0, 0), r * 0.3, r * 0.3);
             dc.DrawEllipse(fill, null, new Point(0, 0), r * 0.23, r * 0.23);
             if (!IsMini)
             {
                 var ft = new FormattedText(
-                    badge.Kind == MochiBadgeKind.Bang ? "!" : "?",
+                    badge.Kind == NimbusBadgeKind.Bang ? "!" : "?",
                     CultureInfo.InvariantCulture,
                     FlowDirection.LeftToRight,
                     new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Black, FontStretches.Normal),
@@ -1092,13 +1123,52 @@ public sealed class MochiEngine
     private void DrawMouthSlot(DrawingContext dc, double r, double rx, double ry)
     {
         double h = _slotH * r;
-        if (h < 0.5 && !_isChewing) return;
-        double chew = _isChewing ? Math.Max(0, Math.Sin(NowSec() * 18)) * r * 0.08 : 0;
-        double mouthH = Math.Max(1.0, h + chew);
-        double mouthW = r * 0.52;
-        double mx = _yaw * rx * 0.55;
-        double my = ry * 0.34 + _pitch * ry * 0.3;
-        dc.DrawRoundedRectangle(new SolidColorBrush(InkColor), null, new Rect(mx - mouthW / 2, my - mouthH / 2, mouthW, mouthH), mouthW / 2, mouthH / 2);
+        if (h >= 0.5 || _isChewing)
+        {
+            double chew = _isChewing ? Math.Max(0, Math.Sin(NowSec() * 18)) * r * 0.08 : 0;
+            double mouthH = Math.Max(1.0, h + chew);
+            double mouthW = r * 0.52;
+            double mx = _yaw * rx * 0.55;
+            double my = ry * 0.34 + _pitch * ry * 0.3;
+            dc.DrawRoundedRectangle(new SolidColorBrush(InkColor), null, new Rect(mx - mouthW / 2, my - mouthH / 2, mouthW, mouthH), mouthW / 2, mouthH / 2);
+            return;
+        }
+
+        if (_mailboxLevel >= 0.4 || r < 6) return;
+
+        double smx = _yaw * rx * 0.48;
+        double smy = ry * 0.22 + _pitch * ry * 0.24;
+        var ink = new SolidColorBrush(IsMini ? MiniInkColor : InkColor);
+
+        if (State == NimbusState.Sleeping || _eyeOverride == NimbusEyeShape.Dot)
+        {
+            double rad = r * (IsMini ? 0.08 : 0.065);
+            dc.DrawEllipse(ink, null, new Point(smx, smy + rad * 0.4), rad, rad);
+            return;
+        }
+
+        double mw = r * (IsMini ? 0.22 : 0.18);
+        var pen = new Pen(ink, Math.Max(1.0, r * (IsMini ? 0.09 : 0.065)))
+        {
+            StartLineCap = PenLineCap.Round,
+            EndLineCap = PenLineCap.Round
+        };
+        var geo = new StreamGeometry();
+        using (var ctx = geo.Open())
+        {
+            if (State is NimbusState.Error or NimbusState.RateLimit)
+            {
+                ctx.BeginFigure(new Point(smx - mw * 0.85, smy + mw * 0.15), false, false);
+                ctx.QuadraticBezierTo(new Point(smx, smy - mw * 0.25), new Point(smx + mw * 0.85, smy + mw * 0.15), true, false);
+            }
+            else
+            {
+                ctx.BeginFigure(new Point(smx - mw, smy), false, false);
+                ctx.QuadraticBezierTo(new Point(smx, smy + mw * 0.65), new Point(smx + mw, smy), true, false);
+            }
+        }
+        geo.Freeze();
+        dc.DrawGeometry(null, pen, geo);
     }
 
     private void DoMiniBehaviorLoop()
@@ -1106,30 +1176,30 @@ public sealed class MochiEngine
         double n = NowSec();
         switch (_permanentEmote)
         {
-            case MochiEmote.Happy:
-                if (_locks.Contains(MochiPropKey.Oy)) { _miniNextBehavior = n + 0.4; return; }
-                Anim(MochiPropKey.Oy, [new(-0.3, 120, MochiEase.Out), new(0.03, 200, MochiEase.InOut), new(0, 160, MochiEase.Back)]);
-                Anim(MochiPropKey.Sy, [new(0.82, 80, MochiEase.Out), new(1.18, 130, MochiEase.Out), new(0.88, 160, MochiEase.InOut), new(1, 200, MochiEase.Back)]);
-                Anim(MochiPropKey.Sx, [new(1.15, 80, MochiEase.Out), new(0.88, 130, MochiEase.Out), new(1.06, 160, MochiEase.InOut), new(1, 200, MochiEase.Back)]);
+            case NimbusEmote.Happy:
+                if (_locks.Contains(NimbusPropKey.Oy)) { _miniNextBehavior = n + 0.4; return; }
+                Anim(NimbusPropKey.Oy, [new(-0.3, 120, NimbusEase.Out), new(0.03, 200, NimbusEase.InOut), new(0, 160, NimbusEase.Back)]);
+                Anim(NimbusPropKey.Sy, [new(0.82, 80, NimbusEase.Out), new(1.18, 130, NimbusEase.Out), new(0.88, 160, NimbusEase.InOut), new(1, 200, NimbusEase.Back)]);
+                Anim(NimbusPropKey.Sx, [new(1.15, 80, NimbusEase.Out), new(0.88, 130, NimbusEase.Out), new(1.06, 160, NimbusEase.InOut), new(1, 200, NimbusEase.Back)]);
                 _miniNextBehavior = n + 2.2 + _rng.NextDouble() * 1.2;
                 break;
-            case MochiEmote.Annoyed:
-                if (_locks.Contains(MochiPropKey.Yaw)) { _miniNextBehavior = n + 0.5; return; }
-                Anim(MochiPropKey.Yaw, [
-                    new(-0.65, 50, MochiEase.Out), new(0.65, 90, MochiEase.InOut), new(-0.5, 80, MochiEase.InOut),
-                    new(0.4, 75, MochiEase.InOut), new(-0.2, 70, MochiEase.InOut), new(0, 140, MochiEase.Out)
+            case NimbusEmote.Annoyed:
+                if (_locks.Contains(NimbusPropKey.Yaw)) { _miniNextBehavior = n + 0.5; return; }
+                Anim(NimbusPropKey.Yaw, [
+                    new(-0.65, 50, NimbusEase.Out), new(0.65, 90, NimbusEase.InOut), new(-0.5, 80, NimbusEase.InOut),
+                    new(0.4, 75, NimbusEase.InOut), new(-0.2, 70, NimbusEase.InOut), new(0, 140, NimbusEase.Out)
                 ]);
                 _miniNextBehavior = n + 3.0 + _rng.NextDouble() * 2.5;
                 break;
-            case MochiEmote.Wink:
-                _eyeOverride = MochiEyeShape.Wink;
+            case NimbusEmote.Wink:
+                _eyeOverride = NimbusEyeShape.Wink;
                 _eyeOverrideUntil = n + 0.55;
-                Anim(MochiPropKey.Tilt, [new(0.13, 100, MochiEase.Out), new(0.13, 320, MochiEase.Linear), new(0, 200, MochiEase.InOut)]);
+                Anim(NimbusPropKey.Tilt, [new(0.13, 100, NimbusEase.Out), new(0.13, 320, NimbusEase.Linear), new(0, 200, NimbusEase.InOut)]);
                 _miniNextBehavior = n + 2.2 + _rng.NextDouble() * 2.0;
                 break;
-            case MochiEmote.Love:
+            case NimbusEmote.Love:
                 Emit("heart", 2);
-                Anim(MochiPropKey.Tilt, [new(-0.1, 180, MochiEase.Out), new(0.1, 340, MochiEase.InOut), new(0, 220, MochiEase.InOut)]);
+                Anim(NimbusPropKey.Tilt, [new(-0.1, 180, NimbusEase.Out), new(0.1, 340, NimbusEase.InOut), new(0, 220, NimbusEase.InOut)]);
                 _miniNextBehavior = n + 2.6 + _rng.NextDouble() * 1.5;
                 break;
             default:
@@ -1140,24 +1210,24 @@ public sealed class MochiEngine
 
     // ── Tween Engine ──────────────────────────────────────────────────────────
 
-    private void SetBadge(MochiBadge? b)
+    private void SetBadge(NimbusBadge? b)
     {
         string key = b is { } bd ? $"{bd.Kind}-{bd.Color}" : "none";
         if (key == _badgeKey) return;
         _badgeKey = key;
         int tok = ++_badgeToken;
-        Anim(MochiPropKey.BadgeS, [new(0, 90, MochiEase.InOut)]);
+        Anim(NimbusPropKey.BadgeS, [new(0, 90, NimbusEase.InOut)]);
         _ = Task.Delay(100).ContinueWith(_ =>
         {
             if (tok != _badgeToken) return;
             _badge = b;
-            if (b is not null) Anim(MochiPropKey.BadgeS, [new(1, 280, MochiEase.Back)]);
+            if (b is not null) Anim(NimbusPropKey.BadgeS, [new(1, 280, NimbusEase.Back)]);
         });
     }
 
-    private void Anim(MochiPropKey prop, MochiTweenKey[] keys, Action? onComplete = null)
+    private void Anim(NimbusPropKey prop, NimbusTweenKey[] keys, Action? onComplete = null)
     {
-        _tweens[prop] = new MochiTween
+        _tweens[prop] = new NimbusTween
         {
             Prop = prop,
             Keys = keys,
@@ -1196,43 +1266,43 @@ public sealed class MochiEngine
         }
     }
 
-    private double GetProp(MochiPropKey p) => p switch
+    private double GetProp(NimbusPropKey p) => p switch
     {
-        MochiPropKey.Yaw => _yaw, MochiPropKey.Pitch => _pitch, MochiPropKey.Roll => _roll,
-        MochiPropKey.Tilt => _tilt, MochiPropKey.Open => _open, MochiPropKey.Sx => _sx,
-        MochiPropKey.Sy => _sy, MochiPropKey.Oy => _oy, MochiPropKey.Ox => _ox,
-        MochiPropKey.Tint => _tint, MochiPropKey.Hands => _hands, MochiPropKey.Blush => _blush,
-        MochiPropKey.Es => _es, MochiPropKey.BadgeS => _badgeS,
+        NimbusPropKey.Yaw => _yaw, NimbusPropKey.Pitch => _pitch, NimbusPropKey.Roll => _roll,
+        NimbusPropKey.Tilt => _tilt, NimbusPropKey.Open => _open, NimbusPropKey.Sx => _sx,
+        NimbusPropKey.Sy => _sy, NimbusPropKey.Oy => _oy, NimbusPropKey.Ox => _ox,
+        NimbusPropKey.Tint => _tint, NimbusPropKey.Hands => _hands, NimbusPropKey.Blush => _blush,
+        NimbusPropKey.Es => _es, NimbusPropKey.BadgeS => _badgeS,
         _ => 0
     };
 
-    private void SetProp(MochiPropKey p, double v)
+    private void SetProp(NimbusPropKey p, double v)
     {
         switch (p)
         {
-            case MochiPropKey.Yaw: _yaw = v; break;
-            case MochiPropKey.Pitch: _pitch = v; break;
-            case MochiPropKey.Roll: _roll = v; break;
-            case MochiPropKey.Tilt: _tilt = v; break;
-            case MochiPropKey.Open: _open = v; break;
-            case MochiPropKey.Sx: _sx = v; break;
-            case MochiPropKey.Sy: _sy = v; break;
-            case MochiPropKey.Oy: _oy = v; break;
-            case MochiPropKey.Ox: _ox = v; break;
-            case MochiPropKey.Tint: _tint = v; break;
-            case MochiPropKey.Hands: _hands = v; break;
-            case MochiPropKey.Blush: _blush = v; break;
-            case MochiPropKey.Es: _es = v; break;
-            case MochiPropKey.BadgeS: _badgeS = v; break;
+            case NimbusPropKey.Yaw: _yaw = v; break;
+            case NimbusPropKey.Pitch: _pitch = v; break;
+            case NimbusPropKey.Roll: _roll = v; break;
+            case NimbusPropKey.Tilt: _tilt = v; break;
+            case NimbusPropKey.Open: _open = v; break;
+            case NimbusPropKey.Sx: _sx = v; break;
+            case NimbusPropKey.Sy: _sy = v; break;
+            case NimbusPropKey.Oy: _oy = v; break;
+            case NimbusPropKey.Ox: _ox = v; break;
+            case NimbusPropKey.Tint: _tint = v; break;
+            case NimbusPropKey.Hands: _hands = v; break;
+            case NimbusPropKey.Blush: _blush = v; break;
+            case NimbusPropKey.Es: _es = v; break;
+            case NimbusPropKey.BadgeS: _badgeS = v; break;
         }
     }
 
-    private static double ApplyEase(MochiEase ease, double t) => ease switch
+    private static double ApplyEase(NimbusEase ease, double t) => ease switch
     {
-        MochiEase.Linear => t,
-        MochiEase.Out => 1 - Math.Pow(1 - t, 3),
-        MochiEase.InOut => t < 0.5 ? 4 * t * t * t : 1 - Math.Pow(-2 * t + 2, 3) / 2,
-        MochiEase.Back => 1 + 2.70158 * Math.Pow(t - 1, 3) + 1.70158 * Math.Pow(t - 1, 2),
+        NimbusEase.Linear => t,
+        NimbusEase.Out => 1 - Math.Pow(1 - t, 3),
+        NimbusEase.InOut => t < 0.5 ? 4 * t * t * t : 1 - Math.Pow(-2 * t + 2, 3) / 2,
+        NimbusEase.Back => 1 + 2.70158 * Math.Pow(t - 1, 3) + 1.70158 * Math.Pow(t - 1, 2),
         _ => t
     };
 

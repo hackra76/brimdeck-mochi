@@ -78,7 +78,7 @@ public partial class MainWindow
             if ((_quickAskInput?.IsKeyboardFocusWithin == true || _quickAskOutput?.IsKeyboardFocusWithin == true)
                 && QuickAskOverlay.Visibility == Visibility.Visible)
             {
-                if (source is not null && (IsDescendantOf(QuickAskOverlay, source) || IsDescendantOf(MochiStatusChip, source))) return;
+                if (source is not null && (IsDescendantOf(QuickAskOverlay, source) || IsDescendantOf(NimbusStatusChip, source))) return;
                 EndTyping(); Keyboard.ClearFocus();
             }
         };
@@ -86,7 +86,7 @@ public partial class MainWindow
         Deactivated += (_, _) =>
         {
             if (_shelfEdit is not null && !_editCommitting) { _shelfEdit = null; if (IsShelfPage) RenderShelf(); }
-            if (_expanded && !_pointerInside && !ShelfHolds && !MochiHoldsMenu && !QuickAskHolds) PointerChanged(false);
+            if (_expanded && !_pointerInside && !ShelfHolds && !NimbusHoldsMenu && !QuickAskHolds) PointerChanged(false);
         };
     }
 
