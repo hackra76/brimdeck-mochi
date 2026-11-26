@@ -71,15 +71,16 @@ internal sealed record NimbusStateCfg(
 /// </summary>
 public sealed class NimbusEngine
 {
-    private const double EyeW = 0.24;
-    private const double EyeH = 0.24;
-    private const double EyeSp = 0.34;
-    private const double EyeP = -0.02;
+    private const double EyeW = 0.28;
+    private const double EyeH = 0.28;
+    private const double EyeSp = 0.30;
+    private const double EyeP = -0.06;
 
-    private static readonly Color BaseTop = Color.FromRgb(0xFB, 0xFD, 0xFF);
-    private static readonly Color BaseBottom = Color.FromRgb(0xD6, 0xE6, 0xF8);
+    private static readonly Color BaseTop = Color.FromRgb(0xFF, 0xFF, 0xFF);
+    private static readonly Color BaseBottom = Color.FromRgb(0xD8, 0xEC, 0xFF);
     private static readonly Color InkColor = Color.FromRgb(22, 32, 54);
     private static readonly Color MiniInkColor = Color.FromRgb(18, 28, 48);
+    private static readonly Dictionary<int, Geometry> CloudGeometryCache = [];
 
     private static readonly Dictionary<NimbusState, NimbusStateCfg> StateConfigs = new()
     {
@@ -90,9 +91,9 @@ public sealed class NimbusEngine
         [NimbusState.Approval] = new(Color.FromRgb(251, 191, 36), 0.74, NimbusEyeShape.Wide, new(NimbusBadgeKind.Bang, Color.FromRgb(251, 191, 36)), Bounces: true),
         [NimbusState.Question] = new(Color.FromRgb(34, 211, 238), 0.70, NimbusEyeShape.Pill, new(NimbusBadgeKind.Question, Color.FromRgb(34, 211, 238)), Tilt: 0.17),
         [NimbusState.Error] = new(Color.FromRgb(248, 113, 113), 0.76, NimbusEyeShape.Flat, new(NimbusBadgeKind.Dot, Color.FromRgb(248, 113, 113))),
-        [NimbusState.Finished] = new(Color.FromRgb(52, 211, 153), 0.38, NimbusEyeShape.Happy, new(NimbusBadgeKind.Dot, Color.FromRgb(52, 211, 153))),
+        [NimbusState.Finished] = new(Color.FromRgb(52, 211, 153), 0.44, NimbusEyeShape.Happy, null),
         [NimbusState.RateLimit] = new(Color.FromRgb(251, 146, 60), 0.70, NimbusEyeShape.Tired, new(NimbusBadgeKind.Dot, Color.FromRgb(251, 146, 60)), Sweat: true),
-        [NimbusState.Sleeping] = new(Color.FromRgb(148, 163, 198), 0.34, NimbusEyeShape.Closed, null, Breathes: true, Zz: true),
+        [NimbusState.Sleeping] = new(Color.FromRgb(148, 163, 198), 0.42, NimbusEyeShape.Closed, null, Breathes: true, Zz: true),
         [NimbusState.Dizzy] = new(Color.FromRgb(232, 121, 249), 0.68, NimbusEyeShape.Spiral, null),
     };
 
@@ -658,11 +659,11 @@ public sealed class NimbusEngine
 
         NimbusOutfits.DrawBehind(dc, resolvedOutfit, r, _yaw, _pitch, outfitAlpha, _physDx, _physDy);
 
-        var body = BuildBodyGeometry(rx, ry, _mailboxLevel);
+        var body = BuildBodyGeometry(r, rx, ry, _mailboxLevel);
         DrawBody(dc, body, r, rx, ry, NimbusOutfits.IsPumpkin(resolvedOutfit) && outfitAlpha > 0.1);
         DrawBlush(dc, body, r, rx, ry);
         DrawEyes(dc, body, r, rx, ry, rigidRoll ? 0 : _roll);
-        DrawMouthSlot(dc, r, rx, ry);
+        DrawMouthSlot(dc, body, r, rx, ry);
         NimbusOutfits.DrawFront(dc, resolvedOutfit, r, _yaw, _pitch, outfitAlpha, _physDx, _physDy);
 
         if (Math.Abs(_sx - 1) > 0.001 || Math.Abs(_sy - 1) > 0.001) dc.Pop();
@@ -693,95 +694,80 @@ public sealed class NimbusEngine
         }
     }
 
-    private static StreamGeometry BuildBodyGeometry(double rx, double ry, double mailboxLevel = 0)
+    private static Geometry BuildBodyGeometry(double r, double rx, double ry, double mailboxLevel = 0)
     {
-        const int n = 96;
-        var geo = new StreamGeometry();
-        using var ctx = geo.Open();
+        if (mailboxLevel <= 0.01)
+        {
+            int key = Math.Max(4, (int)Math.Round(r * 4));
+            if (CloudGeometryCache.TryGetValue(key, out var cached)) return cached;
+
+            double qr = key / 4.0;
+            Geometry geo = new EllipseGeometry(new Point(0, 0.08 * qr), 0.68 * qr, 0.42 * qr);
+            (double X, double Y, double Rad)[] puffs =
+            [
+                (0.0, -0.44, 0.56),
+                (-0.48, -0.18, 0.44),
+                (0.48, -0.18, 0.44),
+                (-0.72, 0.26, 0.42),
+                (0.72, 0.26, 0.42),
+                (0.0, 0.34, 0.50),
+            ];
+            foreach (var (px, py, pr) in puffs)
+                geo = Geometry.Combine(geo, new EllipseGeometry(new Point(px * qr, py * qr), pr * qr, pr * qr), GeometryCombineMode.Union, null);
+            geo.Freeze();
+            if (CloudGeometryCache.Count > 64) CloudGeometryCache.Clear();
+            CloudGeometryCache[key] = geo;
+            return geo;
+        }
+
+        const int n = 64;
+        var box = new StreamGeometry();
+        using var ctx = box.Open();
+        double mx = rx * 1.08, my = ry * 0.94;
         for (int i = 0; i <= n; i++)
         {
             double a = (double)i / n * Math.PI * 2;
-            double ca = Math.Cos(a);
-            double sa = Math.Sin(a);
-
-            // Fluffy 5-puff cloud contour with a gently flattened base.
-            double lobe = 0.5 + 0.5 * Math.Cos(5.0 * (a + Math.PI / 2.0));
-            double topMask = Math.Clamp((0.45 - sa) / 0.85, 0.0, 1.0);
-            double puffScale = 1.0 + 0.16 * lobe * topMask;
-            double cloudX = rx * 1.15 * ca * puffScale;
-            double cloudY = ry * 0.94 * sa * puffScale;
-            if (sa > 0.25)
-            {
-                double bottomT = Math.Clamp((sa - 0.25) / 0.75, 0.0, 1.0);
-                cloudY = Lerp(cloudY, ry * (0.72 + 0.05 * sa), bottomT * 0.72);
-            }
-
-            double px = cloudX;
-            double py = cloudY;
-            if (mailboxLevel > 0.001)
-            {
-                double boxX = rx * 1.08 * (ca >= 0 ? Math.Pow(ca, 0.24) : -Math.Pow(-ca, 0.24));
-                double boxY = ry * 0.94 * (sa >= 0 ? Math.Pow(sa, 0.24) : -Math.Pow(-sa, 0.24));
-                px = Lerp(cloudX, boxX, mailboxLevel);
-                py = Lerp(cloudY, boxY, mailboxLevel);
-            }
-
+            double ca = Math.Cos(a), sa = Math.Sin(a);
+            double px = mx * (ca >= 0 ? Math.Pow(ca, 0.24) : -Math.Pow(-ca, 0.24));
+            double py = my * (sa >= 0 ? Math.Pow(sa, 0.24) : -Math.Pow(-sa, 0.24));
             var pt = new Point(px, py);
             if (i == 0) ctx.BeginFigure(pt, true, true);
             else ctx.LineTo(pt, true, true);
         }
-        geo.Freeze();
-        return geo;
+        box.Freeze();
+        return box;
     }
 
     private void DrawBody(DrawingContext dc, Geometry body, double r, double rx, double ry, bool pumpkin = false)
     {
-        var topCol = pumpkin ? Color.FromRgb(255, 169, 77) : BaseTop;
-        var botCol = pumpkin ? Color.FromRgb(232, 89, 12) : BaseBottom;
-        var baseGrad = new LinearGradientBrush(topCol, botCol, new Point(0.85, 0.08), new Point(0.1, 0.95));
-        var rimPen = new Pen(new SolidColorBrush(Color.FromArgb(70, 165, 198, 235)), Math.Max(0.8, r * 0.045));
-        dc.DrawGeometry(baseGrad, rimPen, body);
+        double stateMix = Math.Clamp(_tint * 0.78, 0, 1);
+        var topCol = pumpkin ? Color.FromRgb(255, 169, 77) : MixColor(BaseTop, MixColor(_col, Colors.White, 0.35), stateMix * 0.65);
+        var botCol = pumpkin ? Color.FromRgb(232, 89, 12) : MixColor(BaseBottom, _col, stateMix);
+        var shadowCol = MixColor(botCol, Color.FromRgb(85, 115, 160), 0.24);
+        var outlineCol = MixColor(botCol, Color.FromRgb(65, 95, 145), 0.38);
 
-        if (_tint > 0.01)
-        {
-            var tintTop = Color.FromArgb(0, _col.R, _col.G, _col.B);
-            var tintBot = Color.FromArgb((byte)Math.Round(255 * 0.72 * _tint), _col.R, _col.G, _col.B);
-            var tintGrad = new LinearGradientBrush(tintBot, tintTop, new Point(0.5, 1), new Point(0.5, 0));
-            dc.DrawGeometry(tintGrad, null, body);
-        }
+        // Base deeper shadow fill, then sunlit upper cloud shifted up inside the clip for a crisp scalloped crescent shadow.
+        dc.DrawGeometry(new SolidColorBrush(shadowCol), null, body);
+        dc.PushClip(body);
+        dc.PushTransform(new TranslateTransform(0, -r * 0.14));
+        var upperGrad = new LinearGradientBrush(topCol, botCol, new Point(0.5, 0), new Point(0.5, 1));
+        dc.DrawGeometry(upperGrad, null, body);
+        dc.Pop();
+        dc.Pop();
 
-        // Subtle bottom cloud shadow
-        var vig = new RadialGradientBrush
-        {
-            Center = new Point(0.5, 0.5),
-            GradientOrigin = new Point(0.5, 0.5),
-            RadiusX = 0.65,
-            RadiusY = 0.65
-        };
-        vig.GradientStops.Add(new GradientStop(Color.FromArgb(0, 0, 0, 0), 0.58));
-        vig.GradientStops.Add(new GradientStop(Color.FromArgb(40, 30, 58, 95), 1.0));
-        dc.DrawGeometry(vig, null, body);
-
-        // Specular highlight
-        var hl = new RadialGradientBrush(Color.FromArgb(140, 255, 255, 255), Color.FromArgb(0, 255, 255, 255))
-        {
-            Center = new Point(0.68, 0.24),
-            GradientOrigin = new Point(0.68, 0.24),
-            RadiusX = 0.26,
-            RadiusY = 0.24
-        };
-        dc.DrawGeometry(hl, null, body);
+        var rimPen = new Pen(new SolidColorBrush(Color.FromArgb(200, outlineCol.R, outlineCol.G, outlineCol.B)), Math.Max(1.0, r * 0.055));
+        dc.DrawGeometry(null, rimPen, body);
     }
 
     private void DrawBlush(DrawingContext dc, Geometry body, double r, double rx, double ry)
     {
-        double blushVal = Math.Max(_blush, _tint * 0.45);
-        if (blushVal <= 0.02) return;
+        double blushVal = Math.Max(0.78, _blush);
         dc.PushClip(body);
-        var brush = new SolidColorBrush(Color.FromArgb((byte)Math.Clamp(128 * blushVal, 0, 255), 255, 148, 168));
-        double yOffset = Math.Sin(_yaw) * rx * 0.8;
+        var brush = new SolidColorBrush(Color.FromArgb((byte)Math.Clamp(165 * blushVal, 0, 255), 255, 160, 146));
+        double faceY = -Math.Sin(EyeP + _pitch) * ry;
+        double yawOffset = Math.Sin(_yaw) * rx * 0.65;
         foreach (int sd in new[] { -1, 1 })
-            dc.DrawEllipse(brush, null, new Point(sd * rx * 0.52 + yOffset, ry * 0.22), r * 0.16, r * 0.095);
+            dc.DrawEllipse(brush, null, new Point(sd * r * 0.46 + yawOffset, faceY + r * 0.20), r * 0.15, r * 0.085);
         dc.Pop();
     }
 
@@ -802,7 +788,7 @@ public sealed class NimbusEngine
             double eyePitch = EyeP + _pitch + eyeRoll;
             eyePitch = (((eyePitch + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
             double cp = Math.Cos(eyePitch);
-            if (Math.Cos(eyeYaw) * cp <= 0.04) continue;
+            if (Math.Cos(eyeYaw) * cp <= 0.32) continue;
 
             double ex = Math.Sin(eyeYaw) * cp * rx;
             double ey = -Math.Sin(eyePitch) * ry;
@@ -826,17 +812,33 @@ public sealed class NimbusEngine
         switch (shape)
         {
             case NimbusEyeShape.Wide:
-                DrawEyeShape(dc, NimbusEyeShape.Pill, w * 1.16, h * 1.12, sd, ink);
+            {
+                double ew = w * 1.15, eh = Math.Max(h * _open * 1.12, ew * 0.32);
+                var rim = new Pen(ink, Math.Max(1.0, ew * 0.12));
+                dc.DrawEllipse(Brushes.White, rim, new Point(0, 0), ew * 0.54, eh * 0.54);
+                dc.DrawEllipse(ink, null, new Point(0, 0), ew * 0.34, eh * 0.34);
+                if (_open > 0.45)
+                    dc.DrawEllipse(Brushes.White, null, new Point(-ew * 0.12, -eh * 0.14), ew * 0.15, ew * 0.15);
                 break;
+            }
             case NimbusEyeShape.Pill:
             {
-                double hh = Math.Max(h * _open, w * 0.3);
+                if (State == NimbusState.Thinking && _open > 0.45 && !IsMini)
+                {
+                    var rim = new Pen(ink, Math.Max(1.0, w * 0.11));
+                    dc.DrawEllipse(Brushes.White, rim, new Point(0, 0), w * 0.54, h * 0.54);
+                    dc.DrawEllipse(ink, null, new Point(w * 0.10, -h * 0.10), w * 0.32, h * 0.32);
+                    dc.DrawEllipse(Brushes.White, null, new Point(w * 0.02, -h * 0.20), w * 0.12, w * 0.12);
+                    break;
+                }
+                double hh = Math.Max(h * _open, w * 0.28);
                 double rad = Math.Min(w / 2, hh / 2);
                 dc.DrawRoundedRectangle(ink, null, new Rect(-w / 2, -hh / 2, w, hh), rad, rad);
                 if (_open > 0.45)
                 {
-                    double glint = w * (IsMini ? 0.14 : 0.18);
-                    dc.DrawEllipse(Brushes.White, null, new Point(w * 0.16, -hh * 0.18), glint, glint);
+                    dc.DrawEllipse(Brushes.White, null, new Point(-w * 0.16, -hh * 0.18), w * 0.23, w * 0.23);
+                    if (!IsMini)
+                        dc.DrawEllipse(Brushes.White, null, new Point(w * 0.18, hh * 0.16), w * 0.09, w * 0.09);
                 }
                 break;
             }
@@ -972,42 +974,55 @@ public sealed class NimbusEngine
 
     private void DrawBadge(DrawingContext dc, NimbusBadge badge, double r, double cx, double cy)
     {
-        double bs = _badgeS * (IsMini ? 1.25 : 1.0);
-        double bx = cx - r * 0.72 * _sx;
-        double by = cy - r * 0.72 * _sy;
+        double bs = _badgeS * (IsMini ? 1.15 : 1.0);
+        double bx = cx + r * 0.88 * _sx;
+        double by = cy - r * 0.78 * _sy;
         double t = NowSec();
 
         dc.PushTransform(new TranslateTransform(bx, by));
         dc.PushTransform(new ScaleTransform(bs, bs));
 
         var fill = new SolidColorBrush(badge.Color);
-        var black = Brushes.Black;
 
         if (badge.Kind == NimbusBadgeKind.Dots)
         {
             if (IsMini)
             {
                 double phase = (t * 2.4) % 1;
-                double dotR = r * 0.22 * (1 + 0.25 * Math.Sin(phase * Math.PI * 2));
-                dc.DrawEllipse(black, null, new Point(0, 0), r * 0.26, r * 0.26);
+                double dotR = r * 0.22 * (1 + 0.2 * Math.Sin(phase * Math.PI * 2));
                 dc.DrawEllipse(fill, null, new Point(0, 0), dotR, dotR);
+            }
+            else if (State == NimbusState.Thinking)
+            {
+                // Thought cloud + two trailing dots
+                var rim = new Pen(new SolidColorBrush(Color.FromRgb(79, 70, 229)), Math.Max(1.0, r * 0.04));
+                var cloudFill = new SolidColorBrush(Color.FromRgb(165, 180, 252));
+                dc.DrawRoundedRectangle(cloudFill, rim, new Rect(-r * 0.36, -r * 0.22, r * 0.72, r * 0.40), r * 0.20, r * 0.20);
+                dc.DrawEllipse(cloudFill, rim, new Point(-r * 0.28, r * 0.24), r * 0.08, r * 0.08);
+                dc.DrawEllipse(cloudFill, rim, new Point(-r * 0.42, r * 0.36), r * 0.05, r * 0.05);
+                for (int i = 0; i < 3; i++)
+                {
+                    double phase = (((t * 2.4 - i * 0.22) % 1) + 1) % 1;
+                    double dotR = r * 0.05 * (1 + 0.35 * Math.Max(0, Math.Sin(phase * Math.PI * 2)));
+                    dc.DrawEllipse(new SolidColorBrush(InkColor), null, new Point((i - 1) * r * 0.16, -r * 0.02), dotR, dotR);
+                }
             }
             else
             {
-                double pw = r * 0.72, ph = r * 0.36;
+                double pw = r * 0.74, ph = r * 0.42;
                 dc.DrawRoundedRectangle(fill, null, new Rect(-pw / 2, -ph / 2, pw, ph), ph / 2, ph / 2);
                 for (int i = 0; i < 3; i++)
                 {
                     double phase = (((t * 2.4 - i * 0.22) % 1) + 1) % 1;
                     double dotR = r * 0.055 * (1 + 0.4 * Math.Max(0, Math.Sin(phase * Math.PI * 2)));
-                    dc.DrawEllipse(Brushes.White, null, new Point((i - 1) * r * 0.18, 0), dotR, dotR);
+                    dc.DrawEllipse(Brushes.White, null, new Point((i - 1) * r * 0.17, 0), dotR, dotR);
                 }
             }
         }
         else if (badge.Kind is NimbusBadgeKind.Bang or NimbusBadgeKind.Question)
         {
-            dc.DrawEllipse(black, null, new Point(0, 0), r * 0.3, r * 0.3);
-            dc.DrawEllipse(fill, null, new Point(0, 0), r * 0.23, r * 0.23);
+            var rim = new Pen(new SolidColorBrush(Color.FromArgb(90, 0, 0, 0)), Math.Max(0.8, r * 0.04));
+            dc.DrawEllipse(fill, rim, new Point(0, 0), r * 0.28, r * 0.28);
             if (!IsMini)
             {
                 var ft = new FormattedText(
@@ -1015,7 +1030,7 @@ public sealed class NimbusEngine
                     CultureInfo.InvariantCulture,
                     FlowDirection.LeftToRight,
                     new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Black, FontStretches.Normal),
-                    Math.Max(6, r * 0.32),
+                    Math.Max(6, r * 0.34),
                     Brushes.White,
                     1.0);
                 dc.DrawText(ft, new Point(-ft.Width / 2, -ft.Height / 2));
@@ -1023,8 +1038,7 @@ public sealed class NimbusEngine
         }
         else
         {
-            dc.DrawEllipse(black, null, new Point(0, 0), r * 0.2, r * 0.2);
-            dc.DrawEllipse(fill, null, new Point(0, 0), r * 0.135, r * 0.135);
+            dc.DrawEllipse(fill, null, new Point(0, 0), r * 0.15, r * 0.15);
         }
 
         dc.Pop();
@@ -1120,34 +1134,39 @@ public sealed class NimbusEngine
         dc.DrawGeometry(brush, null, geo);
     }
 
-    private void DrawMouthSlot(DrawingContext dc, double r, double rx, double ry)
+    private void DrawMouthSlot(DrawingContext dc, Geometry body, double r, double rx, double ry)
     {
+        double faceX = Math.Sin(_yaw) * rx * 0.55;
+        double faceY = -Math.Sin(EyeP + _pitch) * ry;
+
         double h = _slotH * r;
         if (h >= 0.5 || _isChewing)
         {
             double chew = _isChewing ? Math.Max(0, Math.Sin(NowSec() * 18)) * r * 0.08 : 0;
             double mouthH = Math.Max(1.0, h + chew);
             double mouthW = r * 0.52;
-            double mx = _yaw * rx * 0.55;
-            double my = ry * 0.34 + _pitch * ry * 0.3;
-            dc.DrawRoundedRectangle(new SolidColorBrush(InkColor), null, new Rect(mx - mouthW / 2, my - mouthH / 2, mouthW, mouthH), mouthW / 2, mouthH / 2);
+            dc.PushClip(body);
+            dc.DrawRoundedRectangle(new SolidColorBrush(InkColor), null, new Rect(faceX - mouthW / 2, faceY + r * 0.24 - mouthH / 2, mouthW, mouthH), mouthW / 2, mouthH / 2);
+            dc.Pop();
             return;
         }
 
         if (_mailboxLevel >= 0.4 || r < 6) return;
 
-        double smx = _yaw * rx * 0.48;
-        double smy = ry * 0.22 + _pitch * ry * 0.24;
+        double smx = faceX;
+        double smy = faceY + r * 0.16;
         var ink = new SolidColorBrush(IsMini ? MiniInkColor : InkColor);
 
+        dc.PushClip(body);
         if (State == NimbusState.Sleeping || _eyeOverride == NimbusEyeShape.Dot)
         {
             double rad = r * (IsMini ? 0.08 : 0.065);
             dc.DrawEllipse(ink, null, new Point(smx, smy + rad * 0.4), rad, rad);
+            dc.Pop();
             return;
         }
 
-        double mw = r * (IsMini ? 0.22 : 0.18);
+        double mw = r * (IsMini ? 0.18 : 0.16);
         var pen = new Pen(ink, Math.Max(1.0, r * (IsMini ? 0.09 : 0.065)))
         {
             StartLineCap = PenLineCap.Round,
@@ -1169,6 +1188,7 @@ public sealed class NimbusEngine
         }
         geo.Freeze();
         dc.DrawGeometry(null, pen, geo);
+        dc.Pop();
     }
 
     private void DoMiniBehaviorLoop()

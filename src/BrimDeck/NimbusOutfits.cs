@@ -145,7 +145,7 @@ internal static class NimbusOutfits
     private static void DrawPartyHat(DrawingContext dc, double r, double yaw, double pitch, double physDx, double physDy)
     {
         double hx = yaw * r * 0.28;
-        double hy = -r * 0.76 + pitch * r * 0.14;
+        double hy = -r * 0.68 + pitch * r * 0.14;
         double tipX = hx + r * 0.04 + physDx * r * 0.16;
         double tipY = hy - r * 0.85 + physDy * r * 0.12;
         var cone = new StreamGeometry();
@@ -170,7 +170,7 @@ internal static class NimbusOutfits
     private static void DrawWitchHat(DrawingContext dc, double r, double yaw, double pitch, double physDx, double physDy)
     {
         double hx = yaw * r * 0.26;
-        double hy = -r * 0.68 + pitch * r * 0.14;
+        double hy = -r * 0.62 + pitch * r * 0.14;
         var hatBrush = new SolidColorBrush(Color.FromRgb(46, 36, 68));
         var bandBrush = new SolidColorBrush(Color.FromRgb(168, 85, 247));
         var buckleBrush = new SolidColorBrush(Color.FromRgb(250, 204, 21));
@@ -197,8 +197,8 @@ internal static class NimbusOutfits
     private static void DrawSunglasses(DrawingContext dc, double r, double yaw, double pitch)
     {
         double ex = yaw * r * 0.42;
-        double ey = pitch * r * 0.32 - r * 0.02;
-        double spread = r * 0.36;
+        double ey = -Math.Sin(-0.06 + pitch) * r * 0.88;
+        double spread = r * 0.32;
         double lensW = r * 0.46;
         double lensH = r * 0.30;
 
@@ -220,8 +220,8 @@ internal static class NimbusOutfits
     private static void DrawRoundGlasses(DrawingContext dc, double r, double yaw, double pitch)
     {
         double ex = yaw * r * 0.42;
-        double ey = pitch * r * 0.32 - r * 0.02;
-        double spread = r * 0.36;
+        double ey = -Math.Sin(-0.06 + pitch) * r * 0.88;
+        double spread = r * 0.32;
         double rad = r * 0.24;
 
         var rimPen = new Pen(new SolidColorBrush(Color.FromRgb(212, 175, 55)), Math.Max(1.2, r * 0.055));
@@ -233,8 +233,8 @@ internal static class NimbusOutfits
 
     private static void DrawBow(DrawingContext dc, double r, double yaw, double pitch, double physDx, double physDy)
     {
-        double bx = yaw * r * 0.32 + r * 0.48 + physDx * r * 0.08;
-        double by = -r * 0.66 + pitch * r * 0.16 + physDy * r * 0.06;
+        double bx = yaw * r * 0.32 + r * 0.42 + physDx * r * 0.08;
+        double by = -r * 0.56 + pitch * r * 0.16 + physDy * r * 0.06;
         var pink = new SolidColorBrush(Color.FromRgb(244, 114, 182));
         var center = new SolidColorBrush(Color.FromRgb(219, 39, 119));
 
@@ -264,15 +264,15 @@ internal static class NimbusOutfits
     private static void DrawScarf(DrawingContext dc, double r, double yaw, double pitch, double physDx, double physDy)
     {
         double sx = yaw * r * 0.25;
-        double sy = r * 0.62 + pitch * r * 0.10;
+        double sy = r * 0.66 + pitch * r * 0.10;
         var red = new SolidColorBrush(Color.FromRgb(220, 38, 38));
         var stripe = new SolidColorBrush(Color.FromRgb(254, 240, 138));
 
-        dc.DrawRoundedRectangle(red, null, new Rect(sx - r * 0.72, sy - r * 0.12, r * 1.44, r * 0.24), r * 0.10, r * 0.10);
+        dc.DrawRoundedRectangle(red, null, new Rect(sx - r * 0.72, sy - r * 0.11, r * 1.44, r * 0.22), r * 0.10, r * 0.10);
         // Hanging tail lags behind motion
         double tx = sx + r * 0.18 + physDx * r * 0.18;
         double ty = sy + r * 0.04 + physDy * r * 0.10;
-        dc.DrawRoundedRectangle(red, null, new Rect(tx, ty, r * 0.26, r * 0.42), r * 0.07, r * 0.07);
+        dc.DrawRoundedRectangle(red, null, new Rect(tx, ty, r * 0.24, r * 0.34), r * 0.07, r * 0.07);
         dc.DrawRectangle(stripe, null, new Rect(tx, ty + r * 0.30, r * 0.26, r * 0.06));
     }
 
