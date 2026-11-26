@@ -1161,8 +1161,8 @@ public sealed partial class SettingsWindow : Window, IKeepsAppFonts
         version.Children.Add(notes);
         Group(Row("Current version",version),
             Row("License",TextLine("Apache License 2.0",12,TextSecondary)),
-            Row("Homepage",Link("GitHub ↗","https://github.com/hackra76/brimdeck-mochi")),
-            Row("Issues and suggestions",Link("Send feedback ↗","https://github.com/hackra76/brimdeck-mochi/issues")));
+            Row("Homepage",Link("GitHub ↗","https://github.com/hackra76/brimdeck-nimbus")),
+            Row("Issues and suggestions",Link("Send feedback ↗","https://github.com/hackra76/brimdeck-nimbus/issues")));
 
         // Attribution required by the licenses of the projects this fork is built on (Apache-2.0 and MIT).
         SectionTitle("Credits and licenses");
@@ -1172,8 +1172,8 @@ public sealed partial class SettingsWindow : Window, IKeepsAppFonts
             Row("BrimDeck contributors",Link("All contributors ↗","https://github.com/MoFeng2223/BrimDeck/graphs/contributors")),
             Row("Companion architecture",Link("Inspired by Coucou (MIT) by Louis Raillé ↗","https://github.com/Louis-CFM/coucou")),
             Row("System monitor page",Link("ftop by Nongfsq · MIT ↗","https://github.com/Nongfsq/ftop")),
-            Row("Third-party notices",Link("ThirdPartyNotices ↗","https://github.com/hackra76/brimdeck-mochi/blob/main/src/BrimDeck/ThirdPartyNotices.txt")),
-            Row("License text",Link("Apache License 2.0 ↗","https://github.com/hackra76/brimdeck-mochi/blob/main/LICENSE")));
+            Row("Third-party notices",Link("ThirdPartyNotices ↗","https://github.com/hackra76/brimdeck-nimbus/blob/main/src/BrimDeck/ThirdPartyNotices.txt")),
+            Row("License text",Link("Apache License 2.0 ↗","https://github.com/hackra76/brimdeck-nimbus/blob/main/LICENSE")));
         var names = TextLine("Nimbus is an original cloud companion created for this fork. BrimDeck is created by MoFeng2223 (Apache-2.0), and the companion animation architecture is inspired by Coucou's MIT-licensed code by Louis Raillé. Thank you to both, and to every contributor.",11,TextTertiary);
         names.TextWrapping = TextWrapping.Wrap; names.Margin = new Thickness(0,10,0,0); _content.Children.Add(names);
     }

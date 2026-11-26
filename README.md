@@ -8,12 +8,14 @@ BrimDeck is a Dynamic Island for Windows 11 that brings your AI coding tool quot
 It stays collapsed at the top of the screen and opens only when you need it.<br>
 A native Windows app built with C# and WPF, designed for performance and smoothness.
 
-[![Download](https://img.shields.io/badge/Download-Windows%2011%20x64-9CB9FF?style=flat-square)](https://github.com/hackra76/brimdeck-mochi/releases/latest)
-[![Latest release](https://img.shields.io/github/v/release/hackra76/brimdeck-mochi?style=flat-square&label=Latest&color=98DBB0)](https://github.com/hackra76/brimdeck-mochi/releases/latest)
+[![Download](https://img.shields.io/badge/Download-Windows%2011%20x64-9CB9FF?style=flat-square)](https://github.com/hackra76/brimdeck-nimbus/releases/latest)
+[![Latest release](https://img.shields.io/github/v/release/hackra76/brimdeck-nimbus?style=flat-square&label=Latest&color=98DBB0)](https://github.com/hackra76/brimdeck-nimbus/releases/latest)
 [![License](https://img.shields.io/badge/License-Apache%202.0-E5A385?style=flat-square)](LICENSE)
 ![Interface language](https://img.shields.io/badge/Interface-English-B9A8FF?style=flat-square)
 
 <p><a href="#nimbus-ai-companion">Nimbus Companion</a> · <a href="#features">Features</a> · <a href="#install">Install</a> · <a href="#quick-start">Quick start</a> · <a href="#privacy">Privacy</a> · <a href="#faq">FAQ</a></p>
+
+
 
 <img src="docs/en-US/images/hero.png" width="100%" alt="BrimDeck opens from the notch at the top of the screen into the AI usage panel, switches to the music page, the system monitor page, the clipboard and file transfer page and the device batteries page, then collapses">
 
@@ -35,6 +37,8 @@ A native Windows app built with C# and WPF, designed for performance and smoothn
 
 This fork pairs [BrimDeck](https://github.com/MoFeng2223/BrimDeck) with **Nimbus**, an original animated cloud companion rendered natively in WPF using `DrawingContext` so idle CPU stays near zero.
 
+<img src="docs/en-US/images/nimbus-3stage-ux.jpg" width="100%" alt="3-stage Nimbus Dynamic Island UX: 1. Always-On Nimbus Notch, 2. Hover Peek, 3. Click to Expand">
+
 ### Nimbus Integration Highlights
 
 - **3-Stage Notch UX**:
@@ -52,6 +56,8 @@ This fork pairs [BrimDeck](https://github.com/MoFeng2223/BrimDeck) with **Nimbus
   - Plays a drop-in bounce & wave greeting on startup, subtle synthesized chime cues, and spawns mini Nimbus clouds in the expanded header when multiple agent sessions run in parallel.
   - Displays a pulsing update indicator (and morphs into a mailbox when an update is ready to install).
 - **Dedicated Nimbus Settings Page**: Configure every Nimbus feature from the dedicated **Nimbus** category in the Settings sidebar.
+
+<img src="docs/en-US/images/nimbus-states-outfits.jpg" width="100%" alt="Nimbus AI States and Seasonal Outfits showcase">
 
 ### Credits & Acknowledgments
 
@@ -177,7 +183,7 @@ For how to use it and its settings, see [Clipboard and file transfer](docs/en-US
 
 Requires Windows 11 (x64). Windows 10 (version 2004 or later) has limited support.
 
-1. Download one of these files from [Releases](https://github.com/hackra76/brimdeck-mochi/releases/latest):
+1. Download one of these files from [Releases](https://github.com/hackra76/brimdeck-nimbus/releases/latest):
    - Installer: `BrimDeck-<version>-Setup.exe`. Run it and follow the steps.
    - Portable: `BrimDeck-<version>-Portable-x64.zip`. Extract it and run `BrimDeck.exe` in the `BrimDeck` folder.
 2. If Windows shows "Windows protected your PC", select "More info", then "Run anyway".
@@ -226,7 +232,7 @@ The device has to be connected and be one of the connections or models listed in
 
 ## Contributing
 
-You are welcome to report problems, suggest features, or open pull requests in [Issues](https://github.com/hackra76/brimdeck-mochi/issues).
+You are welcome to report problems, suggest features, or open pull requests in [Issues](https://github.com/hackra76/brimdeck-nimbus/issues).
 
 ## License
 
