@@ -86,6 +86,7 @@ public partial class NimbusCompanion
     public void SetGlobalLook(double nx, double ny) => _engine.SetLook(nx, ny);
     public void SetDancing(bool dancing) => _engine.SetDancing(dancing);
     public void SetOutfit(NimbusOutfit outfit) => _engine.SetOutfit(outfit);
+    public void SetWeather(WeatherKind weather) => _engine.SetWeather(weather);
     public void SetMailbox(bool mailbox) => _engine.SetMailbox(mailbox);
     public void SetUpdateHint(Color? color) => _engine.SetUpdateHint(color);
 

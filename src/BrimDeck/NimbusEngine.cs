@@ -158,6 +158,17 @@ public sealed class NimbusEngine
     private Color? _updateHintColor;
     private double _launchGreetingStart;
     private double _launchGreetingUntil;
+    private WeatherKind _weather = WeatherKind.None;
+    private double _lightningFlash;
+    private double _nextLightning = NowSec() + 1.8;
+    private double _rainHoldUntil;
+    private double _fogClearUntil;
+    private double _nextWeatherParticle = NowSec() + 0.1;
+
+    private WeatherKind ActiveWeather =>
+        _weather != WeatherKind.None && (State == NimbusState.Idle || State == NimbusState.Sleeping)
+            ? _weather
+            : WeatherKind.None;
 
     /// <summary>True when Nimbus is resting (Idle/Sleeping) with no active tweens, particles, or dance.</summary>
     public bool IsLowRateIdle =>
@@ -166,10 +177,26 @@ public sealed class NimbusEngine
         && !_isDancing
         && _dancingLevel <= 0.001
         && _eyeOverride is null
+        && ActiveWeather == WeatherKind.None
         && (State == NimbusState.Idle || State == NimbusState.Sleeping);
 
     public void SetDancing(bool dancing) => _isDancing = dancing;
     public void SetOutfit(NimbusOutfit outfit) => _outfit = outfit;
+    public void SetWeather(WeatherKind weather)
+    {
+        if (_weather == weather) return;
+        _weather = weather;
+        _particles.RemoveAll(p => p.Type is "rain" or "snow" or "wind");
+        if (weather == WeatherKind.Thunderstorm)
+        {
+            _lightningFlash = 0.85;
+            _nextLightning = NowSec() + 2.0;
+        }
+        else
+        {
+            _lightningFlash = 0;
+        }
+    }
     public void SetMailbox(bool mailbox) => _mailbox = mailbox;
     public void SetUpdateHint(Color? color) => _updateHintColor = color;
 
@@ -225,7 +252,27 @@ public sealed class NimbusEngine
     {
         Squash();
         NimbusSound.Play(NimbusSoundKind.Poke);
+        TriggerWeatherPokeReaction();
         TriggerEmote(NimbusEmote.Happy, 1.1);
+    }
+
+    private void TriggerWeatherPokeReaction()
+    {
+        double t = NowSec();
+        switch (ActiveWeather)
+        {
+            case WeatherKind.Thunderstorm:
+                _lightningFlash = 1.0;
+                _nextLightning = t + 2.2;
+                break;
+            case WeatherKind.Rain:
+                _rainHoldUntil = t + 3.0;
+                _particles.RemoveAll(p => p.Type == "rain");
+                break;
+            case WeatherKind.Fog:
+                _fogClearUntil = t + 3.0;
+                break;
+        }
     }
 
     public void SetState(NimbusState next, bool force = false)
@@ -312,6 +359,7 @@ public sealed class NimbusEngine
         _slapTimes.RemoveAll(s => t - s >= 1.7);
         _slapTimes.Add(t);
         Squash();
+        TriggerWeatherPokeReaction();
         _physVy -= 1.2;
         _physVx += _rng.NextDouble() < 0.5 ? 0.7 : -0.7;
         if (_slapTimes.Count >= 3)
@@ -555,8 +603,38 @@ public sealed class NimbusEngine
         }
         else
         {
-            _tgSy = 1;
-            _tgSx = 1;
+            var aw = ActiveWeather;
+            if (aw == WeatherKind.Heatwave)
+            {
+                _tgSx = 1.10;
+                _tgSy = 0.90;
+            }
+            else
+            {
+                _tgSy = 1;
+                _tgSx = 1;
+            }
+        }
+
+        // Weather lightning & particle cadence
+        var activeWx = ActiveWeather;
+        if (activeWx == WeatherKind.Thunderstorm)
+        {
+            if (n >= _nextLightning)
+            {
+                _lightningFlash = 1.0;
+                _nextLightning = n + 2.4 + _rng.NextDouble() * 2.4;
+            }
+            _lightningFlash = Math.Max(0, _lightningFlash - dt * 2.8);
+        }
+        else
+        {
+            _lightningFlash = 0;
+        }
+
+        if (!IsMini && activeWx != WeatherKind.None && n >= _nextWeatherParticle)
+        {
+            SpawnWeatherParticle(activeWx, n);
         }
 
         if (IsMini && n > _miniNextBehavior) DoMiniBehaviorLoop();
@@ -591,7 +669,7 @@ public sealed class NimbusEngine
             double oyVel = (_oy - _prevOy) / dt;
             double dRoll = _roll - _prevRoll;
             double rollVel = Math.Abs(dRoll) > Math.PI ? 0 : dRoll / dt;
-            bool rigidRoll = !IsMini && NimbusOutfits.ResolveOutfit(_outfit, DateTime.Now) != NimbusOutfit.None;
+            bool rigidRoll = !IsMini && NimbusOutfits.ResolveOutfit(_outfit, DateTime.Now, ActiveWeather) != NimbusOutfit.None;
             double centrifugal = rigidRoll ? rollVel * 0.18 : 0;
             double tDx = Math.Clamp(-yawVel * 0.35 - _tilt * 2 + centrifugal, -1, 1);
             double tDy = Math.Clamp(oyVel * 0.5, -1, 1);
@@ -622,7 +700,10 @@ public sealed class NimbusEngine
         double floatY = (!_isDancing && State != NimbusState.Dizzy)
             ? Math.Sin(now * 1.9) * r * (State == NimbusState.Sleeping ? 0.025 : 0.045)
             : 0;
-        double cx = width / 2.0 + _ox * r;
+        var weather = ActiveWeather;
+        double shiverX = weather == WeatherKind.Snow && !IsMini && Math.Sin(now * 1.6) > 0.35 ? Math.Sin(now * 48) * r * 0.04 : 0;
+        double rumbleX = weather == WeatherKind.Thunderstorm && !IsMini && _lightningFlash > 0.35 ? (_rng.NextDouble() - 0.5) * r * 0.09 : 0;
+        double cx = width / 2.0 + _ox * r + shiverX + rumbleX;
         double cy = height / 2.0 + _oy * r + floatY;
 
         bool dance = _dancingLevel > 0.001;
@@ -645,28 +726,38 @@ public sealed class NimbusEngine
             dc.PushTransform(new TranslateTransform(-px, -py));
         }
 
+        if (!IsMini && weather != WeatherKind.None)
+            DrawWeatherBehind(dc, weather, r, cx, cy, now);
+
         if ((!IsMini || now < _launchGreetingUntil) && _hands > 0.01 && r > 7)
             DrawHandsBehind(dc, r, rx, ry, cx, cy);
 
-        var resolvedOutfit = NimbusOutfits.ResolveOutfit(_outfit, DateTime.Now);
+        var resolvedOutfit = NimbusOutfits.ResolveOutfit(_outfit, DateTime.Now, weather);
         double outfitAlpha = Math.Max(0.0, 1.0 - _mailboxLevel * 1.4);
         bool rigidRoll = !IsMini && resolvedOutfit != NimbusOutfit.None && outfitAlpha > 0.05;
+        bool fogAlpha = weather == WeatherKind.Fog && now >= _fogClearUntil;
+        double bodyOpacity = fogAlpha ? (IsMini ? 0.72 : 0.62 + 0.16 * Math.Sin(now * 1.5)) : 1.0;
 
         dc.PushTransform(new TranslateTransform(cx, cy));
         double totalTilt = _tilt + (rigidRoll ? _roll : 0);
         if (Math.Abs(totalTilt) > 0.001) dc.PushTransform(new RotateTransform(totalTilt * 180.0 / Math.PI));
+        if (weather == WeatherKind.Windy && !IsMini)
+            dc.PushTransform(new SkewTransform(-11 + Math.Sin(now * 7) * 2.5, 0));
         if (Math.Abs(_sx - 1) > 0.001 || Math.Abs(_sy - 1) > 0.001) dc.PushTransform(new ScaleTransform(_sx, _sy));
+        if (bodyOpacity < 0.999) dc.PushOpacity(bodyOpacity);
 
         NimbusOutfits.DrawBehind(dc, resolvedOutfit, r, _yaw, _pitch, outfitAlpha, _physDx, _physDy);
 
         var body = BuildBodyGeometry(r, rx, ry, _mailboxLevel);
-        DrawBody(dc, body, r, rx, ry, NimbusOutfits.IsPumpkin(resolvedOutfit) && outfitAlpha > 0.1);
+        DrawBody(dc, body, r, rx, ry, NimbusOutfits.IsPumpkin(resolvedOutfit) && outfitAlpha > 0.1, weather);
         DrawBlush(dc, body, r, rx, ry);
         DrawEyes(dc, body, r, rx, ry, rigidRoll ? 0 : _roll);
         DrawMouthSlot(dc, body, r, rx, ry);
         NimbusOutfits.DrawFront(dc, resolvedOutfit, r, _yaw, _pitch, outfitAlpha, _physDx, _physDy);
 
+        if (bodyOpacity < 0.999) dc.Pop();
         if (Math.Abs(_sx - 1) > 0.001 || Math.Abs(_sy - 1) > 0.001) dc.Pop();
+        if (weather == WeatherKind.Windy && !IsMini) dc.Pop();
         if (Math.Abs(totalTilt) > 0.001) dc.Pop();
         dc.Pop();
 
@@ -684,6 +775,8 @@ public sealed class NimbusEngine
         }
 
         DrawParticles(dc, r, cx, cy);
+        if (!IsMini && weather != WeatherKind.None)
+            DrawWeatherOverlay(dc, weather, r, cx, cy, now);
 
         if (dance)
         {
@@ -738,11 +831,34 @@ public sealed class NimbusEngine
         return box;
     }
 
-    private void DrawBody(DrawingContext dc, Geometry body, double r, double rx, double ry, bool pumpkin = false)
+    private void DrawBody(DrawingContext dc, Geometry body, double r, double rx, double ry, bool pumpkin = false, WeatherKind weather = WeatherKind.None)
     {
-        double stateMix = Math.Clamp(_tint * 0.78, 0, 1);
-        var topCol = pumpkin ? Color.FromRgb(255, 169, 77) : MixColor(BaseTop, MixColor(_col, Colors.White, 0.35), stateMix * 0.65);
-        var botCol = pumpkin ? Color.FromRgb(232, 89, 12) : MixColor(BaseBottom, _col, stateMix);
+        Color topCol, botCol;
+        if (pumpkin)
+        {
+            topCol = Color.FromRgb(255, 169, 77);
+            botCol = Color.FromRgb(232, 89, 12);
+        }
+        else if (weather != WeatherKind.None)
+        {
+            (topCol, botCol) = weather switch
+            {
+                WeatherKind.Rain => (Color.FromRgb(203, 213, 225), Color.FromRgb(100, 116, 139)),
+                WeatherKind.Thunderstorm => (Color.FromRgb(100, 116, 139), Color.FromRgb(30, 41, 59)),
+                WeatherKind.Snow => (Color.FromRgb(248, 250, 252), Color.FromRgb(186, 230, 253)),
+                WeatherKind.Heatwave => (Color.FromRgb(255, 251, 235), Color.FromRgb(254, 215, 170)),
+                WeatherKind.ClearNight => (Color.FromRgb(224, 231, 255), Color.FromRgb(129, 140, 248)),
+                WeatherKind.Rainbow => (Color.FromRgb(255, 255, 255), Color.FromRgb(220, 252, 231)),
+                WeatherKind.Fog => (Color.FromRgb(241, 245, 249), Color.FromRgb(203, 213, 225)),
+                _ => (BaseTop, Color.FromRgb(224, 242, 254))
+            };
+        }
+        else
+        {
+            double stateMix = Math.Clamp(_tint * 0.78, 0, 1);
+            topCol = MixColor(BaseTop, MixColor(_col, Colors.White, 0.35), stateMix * 0.65);
+            botCol = MixColor(BaseBottom, _col, stateMix);
+        }
         var shadowCol = MixColor(botCol, Color.FromRgb(85, 115, 160), 0.24);
         var outlineCol = MixColor(botCol, Color.FromRgb(65, 95, 145), 0.38);
 
@@ -773,13 +889,24 @@ public sealed class NimbusEngine
 
     private void DrawEyes(DrawingContext dc, Geometry body, double r, double rx, double ry, double eyeRoll = 0)
     {
+        var weather = ActiveWeather;
+        var weatherEye = weather switch
+        {
+            WeatherKind.Sunny or WeatherKind.Rainbow => NimbusEyeShape.Happy,
+            WeatherKind.Windy => NimbusEyeShape.Wide,
+            WeatherKind.Fog or WeatherKind.Heatwave => NimbusEyeShape.Tired,
+            WeatherKind.ClearNight => NimbusEyeShape.Closed,
+            WeatherKind.Thunderstorm => NimbusEyeShape.Dot,
+            _ => (NimbusEyeShape?)null
+        };
         var shape = _mailboxLevel > 0.5
             ? NimbusEyeShape.Cup
             : _eyeOverride ?? (_isDancing && _dancingLevel > 0.15 && !IsMini && (State == NimbusState.Idle || State == NimbusState.Finished)
                 ? NimbusEyeShape.Happy
-                : _cfg.Eye);
+                : weatherEye ?? _cfg.Eye);
         dc.PushClip(body);
-        var ink = new SolidColorBrush(IsMini ? MiniInkColor : InkColor);
+        var inkColor = weather == WeatherKind.Thunderstorm ? Color.FromRgb(248, 250, 252) : (IsMini ? MiniInkColor : InkColor);
+        var ink = new SolidColorBrush(inkColor);
         double eyeMult = IsMini ? 1.85 : 1.0;
 
         foreach (int sd in new[] { -1, 1 })
@@ -1091,7 +1218,199 @@ public sealed class NimbusEngine
                     dc.DrawText(ft, new Point(-ft.Width / 2, -ft.Height / 2));
                     break;
                 }
+                case "rain":
+                {
+                    var rainPen = new Pen(new SolidColorBrush(Color.FromArgb((byte)(alpha * 0.85), 96, 165, 250)), Math.Max(1.2, r * 0.045))
+                    {
+                        StartLineCap = PenLineCap.Round,
+                        EndLineCap = PenLineCap.Round
+                    };
+                    dc.DrawLine(rainPen, new Point(0, -r * 0.08), new Point(-r * 0.02, r * 0.10));
+                    break;
+                }
+                case "snow":
+                {
+                    dc.DrawEllipse(new SolidColorBrush(Color.FromArgb((byte)(alpha * 0.9), 224, 242, 254)), null, new Point(Math.Sin(p.Age * 5 + p.Rot) * r * 0.05, 0), sz * 0.65, sz * 0.65);
+                    break;
+                }
+                case "wind":
+                {
+                    var windPen = new Pen(new SolidColorBrush(Color.FromArgb((byte)(alpha * 0.55), 203, 213, 225)), Math.Max(1.0, r * 0.035))
+                    {
+                        StartLineCap = PenLineCap.Round,
+                        EndLineCap = PenLineCap.Round
+                    };
+                    dc.DrawLine(windPen, new Point(-sz * 2.2, 0), new Point(sz * 2.2, 0));
+                    break;
+                }
             }
+            dc.Pop();
+        }
+    }
+
+    private void SpawnWeatherParticle(WeatherKind weather, double now)
+    {
+        switch (weather)
+        {
+            case WeatherKind.Rain when now >= _rainHoldUntil:
+            case WeatherKind.Thunderstorm:
+                _particles.Add(new NimbusParticle
+                {
+                    Type = "rain",
+                    X = (_rng.NextDouble() - 0.5) * 1.05,
+                    Y = 0.34,
+                    Vx = weather == WeatherKind.Thunderstorm ? -0.25 : -0.05,
+                    Vy = weather == WeatherKind.Thunderstorm ? 1.55 : 1.05,
+                    Life = 0.65,
+                    Size = 0.1
+                });
+                _nextWeatherParticle = now + (weather == WeatherKind.Thunderstorm ? 0.05 : 0.09);
+                break;
+            case WeatherKind.Snow:
+                _particles.Add(new NimbusParticle
+                {
+                    Type = "snow",
+                    X = (_rng.NextDouble() - 0.5) * 1.2,
+                    Y = 0.32,
+                    Vx = (_rng.NextDouble() - 0.5) * 0.18,
+                    Vy = 0.42 + _rng.NextDouble() * 0.18,
+                    Rot = _rng.NextDouble() * 6.28,
+                    Life = 1.4,
+                    Size = 0.07 + _rng.NextDouble() * 0.04
+                });
+                _nextWeatherParticle = now + 0.14;
+                break;
+            case WeatherKind.Windy:
+                _particles.Add(new NimbusParticle
+                {
+                    Type = "wind",
+                    X = -1.35,
+                    Y = (_rng.NextDouble() - 0.5) * 1.1,
+                    Vx = 2.4,
+                    Vy = (_rng.NextDouble() - 0.5) * 0.1,
+                    Life = 0.75,
+                    Size = 0.14
+                });
+                _nextWeatherParticle = now + 0.14;
+                break;
+            case WeatherKind.Heatwave:
+                Emit("sweat", 1);
+                _nextWeatherParticle = now + 0.85;
+                break;
+            case WeatherKind.ClearNight:
+                Emit("z", 1);
+                _nextWeatherParticle = now + 1.5;
+                break;
+            case WeatherKind.Rainbow:
+                Emit("spark", 1);
+                _nextWeatherParticle = now + 0.65;
+                break;
+            default:
+                _nextWeatherParticle = now + 0.5;
+                break;
+        }
+    }
+
+    private static void DrawWeatherBehind(DrawingContext dc, WeatherKind weather, double r, double cx, double cy, double now)
+    {
+        if (weather == WeatherKind.Sunny)
+        {
+            double sx = cx + r * 0.82;
+            double sy = cy - r * 0.68;
+            dc.PushTransform(new TranslateTransform(sx, sy));
+            dc.PushTransform(new RotateTransform(now * 20.0));
+            var rayPen = new Pen(new SolidColorBrush(Color.FromArgb(190, 250, 204, 21)), Math.Max(1.2, r * 0.055))
+            {
+                StartLineCap = PenLineCap.Round,
+                EndLineCap = PenLineCap.Round
+            };
+            for (int i = 0; i < 8; i++)
+            {
+                double a = i / 8.0 * Math.PI * 2;
+                dc.DrawLine(rayPen, new Point(Math.Cos(a) * r * 0.30, Math.Sin(a) * r * 0.30), new Point(Math.Cos(a) * r * 0.44, Math.Sin(a) * r * 0.44));
+            }
+            var sunGrad = new RadialGradientBrush(Color.FromRgb(254, 240, 138), Color.FromRgb(245, 158, 11));
+            dc.DrawEllipse(sunGrad, null, new Point(0, 0), r * 0.25, r * 0.25);
+            dc.Pop();
+            dc.Pop();
+        }
+        else if (weather == WeatherKind.Rainbow)
+        {
+            Color[] colors =
+            [
+                Color.FromArgb(140, 248, 113, 113),
+                Color.FromArgb(140, 251, 191, 36),
+                Color.FromArgb(140, 52, 211, 153),
+                Color.FromArgb(140, 96, 165, 250),
+                Color.FromArgb(140, 167, 139, 250)
+            ];
+            double stroke = Math.Max(2.0, r * 0.085);
+            for (int i = 0; i < colors.Length; i++)
+            {
+                double arcR = r * 1.38 - i * stroke * 0.95;
+                if (arcR <= r * 0.5) break;
+                var pen = new Pen(new SolidColorBrush(colors[i]), stroke) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+                var geo = new StreamGeometry();
+                using (var ctx = geo.Open())
+                {
+                    ctx.BeginFigure(new Point(cx - arcR * 0.88, cy + r * 0.15), false, false);
+                    ctx.ArcTo(new Point(cx + arcR * 0.88, cy + r * 0.15), new Size(arcR, arcR), 0, false, SweepDirection.Clockwise, true, true);
+                }
+                geo.Freeze();
+                dc.DrawGeometry(null, pen, geo);
+            }
+        }
+        else if (weather == WeatherKind.ClearNight)
+        {
+            double mx = cx + r * 0.86;
+            double my = cy - r * 0.64;
+            var moonGeo = new CombinedGeometry(
+                GeometryCombineMode.Exclude,
+                new EllipseGeometry(new Point(mx, my), r * 0.21, r * 0.21),
+                new EllipseGeometry(new Point(mx + r * 0.09, my - r * 0.06), r * 0.17, r * 0.17));
+            dc.DrawGeometry(new SolidColorBrush(Color.FromRgb(253, 230, 138)), null, moonGeo);
+
+            (double X, double Y)[] stars = [(-1.05, -0.70), (-0.82, -0.25), (1.15, -0.18), (0.46, -0.92)];
+            for (int i = 0; i < stars.Length; i++)
+            {
+                byte a = (byte)(95 + 150 * Math.Abs(Math.Sin(now * 1.8 + i * 1.7)));
+                dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(a, 254, 240, 138)), null, new Point(cx + stars[i].X * r, cy + stars[i].Y * r), Math.Max(1.2, r * 0.04), Math.Max(1.2, r * 0.04));
+            }
+        }
+    }
+
+    private void DrawWeatherOverlay(DrawingContext dc, WeatherKind weather, double r, double cx, double cy, double now)
+    {
+        if (weather == WeatherKind.Fog && now >= _fogClearUntil)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                double offset = Math.Sin(now * 0.7 + i * 2.1) * r * 0.35;
+                dc.DrawRoundedRectangle(
+                    new SolidColorBrush(Color.FromArgb(55, 226, 232, 240)),
+                    null,
+                    new Rect(cx - r * 1.1 + offset, cy + r * (0.08 + i * 0.22), r * 2.2, Math.Max(3, r * 0.12)),
+                    r * 0.06, r * 0.06);
+            }
+        }
+        else if (weather == WeatherKind.Thunderstorm && _lightningFlash > 0.05)
+        {
+            dc.PushOpacity(_lightningFlash);
+            double bx = cx + r * 0.04;
+            double by = cy + r * 0.36;
+            var bolt = new StreamGeometry();
+            using (var ctx = bolt.Open())
+            {
+                ctx.BeginFigure(new Point(bx, by), true, true);
+                ctx.LineTo(new Point(bx - r * 0.18, by + r * 0.36), true, false);
+                ctx.LineTo(new Point(bx - r * 0.02, by + r * 0.36), true, false);
+                ctx.LineTo(new Point(bx - r * 0.14, by + r * 0.74), true, false);
+                ctx.LineTo(new Point(bx + r * 0.20, by + r * 0.28), true, false);
+                ctx.LineTo(new Point(bx + r * 0.04, by + r * 0.28), true, false);
+                ctx.LineTo(new Point(bx + r * 0.16, by), true, false);
+            }
+            bolt.Freeze();
+            dc.DrawGeometry(new SolidColorBrush(Color.FromRgb(250, 204, 21)), new Pen(new SolidColorBrush(Color.FromRgb(254, 240, 138)), Math.Max(1, r * 0.025)), bolt);
             dc.Pop();
         }
     }

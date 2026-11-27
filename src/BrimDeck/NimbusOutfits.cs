@@ -9,8 +9,12 @@ namespace BrimDeck;
 /// </summary>
 internal static class NimbusOutfits
 {
-    public static NimbusOutfit ResolveOutfit(NimbusOutfit selection, DateTime now)
-        => selection == NimbusOutfit.Auto ? SeasonalOutfit(now) : selection;
+    public static NimbusOutfit ResolveOutfit(NimbusOutfit selection, DateTime now, WeatherKind weather = WeatherKind.None)
+    {
+        if (selection != NimbusOutfit.Auto) return selection;
+        var seasonal = SeasonalOutfit(now);
+        return seasonal != NimbusOutfit.None ? seasonal : WeatherLogic.SuggestedOutfit(weather);
+    }
 
     /// <summary>
     /// Seasonal schedule matching Coucou's wardrobe.ts:

@@ -145,6 +145,7 @@ public partial class MainWindow
 
             _app.Updates.Changed += OnUpdatesChangedForNimbus;
         }
+        _app.Weather.Changed += OnWeatherChangedForNimbus;
 
         StartConversationWatchers();
 
@@ -157,6 +158,7 @@ public partial class MainWindow
                 watcher.Dispose();
             _conversationWatchers.Clear();
             if (_lead is null) _app.Updates.Changed -= OnUpdatesChangedForNimbus;
+            _app.Weather.Changed -= OnWeatherChangedForNimbus;
             _desktopNimbus?.Close();
             _desktopNimbus = null;
         };
@@ -248,6 +250,24 @@ public partial class MainWindow
 
     private void OnUpdatesChangedForNimbus() => Dispatcher.BeginInvoke(ApplyNimbusSettings);
 
+    private void OnWeatherChangedForNimbus() => Dispatcher.BeginInvoke(() =>
+    {
+        ApplyNimbusWeather();
+        UpdateNimbusStatus();
+        if (!_expanded && IsLoaded) RenderCompact();
+        if (_expanded && IsWeatherPage) RenderWeather();
+    });
+
+    internal void ApplyNimbusWeather()
+    {
+        var kind = Settings.NimbusEnabled && Settings.NimbusWeatherEnabled
+            ? (_app.Weather.Current?.Kind ?? WeatherKind.None)
+            : WeatherKind.None;
+        _compactNimbus.SetWeather(kind);
+        ExpandedNimbus.SetWeather(kind);
+        _desktopNimbus?.Nimbus.SetWeather(kind);
+    }
+
     internal void ApplyNimbusSettings()
     {
         NimbusSound.Enabled = Settings.NimbusSoundsEnabled && !Settings.NimbusDoNotDisturb;
@@ -255,6 +275,7 @@ public partial class MainWindow
         _compactNimbus.SetOutfit(Settings.NimbusOutfit);
         ExpandedNimbus.SetOutfit(Settings.NimbusOutfit);
         _desktopNimbus?.Nimbus.SetOutfit(Settings.NimbusOutfit);
+        ApplyNimbusWeather();
 
         bool allowDrag = _lead is null && Settings.NimbusEnabled && Settings.NimbusDesktopRoamingEnabled;
         _compactNimbus.AllowDragOut = false;
@@ -314,6 +335,7 @@ public partial class MainWindow
         _desktopNimbus.Left = left;
         _desktopNimbus.Top = top;
         _desktopNimbus.Nimbus.SetOutfit(Settings.NimbusOutfit);
+        _desktopNimbus.Nimbus.SetWeather(Settings.NimbusEnabled && Settings.NimbusWeatherEnabled ? (_app.Weather.Current?.Kind ?? WeatherKind.None) : WeatherKind.None);
         _desktopNimbus.Nimbus.SetDancing(Settings.NimbusEnabled && Settings.NimbusDanceEnabled && MusicAudioActive);
         if (!_desktopNimbus.IsVisible) _desktopNimbus.Show();
         _roamingOnDesktop = true;
@@ -469,6 +491,15 @@ public partial class MainWindow
         }
 
         _lastResolvedNimbusState = status.State;
+
+        if (status.State == NimbusState.Idle && Settings.NimbusEnabled && Settings.NimbusWeatherEnabled && _app.Weather.Current is { } wx)
+        {
+            string temp = WeatherLogic.FormatTemp(wx.TempC, Settings.WeatherUnit);
+            status = status with
+            {
+                DetailText = $"{wx.LocationName} · {temp} · {wx.ConditionText}\n“{wx.Quip}”"
+            };
+        }
 
         bool hideNotch = Settings.NimbusEnabled && Settings.NimbusHideWhenIdle
             && status.State == NimbusState.Sleeping

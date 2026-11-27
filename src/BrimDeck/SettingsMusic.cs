@@ -56,7 +56,7 @@ public sealed partial class SettingsWindow
         // The rows are in the order the collapsed row shows the parts, left to right; only the cover keeps its place at the left.
         var rows = new StackPanel();
         _partOptions.Clear();
-        foreach (var part in S.CompactOrder(style))
+        foreach (var part in S.CompactOrder(style).Where(p => p != CompactPart.Devices))
             rows.Children.Add(part switch { CompactPart.Clock => ClockRow(style, rows), _ => PartRow(style, part, rows) });
         UpdateDividers(rows);
         Group(rows);
@@ -78,6 +78,8 @@ public sealed partial class SettingsWindow
                 "Dragging moves only the title or lyric. The cover stays at the left."),
             CompactPart.Transfer => ("File transfer", style == CompactStyle.Notch ? S.NotchTransfer : S.CapsuleTransfer,
                 "Shows how many files the file transfer holds, and nothing while it is empty. Clicking it opens the clipboard and file transfer page."),
+            CompactPart.Weather => ("Weather", S.ShowsWeather(style),
+                "Shows current temperature and condition in the collapsed bar. Clicking it opens the weather page."),
             _ => ("System monitor", S.ShowsMonitor(style), null)
         };
         void Show(bool on) => Change(s =>
@@ -88,6 +90,7 @@ public sealed partial class SettingsWindow
                 case CompactPart.Music: if (notch) s.NotchMusic = on; else s.CapsuleMusic = on; break;
                 case CompactPart.Equalizer: if (notch) s.NotchEqualizer = on; else s.CapsuleEqualizer = on; break;
                 case CompactPart.Transfer: if (notch) s.NotchTransfer = on; else s.CapsuleTransfer = on; break;
+                case CompactPart.Weather: if (notch) s.NotchWeather = on; else s.CapsuleWeather = on; break;
                 default: if (notch) s.NotchMonitor = on; else s.CapsuleMonitor = on; break;
             }
         });

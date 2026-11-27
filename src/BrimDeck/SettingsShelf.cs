@@ -37,6 +37,26 @@ public partial class SettingsWindow
         QuickSizeRow(sizes);
     }
 
+    private void WeatherSizeControls()
+    {
+        var dimensions = new Grid { Margin = new Thickness(0, 8, 0, 0) }; dimensions.ColumnDefinitions.Add(new()); dimensions.ColumnDefinitions.Add(new());
+        var width = Dimension("Width", S.WeatherWidth, 440, 1200, value => Resize(s => s.WeatherWidth = value, DeckPage.Weather)); width.Margin = new Thickness(0, 0, 20, 0); dimensions.Children.Add(width);
+        var height = Dimension("Height", S.WeatherHeight, 140, 400, value => Resize(s => s.WeatherHeight = value, DeckPage.Weather)); height.Margin = new Thickness(20, 0, 0, 0); Grid.SetColumn(height, 1); dimensions.Children.Add(height);
+        Target.Children.Add(dimensions);
+        var sizes = KeepPreview(new UniformGrid { Columns = 3, Width = 292 });
+        foreach (var size in Enum.GetValues<PanelSize>())
+        {
+            var (w, h) = WeatherSizes.For(size);
+            var choice = new RadioButton { Style = (Style)FindResource("SettingsSegment"), Content = PanelSizes.Name(size), GroupName = "WeatherSize", IsChecked = (S.WeatherWidth, S.WeatherHeight) == (w, h) };
+            AutomationProperties.SetName(choice, "Weather quick size " + PanelSizes.Name(size));
+            choice.Checked += (_, _) => { Resize(s => { s.WeatherWidth = w; s.WeatherHeight = h; }, DeckPage.Weather); ShowPage(2); };
+            sizes.Children.Add(choice);
+        }
+        QuickSizeRow(sizes);
+        Target.Children.Add(new Border { Height = 1, Background = UI.Brush(_palette.RowDivider), Margin = new Thickness(0, 12, 0, 0) });
+        Target.Children.Add(Row("Location & unit", ActionButton("Open Weather & Location", () => ShowPage(WeatherSettingsPage))));
+    }
+
     // ----  ----
     private void ClipboardSettings()
     {

@@ -16,6 +16,7 @@ try
     ModelUsageTests.Run(Check);
     AntigravityUsageTests.Run(root, Check);
     BrimDeck.Tests.NimbusCompanionTests.Run(Check);
+    BrimDeck.Tests.WeatherTests.Run(Check);
     await MusicTests.Run(Check);
     await AppleMusicLyricsTests.Run(root, Check);
     await KugouTests.Run(Check);

@@ -44,8 +44,8 @@ public sealed record IgnoredMediaApp(string AppId = "", string Name = "", string
 public enum ProviderId { Claude, Codex, Antigravity, Cursor, GlmChina, NewApi, Sub2Api, Custom, ZCode = 10, GlmGlobal = 11, Dsh = 12, DeepSeek = 13, GrokBot = 14, Kimi = 15, KimiApi = 16, OpenCode = 17, OpenCodeGo = 18, OpenRouter = 19, Pi = 20 }
 public enum SettingsTheme { System, Light, Dark }
 // Pages are saved as numbers, so new members go at the end; their order in the page switch is DeckSettings.PageOrder.
-public enum DeckPage { Usage, Music, Monitor, Clipboard, Devices }
-public enum DefaultDeckPage { Last, Usage, Music, Monitor, Clipboard, Devices }
+public enum DeckPage { Usage, Music, Monitor, Clipboard, Devices, Weather }
+public enum DefaultDeckPage { Last, Usage, Music, Monitor, Clipboard, Devices, Weather }
 // What the mouse wheel does over the expanded panel. Saved as numbers, so new members go at the end.
 public enum MouseWheelAction { None, Pages, Volume }
 // What a double click on an end of the collapsed notch or capsule does: turn its auto width on or off, or start moving it
@@ -65,12 +65,12 @@ public enum EqualizerMode { Flow = 0, Spectrum = 1 }
 public enum QuotaRingStyle { Nested = 0, Single = 1 }
 // The parts of the collapsed notch and capsule that are put in order, left to right. The cover stays at the left; Music places
 // only the title or lyric. Saved as numbers, so new members go at the end.
-public enum CompactPart { Rings, Music, Monitor, Equalizer, Clock, Transfer, Devices }
+public enum CompactPart { Rings, Music, Monitor, Equalizer, Clock, Transfer, Devices, Weather }
 public static class CompactParts
 {
     // A file saved before the equalizer and the clock were put in order adds them after its parts, the clock last, where they stood.
     // The devices' batteries (1.3.0) join last.
-    public static IReadOnlyList<CompactPart> Default { get; } = [CompactPart.Rings, CompactPart.Music, CompactPart.Monitor, CompactPart.Equalizer, CompactPart.Clock, CompactPart.Transfer, CompactPart.Devices];
+    public static IReadOnlyList<CompactPart> Default { get; } = [CompactPart.Rings, CompactPart.Music, CompactPart.Monitor, CompactPart.Equalizer, CompactPart.Clock, CompactPart.Transfer, CompactPart.Devices, CompactPart.Weather];
     // Each known part once, in the saved order; a part missing from the file takes its default place after the others.
     public static List<CompactPart> Normalize(IEnumerable<CompactPart>? order) => [.. (order ?? []).Where(part => Enum.IsDefined(part)).Concat(Default).Distinct()];
 }
@@ -304,6 +304,13 @@ public static class ShelfSizes
 }
 
 public static class MonitorSizes
+{
+    public static readonly (double Width, double Height) Default = (620, 220);
+    public static (double Width, double Height) For(PanelSize size) => size switch
+    { PanelSize.Compact => (480, 160), PanelSize.Spacious => (860, 320), _ => Default };
+}
+
+public static class WeatherSizes
 {
     public static readonly (double Width, double Height) Default = (620, 220);
     public static (double Width, double Height) For(PanelSize size) => size switch
@@ -575,6 +582,16 @@ public sealed class DeckSettings
     public bool NimbusCollapseToCharacter { get; set; } = true;
     public bool NimbusHideWhenIdle { get; set; }
     public bool NimbusDoNotDisturb { get; set; }
+    public bool NimbusWeatherEnabled { get; set; } = true;
+    public bool WeatherPage { get; set; } = true;
+    public double WeatherWidth { get; set; } = WeatherSizes.Default.Width;
+    public double WeatherHeight { get; set; } = WeatherSizes.Default.Height;
+    public bool NotchWeather { get; set; } = true;
+    public bool CapsuleWeather { get; set; } = true;
+    public string WeatherCity { get; set; } = "";
+    public double? WeatherLatitude { get; set; }
+    public double? WeatherLongitude { get; set; }
+    public WeatherUnit WeatherUnit { get; set; } = WeatherUnit.Celsius;
     public int CloseDelay { get; set; } = 0;
     public int AnimationDuration { get; set; } = 360;
     public bool Animations { get; set; } = true;
@@ -721,6 +738,8 @@ public sealed class DeckSettings
     public bool ShowsDevices(CompactStyle style) => style switch { CompactStyle.Notch => NotchDevices, CompactStyle.Capsule => CapsuleDevices, _ => false };
     // The file transfer's count needs the page: with the page off, nothing can be dropped there.
     public bool ShowsTransfer(CompactStyle style) => ClipboardPage && style switch { CompactStyle.Notch => NotchTransfer, CompactStyle.Capsule => CapsuleTransfer, _ => false };
+    public bool ShowsWeather(CompactStyle style) => style switch { CompactStyle.Notch => NotchWeather, CompactStyle.Capsule => CapsuleWeather, _ => false };
+    [JsonIgnore] public bool WeatherWanted => WeatherLatitude is not null && WeatherLongitude is not null && (NimbusWeatherEnabled || WeatherPage || ShowsWeather(Style));
     public IReadOnlyList<CompactPart> CompactOrder(CompactStyle style) => style == CompactStyle.Capsule ? CapsuleOrder : NotchOrder;
     public void SetCompactOrder(CompactStyle style, IEnumerable<CompactPart> order) { if (style == CompactStyle.Notch) NotchOrder = [.. order]; else if (style == CompactStyle.Capsule) CapsuleOrder = [.. order]; }
     public bool CompactAutoWidth(CompactStyle style) => style switch { CompactStyle.Notch => NotchAutoWidth, CompactStyle.Capsule => CapsuleAutoWidth, _ => false };
@@ -845,6 +864,17 @@ public sealed class DeckSettings
         MonitorHeight = double.IsFinite(MonitorHeight) ? Math.Clamp(MonitorHeight, DeckPages.MinHeight, DeckPages.MaxHeight) : MonitorSizes.Default.Height;
         ClipboardWidth = double.IsFinite(ClipboardWidth) ? Math.Clamp(ClipboardWidth, DeckPages.MinWidth, DeckPages.MaxWidth) : ShelfSizes.Default.Width;
         ClipboardHeight = double.IsFinite(ClipboardHeight) ? Math.Clamp(ClipboardHeight, DeckPages.MinHeight, DeckPages.MaxHeight) : ShelfSizes.Default.Height;
+        WeatherWidth = double.IsFinite(WeatherWidth) ? Math.Clamp(WeatherWidth, DeckPages.MinWidth, DeckPages.MaxWidth) : WeatherSizes.Default.Width;
+        WeatherHeight = double.IsFinite(WeatherHeight) ? Math.Clamp(WeatherHeight, DeckPages.MinHeight, DeckPages.MaxHeight) : WeatherSizes.Default.Height;
+        if (!Enum.IsDefined(WeatherUnit)) WeatherUnit = WeatherUnit.Celsius;
+        WeatherCity = (WeatherCity ?? "").Trim();
+        if (WeatherCity.Length > 120) WeatherCity = WeatherCity[..120];
+        if (WeatherLatitude is not { } wLat || !double.IsFinite(wLat) || wLat < -90 || wLat > 90 ||
+            WeatherLongitude is not { } wLon || !double.IsFinite(wLon) || wLon < -180 || wLon > 180)
+        {
+            WeatherLatitude = null;
+            WeatherLongitude = null;
+        }
         if (!Enum.IsDefined(TransferDragOut)) TransferDragOut = TransferDragOut.Copy;
         ClipboardExcluded = ClipboardExclusions.Normalize(ClipboardExcluded);
         PanelScale = PanelScales.Fit(PanelScale);
