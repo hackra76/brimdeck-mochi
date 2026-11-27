@@ -1162,7 +1162,8 @@ public sealed partial class SettingsWindow : Window, IKeepsAppFonts
         Group(Row("Current version",version),
             Row("License",TextLine("Apache License 2.0",12,TextSecondary)),
             Row("Homepage",Link("GitHub ↗","https://github.com/hackra76/brimdeck-nimbus")),
-            Row("Issues and suggestions",Link("Send feedback ↗","https://github.com/hackra76/brimdeck-nimbus/issues")));
+            Row("Issues and suggestions",Link("Send feedback ↗","https://github.com/hackra76/brimdeck-nimbus/issues")),
+            Row("Support this fork",Link("Buy Me a Coffee ↗","https://buymeacoffee.com/hackra")));
 
         // Attribution required by the licenses of the projects this fork is built on (Apache-2.0 and MIT).
         SectionTitle("Credits and licenses");

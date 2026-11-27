@@ -12,8 +12,9 @@ A native Windows app built with C# and WPF, designed for performance and smoothn
 [![Latest release](https://img.shields.io/github/v/release/hackra76/brimdeck-nimbus?style=flat-square&label=Latest&color=98DBB0)](https://github.com/hackra76/brimdeck-nimbus/releases/latest)
 [![License](https://img.shields.io/badge/License-Apache%202.0-E5A385?style=flat-square)](LICENSE)
 ![Interface language](https://img.shields.io/badge/Interface-English-B9A8FF?style=flat-square)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support%20this%20fork-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=000000)](https://buymeacoffee.com/hackra)
 
-<p><a href="#nimbus-ai-companion">Nimbus Companion</a> · <a href="#features">Features</a> · <a href="#install">Install</a> · <a href="#quick-start">Quick start</a> · <a href="#privacy">Privacy</a> · <a href="#faq">FAQ</a></p>
+<p><a href="#nimbus-ai-companion">Nimbus Companion</a> · <a href="#features">Features</a> · <a href="#install">Install</a> · <a href="#quick-start">Quick start</a> · <a href="#privacy">Privacy</a> · <a href="#faq">FAQ</a> · <a href="#support">Support</a></p>
 
 
 
@@ -233,6 +234,14 @@ The device has to be connected and be one of the connections or models listed in
 ## Contributing
 
 You are welcome to report problems, suggest features, or open pull requests in [Issues](https://github.com/hackra76/brimdeck-nimbus/issues).
+
+## Support
+
+BrimDeck + Nimbus is free and open source. If you enjoy using it and would like to support ongoing maintenance and development of **this fork (`brimdeck-nimbus`) and the Nimbus companion**, you can buy me a coffee:
+
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-hackra-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=000000)](https://buymeacoffee.com/hackra)
+
+*Voluntary donations go solely toward maintaining this fork and are independent of upstream [BrimDeck](https://github.com/MoFeng2223/BrimDeck) (MoFeng2223) and [Coucou](https://github.com/Louis-CFM/coucou) (Louis Raillé).*
 
 ## License
 
